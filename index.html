@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hoàng Quốc Việt | Growth Marketer Portfolio</title>
+<link href="https://fonts.googleapis.com/css2?family=Fleur+De+Leah&family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --lime:#c8f000;
+  --electric-blue:#1a56ff;
+  --crimson:#8b0000;
+  --gold:#d4a017;
+  --off-white:#f5f5f0;
+  --text-dark:#0a0a0e;
+  --text-mid:#3a3a4a;
+  --g-start:#ff6b35;
+  --g-end:#ff2d87;
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Inter',-apple-system,sans-serif;-webkit-tap-highlight-color:transparent;}
+html{scroll-behavior:smooth;}
+body{background:#0d0118;color:var(--text-dark);min-height:100vh;overflow-x:hidden;}
+
+/* ─── NAV ─── */
+.topnav{display:flex;align-items:center;justify-content:space-between;padding:16px 28px;position:fixed;top:0;left:0;right:0;z-index:300;background:rgba(10,2,20,.6);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid rgba(200,240,0,.08);}
+.topnav-logo{font-size:20px;font-weight:900;letter-spacing:-.04em;color:var(--lime);}
+.topnav-logo em{font-style:normal;width:9px;height:9px;display:inline-block;border-radius:50%;background:var(--lime);margin-left:3px;vertical-align:middle;}
+.topnav-cta{background:linear-gradient(135deg,var(--g-start),var(--g-end));color:#fff;border:none;border-radius:99px;padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;transition:transform .15s,box-shadow .15s;}
+.topnav-cta:hover{transform:scale(1.06);box-shadow:0 4px 24px rgba(255,107,53,.5);}
+
+/* ─── FLOATING NON LA (fixed, always visible) ─── */
+#nonlaWrap{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:150;pointer-events:none;width:320px;height:320px;}
+#nonlaCanvas{width:320px;height:320px;display:block;}
+
+/* ─── HERO ─── */
+#hero{position:relative;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:120px 24px 100px;overflow:hidden;}
+#hero::before{content:'';position:absolute;inset:0;z-index:0;background:radial-gradient(ellipse 80% 60% at 50% 30%,rgba(255,107,53,.22) 0%,rgba(255,45,135,.14) 40%,transparent 70%),radial-gradient(ellipse 60% 50% at 80% 80%,rgba(255,45,135,.1) 0%,transparent 60%),linear-gradient(180deg,#1a0828 0%,#0d0118 100%);}
+#starCanvas{position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none;}
+.hero-content{position:relative;z-index:3;display:flex;flex-direction:column;align-items:center;gap:18px;}
+.avatar-ring{width:100px;height:100px;border-radius:50%;background:linear-gradient(135deg,var(--g-start),var(--g-end));display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900;color:#fff;box-shadow:0 8px 40px rgba(255,107,53,.45);}
+.status-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(200,240,0,.1);border:1px solid rgba(200,240,0,.25);color:var(--lime);padding:8px 18px;border-radius:99px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--lime);animation:blink 1.8s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+.hero-name{font-family:'Fleur De Leah',cursive;font-size:clamp(52px,11vw,96px);font-weight:400;line-height:1.05;background:linear-gradient(135deg,var(--g-start) 0%,var(--g-end) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 30px rgba(255,107,53,.35));}
+.hero-sub{font-size:16px;color:rgba(255,255,255,.6);max-width:420px;line-height:1.6;}
+.hero-sub strong{color:var(--lime);font-weight:700;}
+.drag-hint{font-family:ui-monospace,monospace;font-size:11px;color:rgba(200,240,0,.4);letter-spacing:.15em;text-transform:uppercase;background:rgba(200,240,0,.04);padding:6px 14px;border-radius:99px;border:1px solid rgba(200,240,0,.1);transition:color .3s,border-color .3s;}
+.drag-hint.focused{color:var(--lime);border-color:rgba(200,240,0,.4);}
+.scroll-arrow{color:rgba(255,255,255,.25);font-size:22px;animation:bounce 2s ease-in-out infinite;}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(7px)}}
+
+/* ─── SECTIONS ─── */
+.section-inner{max-width:640px;margin:0 auto;position:relative;z-index:2;}
+.eyebrow{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin-bottom:20px;opacity:.5;}
+.section-headline{font-size:clamp(26px,5vw,40px);font-weight:900;letter-spacing:-.03em;line-height:1.1;margin-bottom:36px;}
+.accent-lime{color:var(--lime);}
+
+/* hover pill */
+.hpill{width:100%;border-radius:20px;border:1.5px solid rgba(255,255,255,.1);cursor:pointer;transition:border-color .2s,transform .2s,box-shadow .2s;display:block;text-align:left;font-family:inherit;color:inherit;position:relative;overflow:hidden;background:transparent;}
+.hpill::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--g-start),var(--g-end));opacity:0;transition:opacity .25s;border-radius:inherit;}
+.hpill:hover{border-color:transparent;transform:translateY(-2px) scale(1.01);box-shadow:0 8px 32px rgba(255,107,53,.35);}
+.hpill:hover::before{opacity:1;}
+.hpill>*{position:relative;z-index:1;}
+
+/* ─── SECTION BLUE ─── */
+.section-blue{background:var(--electric-blue);padding:80px 24px 88px;color:#fff;position:relative;overflow:hidden;}
+.wave-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;opacity:0;transition:opacity .6s;}
+.wave-canvas.visible{opacity:1;}
+
+/* ─── PROJECT CARDS ─── */
+.project-stack{display:flex;flex-direction:column;gap:16px;}
+.project-card{padding:24px 28px;background:rgba(255,255,255,.07);display:flex;justify-content:space-between;align-items:center;gap:16px;}
+.project-card-title{font-size:18px;font-weight:800;letter-spacing:-.02em;margin-bottom:8px;}
+.project-card-tags{display:flex;gap:6px;flex-wrap:wrap;}
+.tag{background:rgba(255,255,255,.12);border-radius:99px;padding:3px 10px;font-size:11px;font-weight:600;color:rgba(255,255,255,.7);white-space:nowrap;transition:background .2s,color .2s;}
+.tag.lime{background:rgba(200,240,0,.15);color:var(--lime);}
+.hpill:hover .tag{background:rgba(255,255,255,.18);color:#fff;}
+.hpill:hover .tag.lime{background:rgba(255,255,255,.25);color:#fff;}
+.project-arrow{font-size:22px;color:var(--lime);flex-shrink:0;transition:transform .2s,color .2s;}
+.hpill:hover .project-arrow{transform:translateX(5px);color:#fff;}
+/* cloud canvas overlay */
+.cloud-canvas{position:absolute;top:0;left:0;right:0;pointer-events:none;z-index:1;opacity:0;transition:opacity .6s;height:160px;}
+.cloud-canvas.visible{opacity:1;}
+
+/* ─── SECTION CRIMSON ─── */
+.section-crimson{background:var(--crimson);padding:80px 24px 88px;color:#fff;position:relative;overflow:hidden;}
+.tech-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;opacity:0;transition:opacity .8s;}
+.tech-canvas.visible{opacity:1;}
+.skill-grid{display:flex;flex-direction:column;gap:14px;}
+.skill-pill{padding:20px 28px;display:flex;align-items:center;gap:16px;background:rgba(255,255,255,.08);}
+.skill-pill-icon{font-size:24px;flex-shrink:0;}
+.skill-pill-label{flex:1;font-size:17px;font-weight:800;letter-spacing:-.01em;color:#fff;transition:color .2s;}
+.skill-chevron{font-size:18px;color:var(--lime);flex-shrink:0;transition:transform .25s,color .2s;}
+.hpill.open .skill-chevron{transform:rotate(45deg);}
+.hpill:hover .skill-chevron{color:#fff;}
+.skill-detail{background:rgba(0,0,0,.15);border-top:1px solid rgba(255,255,255,.08);padding:16px 20px;display:none;}
+.skill-detail.open{display:block;}
+.skill-detail ul{list-style:none;display:flex;flex-wrap:wrap;gap:8px;}
+.skill-detail ul li{background:rgba(255,255,255,.1);border-radius:99px;padding:5px 14px;font-size:12px;font-weight:600;color:rgba(255,255,255,.8);}
+
+/* ─── SECTION GOLD (Projects Portfolio) ─── */
+.section-gold{background:#1a1400;padding:80px 24px 88px;color:#f5e6a0;position:relative;overflow:hidden;}
+.section-gold .eyebrow{color:var(--gold);opacity:.7;}
+.section-gold .section-headline{color:var(--gold);}
+.garden-canvas{position:absolute;bottom:0;left:0;right:0;pointer-events:none;z-index:1;height:220px;opacity:0;transition:opacity .8s;}
+.garden-canvas.visible{opacity:1;}
+.portfolio-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media(max-width:540px){.portfolio-grid{grid-template-columns:1fr;}}
+.port-card{border-radius:18px;border:1.5px solid rgba(212,160,23,.18);background:rgba(212,160,23,.06);padding:22px 20px;cursor:pointer;position:relative;overflow:hidden;transition:border-color .2s,transform .2s,box-shadow .2s;}
+.port-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--g-start),var(--g-end));opacity:0;transition:opacity .25s;border-radius:inherit;}
+.port-card:hover{border-color:transparent;transform:translateY(-3px);box-shadow:0 10px 36px rgba(255,107,53,.3);}
+.port-card:hover::before{opacity:1;}
+.port-card>*{position:relative;z-index:1;}
+.port-card-icon{font-size:28px;margin-bottom:10px;}
+.port-card-title{font-size:15px;font-weight:800;color:#f5e6a0;margin-bottom:6px;transition:color .2s;}
+.port-card:hover .port-card-title{color:#fff;}
+.port-card-desc{font-size:12px;color:rgba(245,230,160,.55);line-height:1.5;transition:color .2s;}
+.port-card:hover .port-card-desc{color:rgba(255,255,255,.8);}
+.port-card-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:10px;}
+.port-tag{background:rgba(212,160,23,.15);border-radius:99px;padding:3px 9px;font-size:10px;font-weight:600;color:var(--gold);transition:background .2s,color .2s;}
+.port-card:hover .port-tag{background:rgba(255,255,255,.2);color:#fff;}
+
+/* ─── SECTION WHITE ─── */
+.section-white{background:var(--off-white);padding:80px 24px 88px;color:var(--text-dark);}
+.section-white .eyebrow{color:var(--text-mid);}
+.contact-headline{font-size:clamp(28px,5vw,44px);font-weight:900;letter-spacing:-.03em;line-height:1.1;margin-bottom:8px;}
+.contact-sub{font-size:15px;color:var(--text-mid);margin-bottom:32px;line-height:1.5;}
+.contact-form{display:flex;flex-direction:column;gap:12px;}
+.form-field{width:100%;padding:16px 20px;background:#fff;border:1.5px solid rgba(0,0,0,.08);border-radius:16px;font-size:15px;font-family:inherit;color:var(--text-dark);outline:none;transition:border-color .2s;}
+.form-field:focus{border-color:var(--electric-blue);}
+.form-field::placeholder{color:#aaa;}
+.submit-btn{width:100%;padding:18px;border:none;border-radius:99px;font-size:16px;font-weight:800;cursor:pointer;font-family:inherit;background:var(--text-dark);color:var(--lime);transition:background .2s,transform .15s,box-shadow .2s;}
+.submit-btn:hover{background:linear-gradient(135deg,var(--g-start),var(--g-end));color:#fff;transform:scale(1.02);box-shadow:0 6px 28px rgba(255,107,53,.4);}
+.submit-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+.form-note{font-size:12px;color:var(--text-mid);text-align:center;opacity:.6;}
+.form-status{font-size:13px;text-align:center;padding:10px;border-radius:10px;display:none;}
+.form-status.success{display:block;background:#dcfce7;color:#166534;}
+.form-status.error{display:block;background:#fee2e2;color:#991b1b;}
+/* ─── FOOTER ─── */
+footer{background:#05010f;color:rgba(255,255,255,.35);text-align:center;padding:24px 16px;font-size:12px;}
+footer a{color:var(--lime);text-decoration:none;font-weight:700;}
+@media(max-width:480px){.topnav{padding:12px 16px;}.project-card{flex-direction:column;align-items:flex-start;}.project-arrow{align-self:flex-end;}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;}#starCanvas,#nonlaWrap,.wave-canvas,.tech-canvas,.cloud-canvas,.garden-canvas{display:none!important;}}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="topnav">
+  <div class="topnav-logo">HQV<em></em></div>
+  <button class="topnav-cta" onclick="document.getElementById('contact').scrollIntoView({behavior:'smooth'})">Kết nối ngay →</button>
+</nav>
+
+<!-- NON LA — fixed, always visible -->
+<div id="nonlaWrap" aria-hidden="true"><canvas id="nonlaCanvas" width="320" height="320"></canvas></div>
+
+<!-- HERO -->
+<section id="hero">
+  <canvas id="starCanvas" aria-hidden="true"></canvas>
+  <div class="hero-content">
+    <div class="avatar-ring">HQV</div>
+    <div class="status-badge"><span class="status-dot"></span>Sẵn sàng nhận dự án</div>
+    <h1 class="hero-name">Hoàng Quốc Việt</h1>
+    <p class="hero-sub">Tối ưu hóa phễu Marketing bằng tư duy dữ liệu,<br><strong>Automation</strong> và năng lực thực thi thực tế.</p>
+    <div class="drag-hint" id="dragHint">KÉO / CUỘN ĐỂ TƯƠNG TÁC</div>
+    <div class="scroll-arrow" aria-hidden="true">↓</div>
+  </div>
+</section>
+
+<!-- SECTION BLUE: Proof of work -->
+<section class="section-blue" id="projects">
+  <canvas class="cloud-canvas" id="cloudCanvas"></canvas>
+  <canvas class="wave-canvas" id="waveCanvas"></canvas>
+  <div class="section-inner">
+    <p class="eyebrow">Proof of work</p>
+    <h2 class="section-headline">Hệ thống thực chiến —<br><span class="accent-lime">đang chạy, không demo.</span></h2>
+    <div class="project-stack">
+      <div class="hpill project-card" tabindex="0" role="button">
+        <div>
+          <div class="project-card-title">Automation Marketing Funnel</div>
+          <div class="project-card-tags"><span class="tag lime">Live system</span><span class="tag">n8n</span><span class="tag">LLM routing</span></div>
+        </div>
+        <div class="project-arrow">→</div>
+      </div>
+      <div class="hpill project-card" tabindex="0" role="button">
+        <div>
+          <div class="project-card-title">Data Optimization Architecture</div>
+          <div class="project-card-tags"><span class="tag lime">80% time saved</span><span class="tag">Excel VBA</span></div>
+        </div>
+        <div class="project-arrow">→</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION CRIMSON: Skills -->
+<section class="section-crimson" id="skills">
+  <canvas class="tech-canvas" id="techCanvas"></canvas>
+  <div class="section-inner">
+    <p class="eyebrow">Core competencies</p>
+    <h2 class="section-headline">Năng lực cốt lõi</h2>
+    <div class="skill-grid">
+      <button class="hpill skill-pill" onclick="toggleSkill(this,'det1')" aria-expanded="false">
+        <span class="skill-pill-icon">⚙️</span><span class="skill-pill-label">Data &amp; Automation Core</span><span class="skill-chevron">＋</span>
+      </button>
+      <div class="skill-detail" id="det1"><ul><li>n8n Workflow</li><li>Excel VBA</li><li>Google Sheets</li><li>Data Pipeline</li><li>LLM Integration</li><li>API Automation</li></ul></div>
+      <button class="hpill skill-pill" onclick="toggleSkill(this,'det2')" aria-expanded="false">
+        <span class="skill-pill-icon">🎯</span><span class="skill-pill-label">Branding &amp; Conversion Design</span><span class="skill-chevron">＋</span>
+      </button>
+      <div class="skill-detail" id="det2"><ul><li>Funnel Optimization</li><li>Landing Page</li><li>A/B Testing</li><li>Copywriting</li><li>Brand Identity</li><li>CRO Strategy</li></ul></div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION GOLD: Portfolio -->
+<section class="section-gold" id="portfolio">
+  <canvas class="garden-canvas" id="gardenCanvas"></canvas>
+  <div class="section-inner">
+    <p class="eyebrow">Dự án & Sản phẩm</p>
+    <h2 class="section-headline" style="color:var(--gold);">Những gì tôi<br><span style="color:#ff9d3a;">đã xây dựng.</span></h2>
+    <div class="portfolio-grid">
+      <div class="port-card">
+        <div class="port-card-icon">🤖</div>
+        <div class="port-card-title">Automation Marketing Funnel</div>
+        <div class="port-card-desc">Hệ thống phễu tự động hoàn toàn: từ thu thập lead → nuôi dưỡng → chốt sale, vận hành 24/7 không cần người.</div>
+        <div class="port-card-tags"><span class="port-tag">n8n</span><span class="port-tag">LLM</span><span class="port-tag">Live</span></div>
+      </div>
+      <div class="port-card">
+        <div class="port-card-icon">📊</div>
+        <div class="port-card-title">Data Optimization Architecture</div>
+        <div class="port-card-desc">Tái cấu trúc luồng dữ liệu nội bộ bằng Excel VBA, tiết kiệm 80% thời gian xử lý thủ công mỗi tuần.</div>
+        <div class="port-card-tags"><span class="port-tag">Excel VBA</span><span class="port-tag">Dashboard</span></div>
+      </div>
+      <div class="port-card">
+        <div class="port-card-icon">🌐</div>
+        <div class="port-card-title">Portfolio Website</div>
+        <div class="port-card-desc">Thiết kế và phát triển trang portfolio cá nhân với hiệu ứng vũ trụ, nón lá 3D và hệ thống thu lead tự động.</div>
+        <div class="port-card-tags"><span class="port-tag">HTML/CSS/JS</span><span class="port-tag">UX</span></div>
+      </div>
+      <div class="port-card">
+        <div class="port-card-icon">📱</div>
+        <div class="port-card-title">Social Content System</div>
+        <div class="port-card-desc">Xây dựng hệ thống sản xuất nội dung đa nền tảng với lịch đăng tự động và A/B testing liên tục.</div>
+        <div class="port-card-tags"><span class="port-tag">Content</span><span class="port-tag">Automation</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION WHITE: Contact -->
+<section class="section-white" id="contact">
+  <div class="section-inner">
+    <p class="eyebrow">Let's connect</p>
+    <h2 class="contact-headline">Bài toán nào<br>cần tối ưu?</h2>
+    <p class="contact-sub">Để lại email và mô tả ngắn — mình sẽ phản hồi trong vòng 24h.</p>
+    <form class="contact-form" id="funnel-capture" action="https://formsubmit.co/REPLACE_WITH_YOUR_EMAIL@example.com" method="POST">
+      <input type="text" name="_honey" style="display:none" aria-hidden="true">
+      <input type="hidden" name="_captcha" value="false">
+      <input type="hidden" name="_subject" value="Lead mới từ Portfolio!">
+      <input type="hidden" name="_template" value="table">
+      <input type="email" name="email" class="form-field" placeholder="Email của bạn" required autocomplete="email">
+      <input type="text" name="bai_toan" class="form-field" placeholder="Bài toán cần tối ưu?" required>
+      <button type="submit" class="submit-btn" id="submitBtn">Kích hoạt kết nối →</button>
+      <p class="form-note">Miễn phí · Không spam · Phản hồi trong 24h</p>
+      <p class="form-status" id="formStatus" role="alert"></p>
+    </form>
+  </div>
+</section>
+
+<footer><p>© 2026 <a href="#">hoangquocviet.id.vn</a> — Vận hành hoàn toàn tự động.</p></footer>
+
+<script>
+/* ════════════════════════════════════════════════
+   STAR FIELD — diverse objects
+════════════════════════════════════════════════ */
+(function(){
+  const cv=document.getElementById('starCanvas');
+  const hero=document.getElementById('hero');
+  const ctx=cv.getContext('2d');
+  let W,H,objects=[];
+
+  function resize(){W=cv.width=hero.offsetWidth;H=cv.height=hero.offsetHeight;}
+
+  function rnd(a,b){return a+Math.random()*(b-a);}
+
+  const TYPES=['star','star','star','star','star','giant','giant','dwarf','meteor','planet','blackhole'];
+
+  function initObjects(){
+    objects=[];
+    for(let i=0;i<260;i++){
+      const t=TYPES[Math.floor(Math.random()*TYPES.length)];
+      const o={
+        type:t, x:rnd(0,W), y:rnd(0,H),
+        vx:rnd(-.12,.12), vy:rnd(-.18,-.04),
+        phase:rnd(0,Math.PI*2), twSpeed:rnd(.3,1.5),
+        baseAlpha:rnd(.3,1),
+      };
+      if(t==='star'){o.r=rnd(.25,1.1);o.color=Math.random()<.15?`hsl(${rnd(30,55)},90%,90%)`:Math.random()<.15?`hsl(${rnd(290,340)},70%,90%)`:'#fff';}
+      else if(t==='giant'){o.r=rnd(1.4,2.8);o.color=`hsl(${rnd(30,60)},95%,88%)`;o.hasRay=true;}
+      else if(t==='dwarf'){o.r=rnd(1.8,3.5);o.color='#aad4ff';o.glow=true;}
+      else if(t==='meteor'){
+        o.r=rnd(1,2);o.vx=rnd(1.5,4)*( Math.random()<.5?1:-1);o.vy=rnd(.8,2.5);
+        o.len=rnd(18,55);o.color='rgba(255,220,150,';o.alpha=rnd(.4,.9);
+        o.life=0;o.maxLife=rnd(60,160);
+      }
+      else if(t==='planet'){
+        o.r=rnd(6,14);
+        const hues=[210,40,160,0,270];o.hue=hues[Math.floor(Math.random()*hues.length)];
+        o.ring=Math.random()<.5;o.vx=rnd(-.06,.06);o.vy=rnd(-.06,.04);
+      }
+      else if(t==='blackhole'){
+        o.r=rnd(10,20);o.spin=0;o.spinSpeed=rnd(.01,.03);o.vx=rnd(-.04,.04);o.vy=rnd(-.04,.03);
+      }
+      objects.push(o);
+    }
+  }
+
+  let t=0;
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    // nebula
+    [{x:.3,y:.25,rx:200,ry:120,h:330,a:.03},{x:.7,y:.6,rx:150,ry:90,h:20,a:.025}].forEach(n=>{
+      const g=ctx.createRadialGradient(n.x*W,n.y*H,0,n.x*W,n.y*H,n.rx);
+      g.addColorStop(0,`hsla(${n.h},80%,60%,${n.a})`);g.addColorStop(1,'transparent');
+      ctx.save();ctx.scale(1,n.ry/n.rx);ctx.fillStyle=g;
+      ctx.beginPath();ctx.arc(n.x*W,n.y*H*(n.rx/n.ry),n.rx,0,Math.PI*2);ctx.fill();ctx.restore();
+    });
+
+    objects.forEach(o=>{
+      ctx.save();
+      const tw=.5+.5*Math.sin(t*o.twSpeed+o.phase);
+      const alpha=o.baseAlpha*tw;
+
+      if(o.type==='star'||o.type==='giant'){
+        o.x+=o.vx;o.y+=o.vy;
+        if(o.x<-5)o.x=W+5;if(o.x>W+5)o.x=-5;
+        if(o.y<-5)o.y=H+5;if(o.y>H+5)o.y=rnd(0,H);
+        ctx.globalAlpha=alpha;ctx.fillStyle=o.color;
+        ctx.beginPath();ctx.arc(o.x,o.y,o.r,0,Math.PI*2);ctx.fill();
+        if(o.hasRay){
+          ctx.globalAlpha=alpha*.35;ctx.strokeStyle=o.color;ctx.lineWidth=.6;
+          const arm=o.r*4;
+          ctx.beginPath();ctx.moveTo(o.x-arm,o.y);ctx.lineTo(o.x+arm,o.y);ctx.stroke();
+          ctx.beginPath();ctx.moveTo(o.x,o.y-arm);ctx.lineTo(o.x,o.y+arm);ctx.stroke();
+        }
+      }
+      else if(o.type==='dwarf'){
+        o.x+=o.vx;o.y+=o.vy;
+        if(o.x<-5)o.x=W+5;if(o.y<-5)o.y=H+5;
+        ctx.globalAlpha=alpha*.9;
+        const g=ctx.createRadialGradient(o.x,o.y,0,o.x,o.y,o.r*2.5);
+        g.addColorStop(0,'rgba(180,220,255,1)');g.addColorStop(.4,'rgba(140,200,255,.6)');g.addColorStop(1,'transparent');
+        ctx.fillStyle=g;ctx.beginPath();ctx.arc(o.x,o.y,o.r*2.5,0,Math.PI*2);ctx.fill();
+        ctx.globalAlpha=1;ctx.fillStyle='#e8f4ff';
+        ctx.beginPath();ctx.arc(o.x,o.y,o.r*.7,0,Math.PI*2);ctx.fill();
+      }
+      else if(o.type==='meteor'){
+        o.life++;
+        if(o.life>o.maxLife){o.x=rnd(0,W);o.y=rnd(0,H*.5);o.life=0;}
+        const a=o.alpha*(1-o.life/o.maxLife);
+        ctx.globalAlpha=a;
+        const angle=Math.atan2(o.vy,o.vx);
+        ctx.strokeStyle=`rgba(255,220,150,${a})`;ctx.lineWidth=o.r;
+        ctx.beginPath();ctx.moveTo(o.x,o.y);ctx.lineTo(o.x-Math.cos(angle)*o.len,o.y-Math.sin(angle)*o.len);ctx.stroke();
+        ctx.globalAlpha=a*.9;ctx.fillStyle='rgba(255,240,200,.9)';
+        ctx.beginPath();ctx.arc(o.x,o.y,o.r*.8,0,Math.PI*2);ctx.fill();
+        o.x+=o.vx;o.y+=o.vy;
+      }
+      else if(o.type==='planet'){
+        o.x+=o.vx;o.y+=o.vy;
+        if(o.x<-30)o.x=W+30;if(o.x>W+30)o.x=-30;
+        if(o.y<-30)o.y=H+30;if(o.y>H+30)o.y=-30;
+        ctx.globalAlpha=alpha*.85;
+        const g=ctx.createRadialGradient(o.x-o.r*.3,o.y-o.r*.3,o.r*.1,o.x,o.y,o.r);
+        g.addColorStop(0,`hsla(${o.hue},70%,75%,1)`);
+        g.addColorStop(1,`hsla(${o.hue},60%,30%,1)`);
+        ctx.fillStyle=g;ctx.beginPath();ctx.arc(o.x,o.y,o.r,0,Math.PI*2);ctx.fill();
+        if(o.ring){
+          ctx.globalAlpha=alpha*.4;ctx.strokeStyle=`hsla(${o.hue+20},60%,70%,.7)`;
+          ctx.lineWidth=o.r*.45;ctx.beginPath();ctx.ellipse(o.x,o.y,o.r*2.2,o.r*.5,-.3,0,Math.PI*2);ctx.stroke();
+        }
+      }
+      else if(o.type==='blackhole'){
+        o.x+=o.vx;o.y+=o.vy;
+        if(o.x<-30)o.x=W+30;if(o.y<-30)o.y=H+30;
+        o.spin+=o.spinSpeed;
+        ctx.globalAlpha=alpha*.7;
+        const g=ctx.createRadialGradient(o.x,o.y,0,o.x,o.y,o.r*2.5);
+        g.addColorStop(0,'rgba(0,0,0,1)');g.addColorStop(.45,'rgba(80,0,120,.8)');
+        g.addColorStop(.7,'rgba(255,107,53,.3)');g.addColorStop(1,'transparent');
+        ctx.fillStyle=g;ctx.beginPath();ctx.arc(o.x,o.y,o.r*2.5,0,Math.PI*2);ctx.fill();
+        for(let j=0;j<3;j++){
+          ctx.globalAlpha=alpha*.12*(1-j*.25);
+          ctx.strokeStyle=`hsl(${280+j*30},80%,60%)`;ctx.lineWidth=1.2-j*.3;
+          ctx.beginPath();ctx.ellipse(o.x,o.y,o.r*(2-j*.3),o.r*(.55-j*.1),o.spin+j*.6,0,Math.PI*2);ctx.stroke();
+        }
+      }
+      ctx.restore();
+    });
+  }
+
+  function loop(ts){t=ts*.001;draw();requestAnimationFrame(loop);}
+  window.addEventListener('resize',()=>{resize();initObjects();});
+  resize();initObjects();requestAnimationFrame(loop);
+})();
+
+
+/* ════════════════════════════════════════════════
+   NON LA 3D — fixed floating, color changes per section
+════════════════════════════════════════════════ */
+(function(){
+  const cv=document.getElementById('nonlaCanvas');
+  const ctx=cv.getContext('2d');
+  const W=320,H=320,cx=160,cy=160;
+  const dragHint=document.getElementById('dragHint');
+
+  // section colors: hero/star(idx0), blue(idx1), crimson(idx2), gold(idx3), white(idx4)
+  const palettes=[
+    {rim:'rgba(255,107,53,.85)',body:'rgba(255,45,135,.7)',shadow:'rgba(255,45,135,.2)'},
+    {rim:'rgba(200,240,0,.85)',body:'rgba(200,240,0,.55)',shadow:'rgba(200,240,0,.15)'},
+    {rim:'rgba(200,240,0,.85)',body:'rgba(200,240,0,.55)',shadow:'rgba(200,240,0,.12)'},
+    {rim:'rgba(220,50,50,.85)',body:'rgba(200,240,0,.6)',shadow:'rgba(255,100,0,.15)'},
+    {rim:'rgba(26,86,255,.8)',body:'rgba(26,86,255,.45)',shadow:'rgba(26,86,255,.12)'},
+  ];
+
+  const sections=['hero','projects','skills','portfolio','contact'];
+  let palIdx=0;
+
+  function detectSection(){
+    const scrollY=window.scrollY+window.innerHeight/2;
+    let best=0;
+    sections.forEach((id,i)=>{
+      const el=document.getElementById(id);
+      if(el&&el.offsetTop<=scrollY) best=i;
+    });
+    return best;
+  }
+
+  // physics
+  let angle=0,vel=0,tiltAngle=0,tiltVel=0,tiltDir=1;
+  let isDragging=false,lastMouseAngle=0,lastDragTime=Date.now();
+  const FRICTION=.978,TILT_SPEED=.008,TILT_AMP=.28;
+
+  // 3D tilt state
+  let tiltPhase=0;
+
+  function draw(pal){
+    ctx.clearRect(0,0,W,H);
+    ctx.save();
+    ctx.translate(cx,cy);
+    ctx.rotate(angle);
+
+    // 3D tilt: squash Y axis
+    tiltPhase+=TILT_SPEED;
+    const tiltY=Math.sin(tiltPhase)*TILT_AMP;  // -0.28 to +0.28
+    const scaleY=Math.cos(tiltPhase)*.18+.82;   // 0.64 to 1.0 — vertical squeeze
+    ctx.scale(1,scaleY);
+    // shadow wobble
+    ctx.globalAlpha=.18+Math.abs(tiltY)*.12;
+    ctx.fillStyle=pal.shadow;
+    ctx.beginPath();ctx.ellipse(0,80+tiltY*20,60-Math.abs(tiltY)*15,10,0,0,Math.PI*2);ctx.fill();
+    ctx.globalAlpha=1;
+
+    // --- NON LA body (conical hat) ---
+    // brim ellipse (bottom)
+    ctx.beginPath();
+    ctx.ellipse(0,65,68,16,0,0,Math.PI*2);
+    ctx.fillStyle=pal.rim;ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,.18)';ctx.lineWidth=1.5;ctx.stroke();
+
+    // cone surface left
+    ctx.beginPath();
+    ctx.moveTo(-68,65);ctx.quadraticCurveTo(-18,-68,0,-90);
+    ctx.quadraticCurveTo(18,-68,68,65);
+    ctx.fillStyle=pal.body;ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,.12)';ctx.lineWidth=1;ctx.stroke();
+
+    // inner ribs
+    for(let i=0;i<6;i++){
+      const f=i/5;
+      const x1=(f-.5)*136, y1=65;
+      const x2=(f-.5)*18, y2=-68+f*12;
+      ctx.beginPath();ctx.moveTo(x1,y1);ctx.quadraticCurveTo(x2*1.1,y2*.3,0,-90);
+      ctx.strokeStyle=`rgba(255,255,255,${.04+f*.03})`;ctx.lineWidth=.8;ctx.stroke();
+    }
+    // highlight
+    ctx.beginPath();ctx.moveTo(-20,10);ctx.quadraticCurveTo(-10,-40,0,-88);
+    ctx.strokeStyle='rgba(255,255,255,.18)';ctx.lineWidth=2.5;ctx.stroke();
+
+    // tip
+    ctx.beginPath();ctx.arc(0,-90,3.5,0,Math.PI*2);
+    ctx.fillStyle='rgba(255,255,255,.7)';ctx.fill();
+
+    ctx.restore();
+  }
+
+  function physics(){
+    if(!isDragging){angle+=vel*.016;vel*=FRICTION;if(Math.abs(vel)<.01)vel=0;}
+    const pi=detectSection();if(pi!==palIdx) palIdx=pi;
+    draw(palettes[palIdx]);
+    requestAnimationFrame(physics);
+  }
+
+  function getA(cx,cy){return Math.atan2(cy-window.innerHeight/2,cx-window.innerWidth/2);}
+  function isInteractive(el){return !!el.closest('button,a,input,textarea,select,form');}
+
+  window.addEventListener('mousedown',e=>{if(!isInteractive(e.target)){isDragging=true;vel=0;lastMouseAngle=getA(e.clientX,e.clientY);lastDragTime=Date.now();}});
+  window.addEventListener('mousemove',e=>{
+    if(!isDragging)return;
+    const now=Date.now(),dt=(now-lastDragTime)/1000;if(!dt)return;
+    const a=getA(e.clientX,e.clientY);
+    let da=a-lastMouseAngle;if(da>Math.PI)da-=Math.PI*2;if(da<-Math.PI)da+=Math.PI*2;
+    angle+=da;vel=da/dt;lastMouseAngle=a;lastDragTime=now;
+  });
+  window.addEventListener('mouseup',()=>{isDragging=false;if(vel>40)vel=40;if(vel<-40)vel=-40;});
+  window.addEventListener('touchstart',e=>{if(!isInteractive(e.target)){const t=e.touches[0];isDragging=true;vel=0;lastMouseAngle=getA(t.clientX,t.clientY);lastDragTime=Date.now();}},{passive:true});
+  window.addEventListener('touchmove',e=>{if(!isDragging)return;e.preventDefault();const t=e.touches[0];const now=Date.now(),dt=(now-lastDragTime)/1000;if(!dt)return;const a=getA(t.clientX,t.clientY);let da=a-lastMouseAngle;if(da>Math.PI)da-=Math.PI*2;if(da<-Math.PI)da+=Math.PI*2;angle+=da;vel=da/dt;lastMouseAngle=a;lastDragTime=now;},{passive:false});
+  window.addEventListener('touchend',()=>{isDragging=false;});
+
+  // scroll impulse for nón lá
+  let lsy=window.scrollY,lst=Date.now();
+  window.addEventListener('scroll',()=>{
+    const now=Date.now(),dt=(now-lst)/1000;if(!dt)return;
+    const imp=Math.max(Math.min((window.scrollY-lsy)/dt*.012,10),-10);
+    vel+=imp;if(vel>10)vel=10;if(vel<-10)vel=-10;lsy=window.scrollY;lst=now;
+  },{passive:true});
+
+  physics();
+})();
+
+
+/* ════════════════════════════════════════════════
+   SECTION EFFECTS — IntersectionObserver
+════════════════════════════════════════════════ */
+
+/* --- SECTION BLUE: waves + clouds --- */
+(function(){
+  const section=document.getElementById('projects');
+  const waveCV=document.getElementById('waveCanvas');
+  const cloudCV=document.getElementById('cloudCanvas');
+  const wCtx=waveCV.getContext('2d');
+  const cCtx=cloudCV.getContext('2d');
+  let wW,wH,cloudH=160,active=false,raf;
+
+  function resize(){
+    wW=waveCV.width=section.offsetWidth;wH=waveCV.height=section.offsetHeight;
+    cloudCV.width=section.offsetWidth;cloudCV.height=cloudH;
+  }
+
+  let wt=0;
+  function drawWave(){
+    wCtx.clearRect(0,0,wW,wH);
+    const waves=[
+      {amp:28,freq:.012,speed:1.2,y:.55,a:.18,color:'rgba(100,180,255,'},
+      {amp:20,freq:.018,speed:-.8,y:.65,a:.13,color:'rgba(150,210,255,'},
+      {amp:35,freq:.008,speed:.7,y:.72,a:.1,color:'rgba(60,140,240,'},
+    ];
+    waves.forEach(w=>{
+      wCtx.beginPath();
+      wCtx.moveTo(wW,wH*w.y);
+      for(let x=wW;x>=0;x-=2){
+        const y=wH*w.y+Math.sin(x*w.freq+wt*w.speed)*w.amp+Math.cos(x*w.freq*.7-wt*.5)*w.amp*.4;
+        wCtx.lineTo(x,y);
+      }
+      wCtx.lineTo(0,wH);wCtx.lineTo(wW,wH);wCtx.closePath();
+      wCtx.fillStyle=`${w.color}${w.a})`;wCtx.fill();
+    });
+  }
+
+  // cloud offsets, start off-screen right
+  const clouds=[
+    {baseX:0,y:15,w:180,h:60,speed:.4},
+    {baseX:120,y:35,w:150,h:50,speed:.25},
+    {baseX:280,y:10,w:200,h:70,speed:.55},
+  ];
+  let cloudOffset=0,cloudTargetOffset=0;
+
+  function drawCloud(ctx,x,y,w,h){
+    ctx.beginPath();
+    ctx.arc(x+w*.25,y+h*.6,h*.4,0,Math.PI*2);
+    ctx.arc(x+w*.5,y+h*.35,h*.52,0,Math.PI*2);
+    ctx.arc(x+w*.75,y+h*.6,h*.4,0,Math.PI*2);
+    ctx.arc(x+w*.35,y+h*.55,h*.45,0,Math.PI*2);
+    ctx.arc(x+w*.62,y+h*.52,h*.43,0,Math.PI*2);
+    ctx.fill();
+  }
+
+  function drawClouds(progress){
+    cCtx.clearRect(0,0,cloudCV.width,cloudH);
+    const slideIn=Math.max(0,Math.min(1,progress));
+    clouds.forEach((c,i)=>{
+      const startX=cloudCV.width+(i+1)*80;
+      const endX=c.baseX-c.w*.2+wt*c.speed*8;
+      const cx2=startX+(endX-startX)*slideIn;
+      const dropY=-c.h+(c.h+c.y)*slideIn;
+      cCtx.globalAlpha=.18*slideIn;
+      cCtx.fillStyle='rgba(220,240,255,1)';
+      drawCloud(cCtx,cx2,dropY,c.w,c.h);
+    });
+    cCtx.globalAlpha=1;
+  }
+
+  function loop(){
+    if(!active)return;
+    wt+=.016;
+    drawWave();drawClouds(1);
+    raf=requestAnimationFrame(loop);
+  }
+
+  const obs=new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      active=e.isIntersecting;
+      waveCV.classList.toggle('visible',active);
+      cloudCV.classList.toggle('visible',active);
+      if(active){resize();loop();}
+      else cancelAnimationFrame(raf);
+    });
+  },{threshold:.15});
+  obs.observe(section);
+  resize();window.addEventListener('resize',resize);
+})();
+
+/* --- SECTION CRIMSON: tech vortex --- */
+(function(){
+  const section=document.getElementById('skills');
+  const cv=document.getElementById('techCanvas');
+  const ctx=cv.getContext('2d');
+  let W,H,active=false,raf,t=0;
+  const nodes=[];
+
+  function resize(){W=cv.width=section.offsetWidth;H=cv.height=section.offsetHeight;initNodes();}
+
+  function initNodes(){
+    nodes.length=0;
+    for(let i=0;i<32;i++){
+      nodes.push({
+        angle:rnd(0,Math.PI*2),radius:rnd(60,Math.min(W,H)*.38),
+        speed:rnd(.008,.022)*(Math.random()<.5?1:-1),
+        size:rnd(2,5),alpha:rnd(.3,.7),
+        symbol:['⬡','○','◇','▽','×','+','·'][Math.floor(Math.random()*7)]
+      });
+    }
+  }
+  function rnd(a,b){return a+Math.random()*(b-a);}
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    const cx=W/2,cy=H/2;
+    // main vortex ring
+    ctx.save();ctx.translate(cx,cy);
+    for(let i=0;i<3;i++){
+      ctx.beginPath();
+      ctx.arc(0,0,100+i*55,t*.3*(i%2===0?1:-1),t*.3*(i%2===0?1:-1)+Math.PI*2*.85);
+      ctx.strokeStyle=`rgba(200,240,0,${.06-i*.015})`;ctx.lineWidth=60-i*15;ctx.stroke();
+    }
+    // particles on orbit
+    nodes.forEach(n=>{
+      n.angle+=n.speed;
+      const x=Math.cos(n.angle)*n.radius,y=Math.sin(n.angle)*n.radius*.4;
+      ctx.globalAlpha=n.alpha*.6;
+      ctx.fillStyle='rgba(200,240,0,.9)';
+      ctx.font=`${n.size*3}px monospace`;
+      ctx.fillText(n.symbol,x-4,y+4);
+    });
+    // spinning hex grid lines
+    for(let i=0;i<6;i++){
+      const a=t*.12+i*Math.PI/3;
+      ctx.globalAlpha=.04;ctx.strokeStyle='rgba(200,240,0,1)';ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(Math.cos(a)*W*.6,Math.sin(a)*H*.5);ctx.stroke();
+    }
+    ctx.restore();
+    ctx.globalAlpha=1;
+  }
+
+  function loop(){if(!active)return;t+=.016;draw();raf=requestAnimationFrame(loop);}
+
+  const obs=new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      active=e.isIntersecting;
+      cv.classList.toggle('visible',active);
+      if(active){resize();loop();}
+      else cancelAnimationFrame(raf);
+    });
+  },{threshold:.15});
+  obs.observe(section);
+  resize();window.addEventListener('resize',resize);
+})();
+
+/* --- SECTION GOLD: tropical garden --- */
+(function(){
+  const section=document.getElementById('portfolio');
+  const cv=document.getElementById('gardenCanvas');
+  const ctx=cv.getContext('2d');
+  let W,H=220,active=false,raf,t=0,progress=0;
+
+  function resize(){W=cv.width=section.offsetWidth;cv.height=H;}
+
+  function rnd(a,b){return a+Math.random()*(b-a);}
+
+  const trees=[];
+  function initTrees(){
+    trees.length=0;
+    const count=Math.max(8,Math.floor(W/70));
+    for(let i=0;i<count;i++){
+      const x=rnd(20,W-20);
+      const type=Math.random()<.5?'banana':'fruit';
+      trees.push({x,type,h:rnd(80,160),sw:rnd(10,18),lean:rnd(-.15,.15),phase:rnd(0,Math.PI*2),fruit:Math.random()<.6,fruitColor:Math.random()<.5?'#ff6b35':'#e8b53a',leafCount:Math.floor(rnd(4,8))});
+    }
+    trees.sort((a,b)=>a.h-b.h);
+  }
+
+  function drawBananaTree(t,prog){
+    ctx.save();ctx.translate(t.x,H);
+    const hh=t.h*prog;
+    // trunk
+    const g=ctx.createLinearGradient(0,0,0,-hh);
+    g.addColorStop(0,'#3d5a1a');g.addColorStop(1,'#5a8c28');
+    ctx.fillStyle=g;ctx.beginPath();ctx.rect(-t.sw*.5,-hh,t.sw,hh);ctx.fill();
+    if(prog<.5){ctx.restore();return;}
+    // leaves
+    const lp=Math.min(1,(prog-.5)*2);
+    for(let i=0;i<t.leafCount;i++){
+      const la=(i/t.leafCount)*Math.PI*2+t.phase+window.scrollY*.001;
+      const swing=Math.sin(la+Date.now()*.001)*.18;
+      const lx=Math.cos(la+swing)*45*lp,ly=-hh+Math.sin(la)*.3*15;
+      ctx.save();ctx.translate(lx,ly-10);ctx.rotate(la+swing+t.lean);
+      const llen=65*lp;
+      ctx.beginPath();ctx.moveTo(0,0);
+      ctx.bezierCurveTo(llen*.4,-12,llen*.8,-8,llen,0);
+      ctx.bezierCurveTo(llen*.8,8,llen*.4,12,0,0);
+      ctx.fillStyle=`hsl(${110+i*5},65%,${35+i*3}%)`;ctx.fill();
+      // leaf rib
+      ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(llen,0);
+      ctx.strokeStyle='rgba(0,0,0,.12)';ctx.lineWidth=.8;ctx.stroke();
+      ctx.restore();
+    }
+    // banana bunches
+    if(t.fruit&&prog>.7){
+      const fp=Math.min(1,(prog-.7)*3.33);
+      ctx.globalAlpha=fp;ctx.fillStyle='#f5d842';
+      for(let b=0;b<3;b++){
+        const bx=Math.cos(b*2.1)*18,by=-hh*.7-b*8;
+        ctx.beginPath();ctx.ellipse(bx,by,4,8,b*.5-.3,0,Math.PI*2);ctx.fill();
+      }
+      ctx.globalAlpha=1;
+    }
+    ctx.restore();
+  }
+
+  function drawFruitTree(t,prog){
+    ctx.save();ctx.translate(t.x,H);
+    const hh=t.h*prog;
+    // trunk
+    ctx.fillStyle='#5a3a1a';ctx.beginPath();ctx.rect(-t.sw*.4,-hh,t.sw*.8,hh);ctx.fill();
+    // branches
+    if(prog>.4){
+      const bp=Math.min(1,(prog-.4)*1.67);
+      ctx.strokeStyle='#4a3010';ctx.lineWidth=t.sw*.6;
+      [[-35,-hh*.7],[35,-hh*.65],[0,-hh*.85]].forEach(([bx,by])=>{
+        ctx.beginPath();ctx.moveTo(0,-hh*.55);ctx.lineTo(bx*bp,by);ctx.stroke();
+      });
+      // canopy
+      if(prog>.6){
+        const cp=Math.min(1,(prog-.6)*2.5);
+        const sw=Math.sin(Date.now()*.0008+t.phase)*.05;
+        ctx.save();ctx.scale(1+sw,1-sw);
+        ctx.globalAlpha=.85*cp;
+        const cg=ctx.createRadialGradient(0,-hh*.88,5,0,-hh*.88,50*cp);
+        cg.addColorStop(0,`hsl(${110+t.lean*30},70%,40%)`);cg.addColorStop(1,`hsl(100,60%,28%)`);
+        ctx.fillStyle=cg;ctx.beginPath();ctx.arc(0,-hh*.88,50*cp,0,Math.PI*2);ctx.fill();
+        ctx.restore();
+        // fruits
+        if(t.fruit&&prog>.75){
+          const fpp=Math.min(1,(prog-.75)*4);
+          ctx.globalAlpha=fpp;
+          for(let f=0;f<5;f++){
+            const fa=f*1.26+t.phase;
+            const fr=30*cp;
+            ctx.fillStyle=t.fruitColor;
+            ctx.beginPath();ctx.arc(Math.cos(fa)*fr,-hh*.88+Math.sin(fa)*fr*.7,5,0,Math.PI*2);ctx.fill();
+          }
+          ctx.globalAlpha=1;
+        }
+      }
+    }
+    ctx.restore();
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    if(progress<=0)return;
+    // ground
+    const gg=ctx.createLinearGradient(0,H-30,0,H);
+    gg.addColorStop(0,'rgba(80,120,30,.6)');gg.addColorStop(1,'rgba(60,90,20,.3)');
+    ctx.fillStyle=gg;ctx.fillRect(0,H-30,W,30);
+    trees.forEach(t=>{
+      if(t.type==='banana') drawBananaTree(t,progress);
+      else drawFruitTree(t,progress);
+    });
+  }
+
+  function loop(){
+    if(active) progress=Math.min(1,progress+.018);
+    else progress=Math.max(0,progress-.03);
+    draw();
+    if(active||progress>0) raf=requestAnimationFrame(loop);
+  }
+
+  const obs=new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      active=e.isIntersecting;
+      cv.classList.toggle('visible',active);
+      if(active){resize();if(!raf||progress===0)loop();}
+    });
+  },{threshold:.1});
+  obs.observe(section);
+  resize();initTrees();window.addEventListener('resize',()=>{resize();initTrees();});
+})();
+
+
+/* ════════════════════════════════════════════════
+   SKILL TOGGLE
+════════════════════════════════════════════════ */
+function toggleSkill(btn,id){
+  const d=document.getElementById(id),open=d.classList.toggle('open');
+  btn.classList.toggle('open',open);btn.setAttribute('aria-expanded',String(open));
+  d.setAttribute('aria-hidden',String(!open));btn.querySelector('.skill-chevron').textContent=open?'－':'＋';
+}
+
+
+/* ════════════════════════════════════════════════
+   FORM SUBMIT
+════════════════════════════════════════════════ */
+const form=document.getElementById('funnel-capture'),subBtn=document.getElementById('submitBtn'),status=document.getElementById('formStatus');
+form.addEventListener('submit',async e=>{
+  e.preventDefault();subBtn.disabled=true;subBtn.textContent='Đang gửi...';status.className='form-status';status.textContent='';
+  try{
+    const r=await fetch(form.action,{method:'POST',body:new FormData(form),headers:{'Accept':'application/json'}});
+    if(r.ok){status.className='form-status success';status.textContent='✓ Đã gửi! Mình phản hồi sớm qua email.';form.reset();}
+    else throw 0;
+  }catch{status.className='form-status error';status.textContent='✗ Lỗi. Vui lòng thử lại.';}
+  finally{subBtn.disabled=false;subBtn.textContent='Kích hoạt kết nối →';}
+});
+</script>
+</body>
+</html>
