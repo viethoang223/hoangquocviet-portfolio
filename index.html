@@ -31,8 +31,9 @@
   --shadow:0 28px 90px rgba(0,0,0,.42);
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth;background:var(--bg)}
-body{min-width:320px;background:var(--bg);color:var(--white);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow-x:hidden;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased}
+html{scroll-behavior:smooth;background:var(--bg);scrollbar-gutter:stable both-edges}
+body{min-width:320px;width:100%;background:var(--bg);color:var(--white);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow-x:hidden;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased}
+main#top{width:100%;margin:0;padding:0;overflow-x:clip}
 body::selection{background:rgba(200,240,0,.28);color:#fff}
 a{color:inherit;text-decoration:none}
 button,input,textarea{font:inherit}
@@ -97,14 +98,14 @@ h2{font-size:clamp(34px,5.6vw,66px);line-height:.98;letter-spacing:-.05em;font-w
 /* ============================================================
    HERO — keep color, atmosphere, motion, surprise
    ============================================================ */
-.hero{min-height:100svh;display:grid;place-items:center;padding:136px 20px 44px;overflow:hidden;background:
+.hero{position:relative;width:100%;min-height:100svh;display:grid;place-items:center;justify-items:center;padding:136px 20px 44px;overflow:hidden;background:
   radial-gradient(circle at 50% 36%,rgba(255,107,53,.16),transparent 20%),
   radial-gradient(circle at 34% 54%,rgba(167,139,250,.10),transparent 22%),
   radial-gradient(circle at 70% 58%,rgba(34,211,238,.08),transparent 22%),
   linear-gradient(180deg,#0b0c12 0%,#0a0b10 66%,#08090d 100%)}
 .hero::before{content:"";position:absolute;inset:82px 0 0;background:linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px);background-size:46px 46px;mask-image:linear-gradient(to bottom,rgba(0,0,0,.62),transparent 78%);pointer-events:none}
 .hero::after{content:"";position:absolute;inset:auto 0 0;height:34%;background:linear-gradient(to bottom,transparent,rgba(0,0,0,.20));pointer-events:none}
-.hero-inner{position:relative;width:min(960px,100%);text-align:center;display:flex;flex-direction:column;align-items:center;z-index:1}
+.hero-inner{position:relative;width:min(960px,100%);max-width:960px;margin-inline:auto;justify-self:center;text-align:center;display:flex;flex-direction:column;align-items:center;z-index:1}
 .hero-constellation{position:absolute;inset:-6% -4% auto;height:74%;pointer-events:none;opacity:.85}
 .constellation-dot{position:absolute;width:5px;height:5px;border-radius:50%;background:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.03),0 0 14px rgba(255,255,255,.18);animation:twinkle 3.8s ease-in-out infinite alternate}
 .constellation-dot:nth-child(1){left:8%;top:28%;animation-delay:.2s}.constellation-dot:nth-child(2){left:18%;top:52%;animation-delay:1.1s}.constellation-dot:nth-child(3){left:82%;top:24%;animation-delay:.8s}.constellation-dot:nth-child(4){left:89%;top:58%;animation-delay:1.6s}.constellation-dot:nth-child(5){left:72%;top:42%;animation-delay:2s}
@@ -592,9 +593,23 @@ function renderCerts(){
   $('#anthropicCerts').innerHTML=certH(CERTS.anthropic);$('#marketingCerts').innerHTML=certH(CERTS.marketing);$('#englishCerts').innerHTML=certH(CERTS.english);
 }
 
+function setLang(next){
+  if(next!=='vi'&&next!=='en')return;
+  if(currentLang===next){
+    applyStatic();
+    route();
+    return;
+  }
+  currentLang=next;
+  localStorage.setItem('hqv-lang',currentLang);
+  applyStatic();
+  route();
+}
+
 function applyStatic(){
   document.documentElement.lang=currentLang;
   $('.nav').setAttribute('aria-label',currentLang==='en'?'Main navigation':'Điều hướng chính');
+  $('.lang-switch').setAttribute('aria-label',currentLang==='en'?'Language switcher':'Chuyển ngôn ngữ');
   $('.avatar-shell').setAttribute('aria-label',currentLang==='en'?'Hoàng Quốc Việt avatar frame':'Khung avatar Hoàng Quốc Việt');
   caseDialog.setAttribute('aria-label',currentLang==='en'?'Project case study':'Chi tiết case study');
   viewerDialog.setAttribute('aria-label',currentLang==='en'?'Proof viewer':'Xem bằng chứng');
@@ -612,6 +627,8 @@ function applyStatic(){
   if(state?.project){activeProject=state.project;caseContent.innerHTML=caseHtml(state.project);if(state.index!=null){const proof=state.project.proof[state.index];if(proof)viewerHtml(proof)}}
   if($('#adminDialog').open)renderAdmin();
 }
+
+$$('[data-lang]').forEach(btn=>btn.addEventListener('click',()=>setLang(btn.dataset.lang)));
 
 const caseDialog=$('#caseDialog'),viewerDialog=$('#viewerDialog'),caseContent=$('#caseContent'),viewerHead=$('#viewerHead'),viewerBody=$('#viewerBody'),adminDialog=$('#adminDialog');
 let activeProject=null;
