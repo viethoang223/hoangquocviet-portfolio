@@ -328,7 +328,7 @@ body.page-hidden .ambient,body.page-hidden .ticker,body.page-hidden .avatar-shel
 .admin-card h3{font-size:12px;font-weight:900;letter-spacing:.03em}.admin-card p,.admin-note{margin-top:7px;color:var(--dim);font-size:11px;line-height:1.6}
 .admin-form{display:grid;gap:10px;margin-top:12px}.admin-label{font-size:9px;font-weight:850;color:var(--dim);letter-spacing:.12em;text-transform:uppercase}.admin-input,.admin-select{width:100%;margin-top:5px;padding:10px 11px;border-radius:10px;border:1px solid rgba(255,255,255,.10);background:#080b10;color:#fff;outline:0}.admin-input:focus,.admin-select:focus{border-color:rgba(34,211,238,.46)}
 .admin-row{display:grid;grid-template-columns:1fr 1fr;gap:9px}.admin-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px}.admin-btn{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:0 13px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.045);color:#fff;font-size:10px;font-weight:900;cursor:pointer}.admin-btn.primary{background:var(--lime);border-color:var(--lime);color:#0a0b10}.admin-btn.danger{border-color:rgba(248,113,113,.24);color:#fca5a5}.admin-btn:disabled{opacity:.48;cursor:wait}.admin-status{margin-top:10px;padding:9px 10px;border-radius:9px;font-size:10px;line-height:1.5;display:none}.admin-status.show{display:block}.admin-status.ok{background:rgba(200,240,0,.06);border:1px solid rgba(200,240,0,.18);color:var(--lime)}.admin-status.err{background:rgba(127,29,29,.18);border:1px solid rgba(248,113,113,.20);color:#fca5a5}
-.admin-proof-list{display:grid;gap:8px;margin-top:12px}.admin-proof{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:11px;border:1px solid rgba(255,255,255,.07);border-radius:11px;background:rgba(255,255,255,.02)}.admin-proof strong{display:block;font-size:10px;line-height:1.35}.admin-proof span{display:block;margin-top:4px;color:var(--dim);font-size:9px;word-break:break-word}.admin-empty{padding:14px;border:1px dashed rgba(255,255,255,.10);border-radius:11px;color:var(--dim);font-size:10px;line-height:1.55}.admin-asset-sections{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:16px}.admin-asset-card{padding:17px;border:1px solid rgba(255,255,255,.08);border-radius:15px;background:rgba(255,255,255,.025)}.admin-asset-card h3{font-size:12px;font-weight:900}.admin-asset-card p{margin-top:7px;color:var(--dim);font-size:11px;line-height:1.6}@media(max-width:760px){.admin-asset-sections{grid-template-columns:1fr}}
+.admin-proof-list{display:grid;gap:8px;margin-top:12px}.admin-proof{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:11px;border:1px solid rgba(255,255,255,.07);border-radius:11px;background:rgba(255,255,255,.02)}.admin-proof strong{display:block;font-size:10px;line-height:1.35}.admin-proof span{display:block;margin-top:4px;color:var(--dim);font-size:9px;word-break:break-word}.admin-proof-rich{grid-template-columns:minmax(0,1fr);align-items:start}.admin-proof-main{min-width:0}.admin-proof-thumb{display:block;width:100%;max-height:170px;overflow:hidden;border-radius:9px;margin-bottom:8px;background:rgba(255,255,255,.03)}.admin-proof-thumb img{display:block;width:100%;height:170px;object-fit:cover}.admin-proof-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.admin-proof-actions .admin-btn,.admin-proof-actions a.admin-btn{font-size:9px;padding:7px 9px;text-decoration:none}.admin-proof-rich span{line-height:1.55}.admin-empty{padding:14px;border:1px dashed rgba(255,255,255,.10);border-radius:11px;color:var(--dim);font-size:10px;line-height:1.55}.admin-asset-sections{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:16px}.admin-asset-card{padding:17px;border:1px solid rgba(255,255,255,.08);border-radius:15px;background:rgba(255,255,255,.025)}.admin-asset-card h3{font-size:12px;font-weight:900}.admin-asset-card p{margin-top:7px;color:var(--dim);font-size:11px;line-height:1.6}@media(max-width:760px){.admin-asset-sections{grid-template-columns:1fr}}
 .admin-config{margin-top:15px;padding:11px;border-radius:10px;border:1px solid rgba(255,107,53,.20);background:rgba(255,107,53,.05);color:#ffc0ab;font-size:10px;line-height:1.55}
 @media(max-width:760px){.admin-grid{grid-template-columns:1fr}.admin-row{grid-template-columns:1fr}.admin-dialog{width:100vw;height:100dvh;max-height:none;border-radius:0;border-left:0;border-right:0}.admin-scroll{padding:18px 15px 28px}}
 
@@ -472,7 +472,7 @@ body.page-hidden .ambient,body.page-hidden .ticker,body.page-hidden .avatar-shel
         </section>
       </div>
       <div class="admin-grid">
-        <section class="admin-card"><h3 data-i18n="admin.uploadTitle">Upload proof</h3><p class="admin-note" data-i18n="admin.uploadCopy">PDF hoặc ảnh. Chọn nhiều ảnh để tạo một gallery. Metadata chỉ được ghi sau khi Storage upload thành công.</p>
+        <section class="admin-card"><h3 data-i18n="admin.uploadTitle">Upload proof</h3><p class="admin-note" data-i18n="admin.uploadCopy">PDF, ảnh hoặc JSON. Chọn nhiều ảnh để tạo một gallery. Metadata chỉ được ghi sau khi Storage upload thành công.</p>
           <form class="admin-form" id="proofUploadForm">
             <label class="admin-label"><span data-i18n="admin.project">Project</span><select class="admin-select" id="adminProject" required></select></label>
             <div class="admin-row"><label class="admin-label"><span data-i18n="admin.titleVi">Tiêu đề VI</span><input class="admin-input" id="proofTitleVi" required></label><label class="admin-label"><span data-i18n="admin.titleEn">Title EN</span><input class="admin-input" id="proofTitleEn" required></label></div>
@@ -481,7 +481,7 @@ body.page-hidden .ambient,body.page-hidden .ticker,body.page-hidden .avatar-shel
             <div id="adminUploadStatus" class="admin-status" aria-live="polite"></div>
           </form>
         </section>
-        <section class="admin-card"><h3 data-i18n="admin.existing">Saved assets</h3><p class="admin-note" data-i18n="admin.existingCopy">Danh sách đọc trực tiếp từ metadata database, gồm avatar, project cover và proof.</p><div id="adminProofList" class="admin-proof-list"></div></section>
+        <section class="admin-card"><h3 data-i18n="admin.existing">Saved assets</h3><p class="admin-note" data-i18n="admin.existingCopy">Chỉ hiển thị proof và gallery đã lưu trong asset registry.</p><div id="adminProofList" class="admin-proof-list"></div></section>
       </div>
     </div>
   </div>
@@ -533,7 +533,7 @@ const I18N={
     'form.name':'Tên của bạn','form.email':'Email','form.message':'Bài toán cần tối ưu','form.submit':'Gửi cho tôi','form.namePlaceholder':'Nguyễn Văn A','form.messagePlaceholder':'Bạn đang gặp bài toán Marketing / Data / Automation nào?','form.subject':'Tin nhắn mới từ hoangquocviet.id.vn',
     'modal.evidence':'Proof','modal.openTab':'Mở tab mới','modal.download':'Tải','modal.close':'Đóng','modal.what':'Điều project thể hiện',
     'proof.pdf':'Mở báo cáo','proof.image':'Xem hình','proof.gallery':'Xem gallery','proof.link':'Mở liên kết','proof.download':'Tải tài liệu',
-    'admin.title':'Proof manager','admin.subtitle':'Đăng nhập Supabase để lưu proof thật vào Storage + Database.','admin.loginTitle':'Đăng nhập admin','admin.loginCopy':'Tài khoản phải tồn tại trong Supabase Auth. Quyền ghi/xóa phải được khóa bằng RLS ở Supabase.','admin.email':'Email admin','admin.password':'Mật khẩu','admin.login':'Đăng nhập','admin.uploadTitle':'Upload proof','admin.uploadCopy':'PDF hoặc ảnh. Chọn nhiều ảnh để tạo một gallery. Metadata sẽ được ghi vào database sau khi Storage upload thành công.','admin.project':'Project','admin.titleVi':'Tiêu đề VI','admin.titleEn':'Title EN','admin.files':'File','admin.upload':'Upload thật','admin.logout':'Đăng xuất','admin.existing':'Proof đã lưu','admin.existingCopy':'Danh sách này đọc trực tiếp từ database.',
+    'admin.title':'Proof manager','admin.subtitle':'Đăng nhập Supabase để lưu proof thật vào Storage + Database.','admin.loginTitle':'Đăng nhập admin','admin.loginCopy':'Tài khoản phải tồn tại trong Supabase Auth. Quyền ghi/xóa phải được khóa bằng RLS ở Supabase.','admin.email':'Email admin','admin.password':'Mật khẩu','admin.login':'Đăng nhập','admin.uploadTitle':'Upload proof','admin.uploadCopy':'PDF, ảnh hoặc JSON. Chọn nhiều ảnh để tạo một gallery. Metadata sẽ được ghi vào database sau khi Storage upload thành công.','admin.project':'Project','admin.titleVi':'Tiêu đề VI','admin.titleEn':'Title EN','admin.files':'File','admin.upload':'Upload proof','admin.logout':'Đăng xuất','admin.existing':'Proof đã lưu','admin.existingCopy':'Chỉ hiển thị proof và gallery đã lưu trong asset registry.',
     'admin.schemaChecking':'Đang kiểm tra schema asset trên Supabase…','admin.configMissing':'Chưa cấu hình Supabase. Hãy điền CONFIG.supabase.url và CONFIG.supabase.anonKey. Frontend chỉ dùng anon key; không đặt service-role key vào file này.','admin.configReady':'Supabase đã được cấu hình ở frontend. Hãy bảo đảm Auth, Storage và RLS đã được thiết lập trước khi dùng.',
     'admin.noProof':'Chưa có asset nào.','admin.loginRequired':'Hãy đăng nhập trước.','admin.loggedIn':'Đã đăng nhập.','admin.uploading':'Đang upload và ghi metadata…','admin.uploaded':'Upload và lưu metadata thành công.','admin.uploadFailed':'Upload thất bại. Kiểm tra Storage policy, Database policy và bucket.','admin.loginFailed':'Đăng nhập thất bại. Kiểm tra email, mật khẩu và Supabase Auth.','admin.deleted':'Đã xóa asset khỏi metadata và Storage.','admin.deleteFailed':'Không thể xóa asset hoàn tất. Kiểm tra Storage và RLS.','admin.notConfigured':'Supabase chưa được cấu hình.','admin.schemaMissing':'Supabase đã có config nhưng thiếu schema asset mới. Chạy migration SQL để thêm asset_type, owner_type và owner_id vào portfolio_proofs.','admin.authError':'Supabase từ chối phiên hoặc token. Kiểm tra Auth/session.', 'admin.permissionError':'Supabase từ chối quyền truy cập. Kiểm tra RLS và Storage policy.', 'admin.networkError':'Không thể kết nối tới Supabase. Kiểm tra mạng và URL project.', 'admin.loadError':'Không thể đọc asset registry từ Supabase.','admin.avatarTitle':'Profile avatar','admin.avatarCopy':'Một avatar dùng chung cho toàn bộ homepage. Ảnh mới chỉ trở thành avatar active sau khi Storage và metadata đều thành công.','admin.coverTitle':'Project cover','admin.coverCopy':'Ảnh cover tùy chọn cho từng project. Nếu chưa có asset, visual hiện tại vẫn được giữ nguyên.','admin.uploadAvatar':'Upload avatar','admin.uploadCover':'Upload cover','admin.avatarUploaded':'Avatar đã được lưu vào Storage + Database.','admin.coverUploaded':'Project cover đã được lưu vào Storage + Database.','admin.assetRequired':'File không hợp lệ.','admin.noSession':'Phiên đăng nhập không còn hợp lệ.','admin.projectMissing':'Project không tồn tại.'
   },
@@ -550,7 +550,7 @@ const I18N={
     'form.name':'Your name','form.email':'Email','form.message':'What problem needs optimizing?','form.submit':'Send to me','form.namePlaceholder':'Alex Nguyen','form.messagePlaceholder':'What Marketing / Data / Automation problem are you working on?','form.subject':'New message from hoangquocviet.id.vn',
     'modal.evidence':'Proof','modal.openTab':'Open in new tab','modal.download':'Download','modal.close':'Close','modal.what':'What it demonstrates',
     'proof.pdf':'Open report','proof.image':'View image','proof.gallery':'View gallery','proof.link':'Open link','proof.download':'Download file',
-    'admin.title':'Proof manager','admin.subtitle':'Sign in to Supabase to save real proof in Storage + Database.','admin.loginTitle':'Admin login','admin.loginCopy':'The account must exist in Supabase Auth. Write/delete access must be protected with Supabase RLS.','admin.email':'Admin email','admin.password':'Password','admin.login':'Sign in','admin.uploadTitle':'Upload proof','admin.uploadCopy':'PDF or image. Select multiple images to create a gallery. Metadata is written to the database after Storage upload succeeds.','admin.project':'Project','admin.titleVi':'Vietnamese title','admin.titleEn':'English title','admin.files':'File','admin.upload':'Upload for real','admin.logout':'Sign out','admin.existing':'Saved proof','admin.existingCopy':'This list is read directly from the database.',
+    'admin.title':'Proof manager','admin.subtitle':'Sign in to Supabase to save real proof in Storage + Database.','admin.loginTitle':'Admin login','admin.loginCopy':'The account must exist in Supabase Auth. Write/delete access must be protected with Supabase RLS.','admin.email':'Admin email','admin.password':'Password','admin.login':'Sign in','admin.uploadTitle':'Upload proof','admin.uploadCopy':'PDF, image or JSON. Select multiple images to create a gallery. Metadata is written to the database after Storage upload succeeds.','admin.project':'Project','admin.titleVi':'Vietnamese title','admin.titleEn':'English title','admin.files':'File','admin.upload':'Upload proof','admin.logout':'Sign out','admin.existing':'Saved proof','admin.existingCopy':'Only saved proof and gallery assets are shown here.',
     'admin.schemaChecking':'Checking the asset schema on Supabase…','admin.configMissing':'Supabase is not configured. Fill CONFIG.supabase.url and CONFIG.supabase.anonKey. The frontend uses only the anon key; never place a service-role key here.','admin.configReady':'Supabase frontend configuration is present. Make sure Auth, Storage and RLS are configured before using the admin flow.',
     'admin.noProof':'No assets are stored yet.','admin.loginRequired':'Please sign in first.','admin.loggedIn':'Signed in.','admin.uploading':'Uploading and saving metadata…','admin.uploaded':'Upload and metadata save succeeded.','admin.uploadFailed':'Upload failed. Check Storage policy, Database policy and bucket.','admin.loginFailed':'Login failed. Check the email, password and Supabase Auth.','admin.deleted':'Asset metadata and Storage object deleted.','admin.deleteFailed':'Could not complete asset deletion. Check Storage and RLS.','admin.notConfigured':'Supabase is not configured.','admin.schemaMissing':'Supabase is configured, but the new asset schema is missing. Run the SQL migration to add asset_type, owner_type and owner_id to portfolio_proofs.','admin.authError':'Supabase rejected the session or token. Check Auth/session.', 'admin.permissionError':'Supabase denied access. Check RLS and Storage policies.', 'admin.networkError':'Could not reach Supabase. Check the network and project URL.', 'admin.loadError':'Could not read the asset registry from Supabase.','admin.avatarTitle':'Profile avatar','admin.avatarCopy':'One shared avatar for the homepage. A new image becomes active only after both Storage and metadata succeed.','admin.coverTitle':'Project cover','admin.coverCopy':'Optional cover image for each project. Without one, the existing visual remains unchanged.','admin.uploadAvatar':'Upload avatar','admin.uploadCover':'Upload cover','admin.avatarUploaded':'Avatar saved to Storage + Database.','admin.coverUploaded':'Project cover saved to Storage + Database.','admin.assetRequired':'Invalid file.','admin.noSession':'The admin session is no longer valid.','admin.projectMissing':'Project not found.'
   }
@@ -781,21 +781,56 @@ function ownerLabel(row){
   const p=PROJECTS.find(x=>x.id===row.owner_id||x.id===row.project_id);return p?.content[currentLang]?.title||row.owner_id||row.project_id||'—';
 }
 function assetTypeLabel(type){return ({avatar:'Avatar',project_cover:currentLang==='en'?'Project cover':'Project cover',proof:'Proof',gallery:'Gallery'})[type]||type}
-async function refreshAdminList(){
-  const list=$('#adminProofList');if(!adminSession){list.innerHTML=`<div class="admin-empty">${esc(t('admin.loginRequired'))}</div>`;return}
-  if(assetSchemaReady===null){list.innerHTML=`<div class="admin-empty">${esc(t('admin.schemaChecking'))}</div>`;return}
-  if(!sbReady()){list.innerHTML=`<div class="admin-empty">${esc(t('admin.notConfigured'))}</div>`;return}
-  if(assetLoadState==='schema_missing'){list.innerHTML=`<div class="admin-empty">${esc(t('admin.schemaMissing'))}</div>`;return}
-  if(['auth','permission','network','error'].includes(assetLoadState)){
-    const key={auth:'admin.authError',permission:'admin.permissionError',network:'admin.networkError',error:'admin.loadError'}[assetLoadState];
-    list.innerHTML=`<div class="admin-empty">${esc(t(key))}</div>`;return;
-  }
-  try{
-    const rows=[...adminAssets.values()].sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at)));
-    if(!rows.length){list.innerHTML=`<div class="admin-empty">${esc(t('admin.noProof'))}</div>`;return}
-    list.innerHTML=rows.map(row=>`<div class="admin-proof"><div><strong>${esc(currentLang==='en'?(row.title_en||row.title_vi||row.original_name):(row.title_vi||row.title_en||row.original_name))}</strong><span>${esc(assetTypeLabel(row.asset_type||'proof'))} · ${esc(ownerLabel(row))} · ${esc(row.original_name||'')}</span></div><button class="admin-btn danger" type="button" data-delete-asset="${esc(row.id)}" data-path="${esc(row.storage_path)}" data-owner-type="${esc(row.owner_type||'')}" data-owner-id="${esc(row.owner_id||'')}">${currentLang==='en'?'Delete':'Xóa'}</button></div>`).join('');
-  }catch(err){list.innerHTML=`<div class="admin-empty">${esc(t('admin.uploadFailed'))}</div>`}
+function assetFileTypeLabel(row){const mime=String(row.mime_type||'').toLowerCase(),name=String(row.original_name||row.file_name||'').toLowerCase();if(row.asset_type==='gallery')return 'Gallery';if(row.type==='json'||mime==='application/json'||name.endsWith('.json'))return 'JSON';if(row.type==='pdf'||mime==='application/pdf'||name.endsWith('.pdf'))return 'PDF';if(mime.startsWith('image/'))return currentLang==='en'?'Image':'Ảnh';return row.type||mime.split('/').pop()||'File'}
+function formatAssetSize(size){const n=Number(size);if(!Number.isFinite(n)||n<0)return '';if(n<1024)return `${n} B`;if(n<1048576)return `${(n/1024).toFixed(1)} KB`;if(n<1073741824)return `${(n/1048576).toFixed(1)} MB`;return `${(n/1073741824).toFixed(1)} GB`}
+function formatAssetDate(value){if(!value)return '';const d=new Date(value);if(Number.isNaN(d.getTime()))return '';return new Intl.DateTimeFormat(currentLang==='en'?'en-GB':'vi-VN',{day:'2-digit',month:'2-digit',year:'numeric'}).format(d)}
+function adminAssetProject(row){if(row.owner_type==='profile')return 'Profile · HQV';const p=PROJECTS.find(x=>x.id===row.owner_id||x.id===row.project_id);return p?.content?.[currentLang]?.title||p?.content?.en?.title||p?.content?.vi?.title||row.owner_id||row.project_id||'—'}
+function assetActionLabel(action){const labels=currentLang==='en'?{open:'Open',preview:'Preview',download:'Download',replace:'Replace',delete:'Delete',viewGallery:'View gallery'}:{open:'Mở',preview:'Xem trước',download:'Tải',replace:'Thay thế',delete:'Xóa',viewGallery:'Xem gallery'};return labels[action]||action}
+function adminProofRowHtml(row){
+  const type=row.asset_type||'proof';
+  const galleryRows=type==='gallery'?[...adminAssets.values()].filter(item=>item.asset_type==='gallery'&&item.gallery_id===row.gallery_id).sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0)):[];
+  const title=currentLang==='en'?(row.title_en||row.title_vi||row.original_name):(row.title_vi||row.title_en||row.original_name);
+  const project=adminAssetProject(row);
+  const fileName=row.original_name||row.file_name||'';
+  const size=formatAssetSize(row.file_size);
+  const date=formatAssetDate(row.created_at);
+  const galleryCount=galleryRows.length;
+  const galleryLabel=currentLang==='en'?`${galleryCount} image${galleryCount===1?'':'s'}`:`${galleryCount} ảnh`;
+  const details=type==='gallery'
+    ?[assetTypeLabel(type),project,galleryLabel,date].filter(Boolean).map(esc).join(' · ')
+    :[assetTypeLabel(type),project,assetFileTypeLabel(row),fileName,size,date].filter(Boolean).map(esc).join(' · ');
+  const url=publicUrl(row.storage_path);
+  const image=String(row.mime_type||'').startsWith('image/')&&type!=='gallery';
+  const primary=type==='gallery'?'viewGallery':(image?'preview':'open');
+  return `<article class="admin-proof admin-proof-rich" data-asset-id="${esc(row.id)}">${image?`<a class="admin-proof-thumb" href="${esc(url)}" target="_blank" rel="noopener"><img src="${esc(url)}" alt="${esc(fileName)}" loading="lazy"></a>`:''}<div class="admin-proof-main"><strong>${esc(title)}</strong><span>${details}</span><div class="admin-proof-actions">${type==='gallery'?`<button class="admin-btn" type="button" data-open-asset="${esc(row.id)}" data-action="viewGallery">${assetActionLabel('viewGallery')}</button>`:`<button class="admin-btn" type="button" data-open-asset="${esc(row.id)}" data-action="${primary}">${assetActionLabel(primary)}</button><a class="admin-btn" href="${esc(url)}" download="${esc(fileName)}" target="_blank" rel="noopener">${assetActionLabel('download')}</a>`}<button class="admin-btn" type="button" data-replace-asset="${esc(row.id)}">${assetActionLabel('replace')}</button><button class="admin-btn danger" type="button" data-delete-asset="${esc(row.id)}">${assetActionLabel('delete')}</button></div></div></article>`;
 }
+async function refreshAdminList(){
+  const list=$('#adminProofList');if(!adminSession){list.innerHTML=`<div class="admin-empty">${esc(t('admin.loginRequired'))}</div>`;return}if(assetSchemaReady===null){list.innerHTML=`<div class="admin-empty">${esc(t('admin.schemaChecking'))}</div>`;return}if(!sbReady()){list.innerHTML=`<div class="admin-empty">${esc(t('admin.notConfigured'))}</div>`;return}if(assetLoadState==='schema_missing'){list.innerHTML=`<div class="admin-empty">${esc(t('admin.schemaMissing'))}</div>`;return}if(['auth','permission','network','error'].includes(assetLoadState)){const key={auth:'admin.authError',permission:'admin.permissionError',network:'admin.networkError',error:'admin.loadError'}[assetLoadState];list.innerHTML=`<div class="admin-empty">${esc(t(key))}</div>`;return}
+  try{
+    const source=[...adminAssets.values()].filter(row=>row.asset_type==='proof'||row.asset_type==='gallery');
+    const gallerySeen=new Set();
+    const rows=source.filter(row=>{if(row.asset_type!=='gallery')return true;if(!row.gallery_id)return true;if(gallerySeen.has(row.gallery_id))return false;gallerySeen.add(row.gallery_id);return true}).sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')));
+    if(!rows.length){list.innerHTML=`<div class="admin-empty">${esc(t('admin.noProof'))}</div>`;return}
+    list.innerHTML=rows.map(adminProofRowHtml).join('');
+  }catch(err){list.innerHTML=`<div class="admin-empty">${esc(t('admin.uploadFailed'))}`}
+}
+
+async function replaceProofAsset(id){if(!adminSession){setAdminStatus('#adminUploadStatus','err',t('admin.loginRequired'));return}const row=adminAssets.get(id);if(!row)return;const input=document.createElement('input');input.type='file';input.multiple=row.asset_type==='gallery';input.accept=row.asset_type==='gallery'?'image/*':'application/pdf,image/*,application/json,.json';input.hidden=true;document.body.appendChild(input);input.addEventListener('change',async()=>{const files=[...input.files];input.remove();if(!files.length)return;const projectId=row.owner_id||row.project_id;setAdminStatus('#adminUploadStatus','ok',t('admin.uploading'));try{const rows=await uploadAssetBatch({assetType:'proof',ownerType:'project',ownerId:projectId,projectId,titleVi:row.title_vi||row.original_name,titleEn:row.title_en||row.original_name,files});await replaceSingleAsset(row.asset_type==='gallery'?'gallery':'proof','project',projectId,rows,row.asset_type==='gallery'?row.gallery_id:null,row.asset_type==='proof'?row.id:null);await loadAssets();refreshAdminList();$('#adminProject').value=projectId;setAdminStatus('#adminUploadStatus','ok',t('admin.uploaded'))}catch(err){logAssetFailure(err,{operation:'proof.replace',assetId:id,assetType:row.asset_type,ownerType:row.owner_type,ownerId:projectId,bucket:CONFIG.supabase.bucket});setAdminStatus('#adminUploadStatus','err',formatAssetUploadError(err))}},{once:true});input.click()}
+function openAdminAsset(id,action='open'){
+  const row=adminAssets.get(id);if(!row)return;
+  if(action==='viewGallery'&&row.asset_type==='gallery'&&row.gallery_id){
+    const rows=[...adminAssets.values()].filter(item=>item.asset_type==='gallery'&&item.gallery_id===row.gallery_id).sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
+    const title=currentLang==='en'?(row.title_en||row.title_vi||'Gallery'):(row.title_vi||row.title_en||'Gallery');
+    const images=rows.filter(item=>String(item.mime_type||'').startsWith('image/')).map(item=>`<figure><img src="${esc(publicUrl(item.storage_path))}" alt="${esc(item.original_name||'')}" loading="lazy"><figcaption>${esc(item.original_name||'')}</figcaption></figure>`).join('');
+    const win=window.open('','_blank','noopener');
+    if(!win)return;
+    win.document.write(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>body{margin:0;background:#0a0b10;color:#fff;font:14px system-ui,sans-serif;padding:24px}h1{font-size:22px;margin:0 0 18px}main{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px}figure{margin:0;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:12px}img{display:block;width:100%;height:auto;border-radius:10px}figcaption{padding:10px 2px 2px;color:rgba(255,255,255,.7);word-break:break-word}</style></head><body><h1>${esc(title)} · ${rows.length} ${currentLang==='en'?'images':'ảnh'}</h1><main>${images||`<p>${currentLang==='en'?'This gallery contains no image assets.':'Gallery này không chứa asset hình ảnh.'}</p>`}</main></body></html>`);
+    win.document.close();
+    return;
+  }
+  window.open(publicUrl(row.storage_path),'_blank','noopener');
+}
+
 async function adminLogin(email,password){
   if(!sbReady())throw new Error('supabase_not_configured');
   const r=await fetch(CONFIG.supabase.url.replace(/\/$/,'')+'/auth/v1/token?grant_type=password',{method:'POST',headers:sbHeaders(),body:JSON.stringify({email,password})});
@@ -809,22 +844,6 @@ async function restoreSession(){
   try{const raw=sessionStorage.getItem('hqv-admin-session');if(!raw)return;adminSession=JSON.parse(raw);const r=await sbFetch('/auth/v1/user',{method:'GET'});const user=await r.json();if(!user?.id)throw new Error('invalid');adminSession.user=user;sessionStorage.setItem('hqv-admin-session',JSON.stringify(adminSession))}catch(_){adminSession=null;sessionStorage.removeItem('hqv-admin-session')}
 }
 function setAdminStatus(id,type,msg){const el=$(id);el.className=`admin-status show ${type}`;el.textContent=msg}
-function formatAssetUploadError(err){
-  const code=err?.code||err?.name||'';
-  const message=err?.messageText||err?.message||'';
-  const detail=err?.details||err?.detail||'';
-  const hint=err?.hint||'';
-  const status=err?.status?`HTTP ${err.status}`:"";
-  if(code||message||status){
-    return [status,code,message,detail,hint].filter(Boolean).join(' · ');
-  }
-  if(err?.message==='asset_schema_missing')return t('admin.schemaMissing');
-  if(err?.message==='supabase_not_configured')return t('admin.notConfigured');
-  if(err?.message==='supabase_auth_error')return t('admin.authError');
-  if(err?.message==='supabase_permission_error')return t('admin.permissionError');
-  if(err?.message==='supabase_network_error')return t('admin.networkError');
-  return t('admin.uploadFailed');
-}
 function populateAdminProjects(){const html=PROJECTS.map(p=>`<option value="${esc(p.id)}">${esc(p.content[currentLang].title)}</option>`).join('');$('#adminProject').innerHTML=html;$('#coverProject').innerHTML=html}
 function renderAdmin(){
   populateAdminProjects();
@@ -838,39 +857,9 @@ function renderAdmin(){
   if(adminSession)refreshAdminList();
 }
 
-function assetOperationError(operation,context,responseBody,status){
-  let parsed={};
-  try{parsed=typeof responseBody==='string'?JSON.parse(responseBody||'{}'):(responseBody||{})}catch(_){}
-  const e=new Error(parsed?.message||parsed?.error||`Supabase ${operation} failed`);
-  e.name=parsed?.code||operation;
-  e.operation=operation;
-  e.status=status??null;
-  e.code=parsed?.code||parsed?.error||'';
-  e.messageText=parsed?.message||'';
-  e.details=parsed?.details||'';
-  e.hint=parsed?.hint||'';
-  e.context=context||{};
-  return e;
-}
-function logAssetFailure(err,context={}){
-  const payload={operation:err?.operation||context.operation||'unknown',status:err?.status??context.status??null,errorCode:err?.code||'',message:err?.messageText||err?.message||'',details:err?.details||'',hint:err?.hint||'',storagePath:err?.context?.storagePath||context.storagePath||'',bucket:err?.context?.bucket||context.bucket||CONFIG.supabase.bucket,assetType:err?.context?.assetType||context.assetType||'',ownerType:err?.context?.ownerType||context.ownerType||'',ownerId:err?.context?.ownerId||context.ownerId||''};
-  console.error('[HQV asset upload]',payload,err);
-}
-async function uploadStorage(file,path,context={}){
-  const operation='storage.upload';
-  const base=CONFIG.supabase.url.replace(/\/$/,'');
-  const url=base+`/storage/v1/object/${encodeURIComponent(CONFIG.supabase.bucket)}/${path.split('/').map(encodeURIComponent).join('/')}`;
-  const requestContext={...context,operation,storagePath:path,bucket:CONFIG.supabase.bucket};
-  let r;
-  try{
-    r=await fetch(url,{method:'POST',headers:{'apikey':CONFIG.supabase.anonKey,'Authorization':`Bearer ${adminSession.access_token}`,'Content-Type':file.type||'application/octet-stream','x-upsert':'false'},body:file});
-  }catch(cause){
-    const e=assetOperationError(operation,requestContext,null);e.message=cause?.message||'Network error while uploading to Storage';e.cause=cause;logAssetFailure(e,requestContext);throw e;
-  }
-  if(!r.ok){
-    const body=await r.text().catch(()=>'');
-    const e=assetOperationError(operation,requestContext,body,r.status);logAssetFailure(e,requestContext);throw e;
-  }
+async function uploadStorage(file,path){
+  const r=await fetch(CONFIG.supabase.url.replace(/\/$/,'')+`/storage/v1/object/${encodeURIComponent(CONFIG.supabase.bucket)}/${path.split('/').map(encodeURIComponent).join('/')}`,{method:'POST',headers:{'apikey':CONFIG.supabase.anonKey,'Authorization':`Bearer ${adminSession.access_token}`,'Content-Type':file.type,'x-upsert':'false'},body:file});
+  if(!r.ok){const e=new Error('storage_upload_failed');try{e.detail=await r.text()}catch(_){}throw e}
   return path;
 }
 async function deleteStorage(paths){
@@ -878,19 +867,9 @@ async function deleteStorage(paths){
   const r=await fetch(CONFIG.supabase.url.replace(/\/$/,'')+`/storage/v1/object/${encodeURIComponent(CONFIG.supabase.bucket)}/remove`,{method:'POST',headers:{'apikey':CONFIG.supabase.anonKey,'Authorization':`Bearer ${adminSession.access_token}`,'Content-Type':'application/json'},body:JSON.stringify({prefixes:paths})});
   if(!r.ok)throw new Error('storage_delete_failed');
 }
-async function insertAssetRows(rows,context={}){
-  const operation='portfolio_proofs.insert';
-  const requestContext={...context,operation,bucket:CONFIG.supabase.bucket};
-  try{
-    const r=await sbFetch(`/rest/v1/${encodeURIComponent(CONFIG.supabase.assetTable)}`,{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(rows)});
-    const body=await r.json();
-    if(!Array.isArray(body))throw assetOperationError(operation,requestContext,body,r.status);
-    return body;
-  }catch(err){
-    if(!err.operation)err=assetOperationError(operation,{...requestContext},err?.detail||err?.message||'',err?.status||null);
-    logAssetFailure(err,requestContext);
-    throw err;
-  }
+async function insertAssetRows(rows){
+  const r=await sbFetch(`/rest/v1/${encodeURIComponent(CONFIG.supabase.assetTable)}`,{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(rows)});
+  const body=await r.json();return Array.isArray(body)?body:[];
 }
 async function deleteMetadataRow(row){
   const r=await sbFetch(`/rest/v1/${encodeURIComponent(CONFIG.supabase.assetTable)}?id=eq.${encodeURIComponent(row.id)}`,{method:'DELETE',headers:{Prefer:'return=representation'}});
@@ -963,53 +942,81 @@ function assertAssetSchema(){
 function makeStoragePath(assetType,ownerId,file){const id=crypto.randomUUID();const name=safeFileName(file.name);if(assetType==='avatar')return `profile/avatar-${id}-${name}`;if(assetType==='project_cover')return `projects/${ownerId}/cover-${id}-${name}`;return `projects/${ownerId}/proof/${Date.now()}-${id}-${name}`}
 async function uploadAssetBatch({assetType,ownerType,ownerId,projectId,titleVi,titleEn,files}){
   assertAssetSchema();
-  if(!ownerId)throw new Error('project_missing');
   const galleryId=assetType==='proof'&&files.length>1&&files.every(f=>f.type.startsWith('image/'))?crypto.randomUUID():null;
   if(assetType==='avatar'&&files.length!==1)throw new Error('asset_required');
   if(assetType==='project_cover'&&(files.length!==1||!files[0].type.startsWith('image/')))throw new Error('asset_required');
   for(const file of files){
-    if(assetType==='proof'&&file.type!=='application/pdf'&&!file.type.startsWith('image/')&&file.type!=='application/json')throw new Error('asset_required');
+    if(assetType==='proof'&&file.type!=='application/pdf'&&file.type!=='application/json'&&!file.type.startsWith('image/'))throw new Error('asset_required');
     if((assetType==='avatar'||assetType==='project_cover')&&!file.type.startsWith('image/'))throw new Error('asset_required');
   }
   const rows=[];const uploadedPaths=[];let insertedRows=[];
   try{
     for(const file of files){
       const path=makeStoragePath(assetType,ownerId,file);
-      await uploadStorage(file,path,{assetType,ownerType,ownerId,projectId});
+      await uploadStorage(file,path);
       uploadedPaths.push(path);
-      rows.push({project_id:projectId||null,asset_type:galleryId?'gallery':assetType,owner_type:ownerType,owner_id:ownerId,type:galleryId?'gallery':(file.type==='application/pdf'?'pdf':file.type==='application/json'?'json':'image'),title_vi:titleVi||file.name,title_en:titleEn||file.name,storage_path:path,original_name:file.name,file_name:file.name,mime_type:file.type||'application/octet-stream',file_size:file.size,gallery_id:galleryId});
+      rows.push({project_id:projectId||null,asset_type:galleryId?'gallery':assetType,owner_type:ownerType,owner_id:ownerId,type:galleryId?'gallery':(file.type==='application/pdf'?'pdf':(file.type==='application/json'?'json':'image')),title_vi:titleVi||file.name,title_en:titleEn||file.name,storage_path:path,original_name:file.name,mime_type:file.type,file_size:file.size,gallery_id:galleryId});
     }
-    insertedRows=await insertAssetRows(rows,{assetType,ownerType,ownerId,projectId,storagePath:uploadedPaths.join(', ')});
-    if(insertedRows.length!==rows.length){
-      const e=assetOperationError('portfolio_proofs.insert',{assetType,ownerType,ownerId,projectId,storagePath:uploadedPaths.join(', '),bucket:CONFIG.supabase.bucket}, {message:`Inserted ${insertedRows.length} of ${rows.length} metadata rows`},200);
-      logAssetFailure(e);throw e;
-    }
+    insertedRows=await insertAssetRows(rows);
+    if(insertedRows.length!==rows.length)throw new Error('metadata_failed');
     return insertedRows;
   }catch(err){
     const rollback=await rollbackUploadedAssets(uploadedPaths,insertedRows);
     if(!rollback.ok)err.rollbackError=rollback.error;
-    logAssetFailure(err,{operation:err?.operation||'asset_batch',assetType,ownerType,ownerId,projectId,storagePath:uploadedPaths.join(', '),bucket:CONFIG.supabase.bucket});
     throw err;
   }
 }
-async function replaceSingleAsset(assetType,ownerType,ownerId,newRows){
+async function replaceSingleAsset(assetType,ownerType,ownerId,newRows,targetGalleryId=null,targetAssetId=null){
   if(!Array.isArray(newRows)||!newRows.length)throw new Error('metadata_not_persisted');
-  const oldRows=[...adminAssets.values()].filter(row=>row.asset_type===assetType&&row.owner_type===ownerType&&row.owner_id===ownerId&&row.id&&!newRows.some(n=>n.id===row.id));
+  let oldRows=[];
+  if(assetType==='gallery'){
+    if(!targetGalleryId)throw new Error('gallery_id_required');
+    oldRows=[...adminAssets.values()].filter(row=>row.asset_type==='gallery'&&row.gallery_id===targetGalleryId&&row.id&&!newRows.some(n=>n.id===row.id));
+  }else if(assetType==='proof'){
+    if(!targetAssetId)throw new Error('asset_id_required');
+    const target=adminAssets.get(targetAssetId);
+    if(!target||target.asset_type!=='proof'||target.owner_type!==ownerType||target.owner_id!==ownerId)throw new Error('asset_not_found');
+    oldRows=[target];
+  }else{
+    oldRows=[...adminAssets.values()].filter(row=>row.asset_type===assetType&&row.owner_type===ownerType&&row.owner_id===ownerId&&row.id&&!newRows.some(n=>n.id===row.id));
+  }
   if(!oldRows.length)return;
-  const snapshots=[];const deleted=[];
+  const snapshots=[];
   try{
     for(const row of oldRows)snapshots.push(await snapshotStorageRow(row));
-    for(const row of oldRows){await removeAssetRow(row);deleted.push(row)}
-  }catch(err){
-    for(let i=0;i<snapshots.length;i++){
-      try{await restoreStorageSnapshot(snapshots[i])}catch(_){}
-      try{await restoreMetadataRow(oldRows[i])}catch(_){}
+    await deleteStorage(oldRows.map(row=>row.storage_path));
+    try{
+      await deleteMetadataRows(oldRows);
+    }catch(err){
+      for(const snapshot of snapshots){try{await restoreStorageSnapshot(snapshot)}catch(_){} }
+      for(const row of oldRows){try{await restoreMetadataRow(row)}catch(_){} }
+      throw err;
     }
+  }catch(err){
     const rollback=await rollbackUploadedAssets(newRows.map(row=>row.storage_path),newRows);
     if(!rollback.ok)err.rollbackError=rollback.error;
     throw err;
   }
 }
+async function removeAssetRows(rows){
+  const unique=[...new Map(rows.filter(Boolean).map(row=>[row.id,row])).values()];
+  if(!unique.length)return;
+  const snapshots=[];
+  try{
+    for(const row of unique)snapshots.push(await snapshotStorageRow(row));
+    await deleteStorage(unique.map(row=>row.storage_path));
+    try{
+      await deleteMetadataRows(unique);
+    }catch(err){
+      for(const snapshot of snapshots){try{await restoreStorageSnapshot(snapshot)}catch(_){}}
+      for(const row of unique){try{await restoreMetadataRow(row)}catch(_){}}
+      throw err;
+    }
+  }catch(err){
+    throw err;
+  }
+}
+
 async function doAvatarUpload(e){
   e.preventDefault();const files=[...$('#avatarFile').files],btn=$('#avatarUploadBtn');if(!files.length){setAdminStatus('#avatarUploadStatus','err',t('admin.assetRequired'));return}if(!adminSession){setAdminStatus('#avatarUploadStatus','err',t('admin.loginRequired'));return}btn.disabled=true;setAdminStatus('#avatarUploadStatus','ok',t('admin.uploading'));
   try{const rows=await uploadAssetBatch({assetType:'avatar',ownerType:'profile',ownerId:'hqv',titleVi:'Ảnh đại diện Hoàng Quốc Việt',titleEn:'Hoàng Quốc Việt profile avatar',files});await replaceSingleAsset('avatar','profile','hqv',rows);await loadAssets();$('#avatarUploadForm').reset();setAdminStatus('#avatarUploadStatus','ok',t('admin.avatarUploaded'))}catch(err){setAdminStatus('#avatarUploadStatus','err',err.message==='asset_schema_missing'?t('admin.schemaMissing'):err.message==='supabase_not_configured'?t('admin.notConfigured'):err.message==='supabase_auth_error'?t('admin.authError'):err.message==='supabase_permission_error'?t('admin.permissionError'):err.message==='supabase_network_error'?t('admin.networkError'):t('admin.uploadFailed'))}finally{btn.disabled=false}
@@ -1019,40 +1026,31 @@ async function doCoverUpload(e){
   try{const rows=await uploadAssetBatch({assetType:'project_cover',ownerType:'project',ownerId:projectId,projectId,titleVi:p.content.vi.title,titleEn:p.content.en.title,files});await replaceSingleAsset('project_cover','project',projectId,rows);await loadAssets();$('#coverUploadForm').reset();$('#coverProject').value=projectId;setAdminStatus('#coverUploadStatus','ok',t('admin.coverUploaded'))}catch(err){setAdminStatus('#coverUploadStatus','err',err.message==='asset_schema_missing'?t('admin.schemaMissing'):err.message==='supabase_not_configured'?t('admin.notConfigured'):err.message==='supabase_auth_error'?t('admin.authError'):err.message==='supabase_permission_error'?t('admin.permissionError'):err.message==='supabase_network_error'?t('admin.networkError'):t('admin.uploadFailed'))}finally{btn.disabled=false}
 }
 async function doProofUpload(e){
-  e.preventDefault();
-  const projectId=$('#adminProject').value,
-    titleVi=$('#proofTitleVi').value.trim(),
-    titleEn=$('#proofTitleEn').value.trim(),
-    files=[...$('#proofFiles').files],
-    btn=$('#uploadBtn');
-  const baseContext={operation:'proof.upload',bucket:CONFIG.supabase.bucket,assetType:'proof',ownerType:'project',ownerId:projectId,files:files.map(f=>({name:f.name,type:f.type,size:f.size}))};
-  if(!files.length){setAdminStatus('#adminUploadStatus','err',t('admin.assetRequired'));return}
-  if(!adminSession){setAdminStatus('#adminUploadStatus','err',t('admin.loginRequired'));return}
-  btn.disabled=true;
-  setAdminStatus('#adminUploadStatus','ok',t('admin.uploading'));
-  try{
-    console.info('[Asset] proof upload start',baseContext);
-    await uploadAssetBatch({assetType:'proof',ownerType:'project',ownerId:projectId,projectId,titleVi,titleEn,files});
-    $('#proofUploadForm').reset();
-    await loadAssets();
-    refreshAdminList();
-    setAdminStatus('#adminUploadStatus','ok',t('admin.uploaded'));
-  }catch(err){
-    logAssetFailure(err,baseContext);
-    setAdminStatus('#adminUploadStatus','err',formatAssetUploadError(err));
-  }finally{btn.disabled=false}
+  e.preventDefault();const projectId=$('#adminProject').value,titleVi=$('#proofTitleVi').value.trim(),titleEn=$('#proofTitleEn').value.trim(),files=[...$('#proofFiles').files],btn=$('#uploadBtn');if(!files.length){setAdminStatus('#adminUploadStatus','err',t('admin.assetRequired'));return}if(!adminSession){setAdminStatus('#adminUploadStatus','err',t('admin.loginRequired'));return}btn.disabled=true;setAdminStatus('#adminUploadStatus','ok',t('admin.uploading'));
+  try{await uploadAssetBatch({assetType:'proof',ownerType:'project',ownerId:projectId,projectId,titleVi,titleEn,files});$('#proofUploadForm').reset();await loadAssets();refreshAdminList();setAdminStatus('#adminUploadStatus','ok',t('admin.uploaded'))}catch(err){setAdminStatus('#adminUploadStatus','err',err.message==='asset_schema_missing'?t('admin.schemaMissing'):err.message==='supabase_not_configured'?t('admin.notConfigured'):err.message==='supabase_auth_error'?t('admin.authError'):err.message==='supabase_permission_error'?t('admin.permissionError'):err.message==='supabase_network_error'?t('admin.networkError'):t('admin.uploadFailed'))}finally{btn.disabled=false}
 }
 async function deleteAsset(id){
   if(!adminSession){setAdminStatus('#adminUploadStatus','err',t('admin.loginRequired'));return}
-  const row=adminAssets.get(id);if(!row)return;setAdminStatus('#adminUploadStatus','ok',t('admin.uploading'));
-  try{await removeAssetRow(row);adminAssets.delete(id);await loadAssets();refreshAdminList();setAdminStatus('#adminUploadStatus','ok',t('admin.deleted'))}catch(err){setAdminStatus('#adminUploadStatus','err',t('admin.deleteFailed'))}
+  const row=adminAssets.get(id);if(!row)return;
+  const rows=row.asset_type==='gallery'&&row.gallery_id?[...adminAssets.values()].filter(item=>item.asset_type==='gallery'&&item.gallery_id===row.gallery_id):[row];
+  setAdminStatus('#adminUploadStatus','ok',t('admin.uploading'));
+  try{
+    await removeAssetRows(rows);
+    await loadAssets();
+    refreshAdminList();
+    setAdminStatus('#adminUploadStatus','ok',t('admin.deleted'));
+  }catch(err){
+    logAssetFailure(err,{operation:row.asset_type==='gallery'?'gallery.delete':'proof.delete',assetId:id,assetType:row.asset_type,ownerType:row.owner_type,ownerId:row.owner_id,bucket:CONFIG.supabase.bucket});
+    setAdminStatus('#adminUploadStatus','err',formatAssetUploadError(err));
+  }
 }
+
 $('#adminLoginForm').addEventListener('submit',async e=>{e.preventDefault();const b=e.currentTarget.querySelector('button');b.disabled=true;try{await adminLogin($('#adminEmail').value.trim(),$('#adminPassword').value);setAdminStatus('#adminLoginStatus','ok',t('admin.loggedIn'));renderAdmin();await loadAssets()}catch(err){setAdminStatus('#adminLoginStatus','err',err.message==='not_admin'?(currentLang==='en'?'This account is not allowed to administer the portfolio.':'Tài khoản này không có quyền quản trị portfolio.'):err.message==='supabase_not_configured'?t('admin.notConfigured'):t('admin.loginFailed'))}finally{b.disabled=false}});
 $('#proofUploadForm').addEventListener('submit',doProofUpload);
 $('#avatarUploadForm').addEventListener('submit',doAvatarUpload);
 $('#coverUploadForm').addEventListener('submit',doCoverUpload);
 $('#adminLogout').addEventListener('click',()=>{adminSession=null;sessionStorage.removeItem('hqv-admin-session');renderAdmin()});
-document.addEventListener('click',e=>{const btn=e.target.closest('[data-delete-asset]');if(btn){deleteAsset(btn.dataset.deleteAsset)}});
+document.addEventListener('click',e=>{const del=e.target.closest('[data-delete-asset]');if(del){deleteAsset(del.dataset.deleteAsset);return}const rep=e.target.closest('[data-replace-asset]');if(rep){replaceProofAsset(rep.dataset.replaceAsset);return}const open=e.target.closest('[data-open-asset]');if(open){openAdminAsset(open.dataset.openAsset,open.dataset.action||'open')}});
 
 /* Contact form */
 $('#contactForm').addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget,button=form.querySelector('.submit'),state=$('#formState');if(!CONFIG.email){state.className='form-state err';state.textContent=currentLang==='en'?'Form is waiting for configuration. Add the receiving email in CONFIG.email.':'Form đang ở chế độ chờ cấu hình. Hãy điền email nhận tin trong CONFIG.email.';state.style.display='block';return}button.disabled=true;state.className='form-state';state.textContent=currentLang==='en'?'Sending…':'Đang gửi…';state.style.display='block';try{const response=await fetch(`https://formsubmit.co/ajax/${encodeURIComponent(CONFIG.email)}`,{method:'POST',headers:{Accept:'application/json'},body:new FormData(form)});if(!response.ok)throw new Error('submit_failed');state.className='form-state ok';state.textContent=currentLang==='en'?'✓ Sent. Thank you — I will reply soon.':'✓ Đã gửi. Cảm ơn bạn — tôi sẽ phản hồi sớm.';form.reset()}catch(_){state.className='form-state err';state.textContent=currentLang==='en'?'✗ Could not send. Please try again or use a direct contact channel.':'✗ Chưa gửi được. Vui lòng thử lại hoặc dùng kênh liên hệ trực tiếp.'}button.disabled=false});
