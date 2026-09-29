@@ -317,9 +317,9 @@ body.page-hidden .ambient,body.page-hidden .ticker,body.page-hidden .avatar-shel
 /* ============================================================
    ADMIN — intentionally utilitarian and isolated from public UI
    ============================================================ */
-.admin-dialog{width:min(900px,95vw);max-height:min(92dvh,920px);background:#0d1117;border:1px solid rgba(255,255,255,.12);border-radius:20px;color:#fff}
+.admin-dialog{width:min(900px,95vw);height:min(92dvh,920px);max-height:min(92dvh,920px);background:#0d1117;border:1px solid rgba(255,255,255,.12);border-radius:20px;color:#fff}
 .admin-dialog::backdrop{background:rgba(0,0,0,.78);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px)}
-.admin-scroll{height:100%;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding:22px}
+.admin-scroll{height:100%;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding:22px}
 .admin-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,.08)}
 .admin-kicker{font:9px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--cyan)}
 .admin-title{margin-top:5px;font-size:23px;font-weight:950;letter-spacing:-.03em}
@@ -731,7 +731,8 @@ function visualH(p){
 }
 
 function renderProjects(){
-  $('#projectList').innerHTML=PROJECTS.filter(p => p.published !== false).map(p=>{const c=contentFor(p);return `<article class="project-card reveal visible" style="--card-a:${p.tone[0]};--card-b:${p.tone[1]}"><div class="project-copy"><span class="project-index">CASE ${esc(p.index)}</span><div class="project-tags">${c.category.map(tag).join('')}</div><h3 class="project-title">${esc(c.title)}</h3><p class="project-hook">${esc(c.hook)}</p>${statsH(c.stats)}<div class="project-foot"><a class="case-btn" href="#/${p.id}">${esc(t('project.open'))} <span>↗</span></a><span class="muted" style="font-size:10px">Marketing × Technology</span></div></div><div class="project-visual">${visualH(p)}</div></div></article>`}).join('');
+  const visible=PROJECTS.filter(p=>p.published!==false);
+  $('#projectList').innerHTML=visible.map(p=>{const c=contentFor(p);return `<article class="project-card reveal visible" style="--card-a:${p.tone[0]};--card-b:${p.tone[1]}"><div class="project-copy"><span class="project-index">CASE ${esc(p.index)}</span><div class="project-tags">${c.category.map(tag).join('')}</div><h3 class="project-title">${esc(c.title)}</h3><p class="project-hook">${esc(c.hook)}</p>${statsH(c.stats)}<div class="project-foot"><a class="case-btn" href="#/${p.id}">${esc(t('project.open'))} <span>↗</span></a><span class="muted" style="font-size:10px">Marketing × Technology</span></div></div><div class="project-visual">${visualH(p)}</div></div></article>`}).join('');
 }
 function renderSkills(){
   $('#skillsGrid').innerHTML=SKILLS.map(s=>{const c=s.content[currentLang];return `<article class="skill-card reveal visible" style="--skill-accent:${s.accent}"><div class="skill-num">${s.num}</div><div class="skill-orbit"></div><h3 class="skill-title">${esc(c.title)}</h3><p class="skill-copy">${esc(c.copy)}</p><div class="skill-items">${c.items.map(x=>`<span class="skill-item"><strong>•</strong> ${esc(x)}</span>`).join('')}</div></article>`}).join('');
@@ -796,9 +797,7 @@ function viewerHtml(it){
 }
 function parseHash(){
   if(location.hash==='#admin')return {admin:true};
-  const m=location.hash.match(/^#\/([a-z0-9-]+)(?:\/(\d+))?$/i);if(!m)return null;const project=PROJECTS.find(p=>p.id===m[1]);
-  if(!project||project.published===false)return null;
-  return {project,index:m[2]==null?null:Number(m[2])};
+  const m=location.hash.match(/^#\/([a-z0-9-]+)(?:\/(\d+))?$/i);if(!m)return null;const project=PROJECTS.find(p=>p.id===m[1]);return project&&project.published!==false?{project,index:m[2]==null?null:Number(m[2])}:null;
 }
 function closeNative(d){try{if(d.open)d.close()}catch(_){} }
 async function route(){
@@ -1158,7 +1157,7 @@ async function deleteProject(project){
 
     const sectionR=await sbFetch(`/rest/v1/portfolio_project_sections?select=id,project_id,sort_order,title_vi,body_vi,title_en,body_en&project_id=eq.${encodeURIComponent(projectId)}`,{method:'GET'});
     sections=await sectionR.json();
-    const proofR=await sbFetch(`/rest/v1/portfolio_proofs?select=id,project_id,asset_type,owner_type,owner_id,type,title_vi,title_en,storage_path,original_name,mime_type,file_size,gallery_id,created_at,description_vi,description_en,sort_order,updated_at&or=(project_id.eq.${encodeURIComponent(slug)},owner_id.eq.${encodeURIComponent(slug)})&asset_type=in.(project_cover,proof,gallery)`,{method:'GET'});
+    const proofR=await sbFetch(`/rest/v1/${encodeURIComponent(CONFIG.supabase.assetTable)}?select=id,project_id,asset_type,owner_type,owner_id,type,title_vi,title_en,storage_path,original_name,mime_type,file_size,gallery_id,created_at,description_vi,description_en,sort_order,updated_at&or=(project_id.eq.${encodeURIComponent(slug)},owner_id.eq.${encodeURIComponent(slug)})&asset_type=in.(project_cover,proof,gallery)`,{method:'GET'});
     assetRows=await proofR.json();
     if(!Array.isArray(assetRows))throw new Error('project_asset_lookup_failed');
 
