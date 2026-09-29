@@ -246,8 +246,8 @@ dialog::backdrop{background:rgba(3,5,8,.78);backdrop-filter:blur(6px);-webkit-ba
 .modal-scroll{height:100%;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding:30px 28px 42px}
 .modal-close{position:sticky;top:0;z-index:5;margin-left:auto;display:grid;place-items:center;width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.10);background:rgba(12,16,22,.94);color:#fff;cursor:pointer}
 .modal-kicker{margin-top:18px;color:var(--lime);font:10px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.11em;text-transform:uppercase}.modal-title{margin-top:8px;font-size:clamp(30px,5vw,52px);line-height:1;letter-spacing:-.05em;font-weight:950}.modal-lead{margin-top:14px;color:var(--muted);font-size:14px;line-height:1.7;max-width:720px}.modal-stats{display:flex;flex-wrap:wrap;gap:14px;margin-top:20px}.modal-block{margin-top:27px;padding-top:23px;border-top:1px solid rgba(255,255,255,.07)}.modal-block h4{font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--cyan)}.modal-block p{margin-top:9px;color:rgba(255,255,255,.78);font-size:13px;line-height:1.75}.modal-proof{margin-top:30px;padding-top:22px;border-top:1px solid rgba(255,255,255,.07)}.proof-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.proof-btn{display:inline-flex;align-items:center;gap:7px;padding:9px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.035);font-size:10px;font-weight:850;transition:border-color .18s ease,background .18s ease,color .18s ease}.proof-btn:hover{border-color:rgba(255,107,53,.32);background:rgba(255,107,53,.06);color:#ffb297}
-.viewer{width:min(1100px,96vw);height:min(92dvh,900px);background:#05070a}.viewer .modal-scroll{padding:0;overflow:hidden}.viewer-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.08);background:#080b10}.viewer-head strong{font-size:11px}.viewer-actions{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.viewer-btn{padding:8px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.10);font-size:9px;font-weight:850;background:rgba(255,255,255,.02)}.viewer-body{height:calc(100% - 54px);overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;display:grid;place-items:center;background:#05070a}.viewer-body iframe{width:100%;height:100%;border:0;background:#fff}.gallery{display:flex;width:100%;height:100%;overflow:auto;scroll-snap-type:x mandatory;overscroll-behavior:contain;touch-action:pan-x}.gallery img{min-width:100%;height:100%;object-fit:contain;scroll-snap-align:center}
-@media(max-width:600px){dialog,.viewer{width:100vw;max-width:none;height:100dvh;max-height:none;border-radius:0;border-left:0;border-right:0}.modal-scroll{padding:20px 18px 30px}.viewer-head{padding-top:max(11px,env(safe-area-inset-top));padding-left:12px;padding-right:12px}.viewer-body{height:calc(100% - 63px)}}
+.viewer{width:min(1100px,96vw);height:min(92dvh,900px);background:#05070a}.viewer-scroll{height:100%;display:flex;flex-direction:column;overflow:hidden}.viewer .modal-scroll{padding:0;overflow:hidden}.viewer-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.08);background:#080b10}.viewer-head strong{font-size:11px}.viewer-actions{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.viewer-btn{padding:8px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.10);font-size:9px;font-weight:850;background:rgba(255,255,255,.02)}.viewer-body{height:auto;flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;display:grid;place-items:center;background:#05070a}.viewer-body iframe{width:100%;height:100%;border:0;background:#fff}.gallery{display:flex;width:100%;height:100%;overflow:auto;scroll-snap-type:x mandatory;overscroll-behavior:contain;touch-action:pan-x}.gallery img{min-width:100%;height:100%;object-fit:contain;scroll-snap-align:center}
+@media(max-width:600px){dialog,.viewer{width:100vw;max-width:none;height:100dvh;max-height:none;border-radius:0;border-left:0;border-right:0}.modal-scroll{padding:20px 18px 30px}.viewer-head{padding-top:max(11px,env(safe-area-inset-top));padding-left:12px;padding-right:12px}.viewer-body{height:auto;flex:1;min-height:0}}
 
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.ticker,.status i,.ambient,.avatar-shell::after,.avatar-shell::before,.avatar-frame::before,.constellation-dot,.approach-panel::before,.bar i::after{animation:none!important}.reveal{transition:none}.project-card,.skill-card,.primary-btn,.ghost-btn,.case-btn,.submit,.navlinks a,.nav-cta{transition:none!important}}
 
@@ -330,6 +330,24 @@ body.page-hidden .ambient,body.page-hidden .ticker,body.page-hidden .avatar-shel
 .admin-row{display:grid;grid-template-columns:1fr 1fr;gap:9px}.admin-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px}.admin-btn{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:0 13px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.045);color:#fff;font-size:10px;font-weight:900;cursor:pointer}.admin-btn.primary{background:var(--lime);border-color:var(--lime);color:#0a0b10}.admin-btn.danger{border-color:rgba(248,113,113,.24);color:#fca5a5}.admin-btn:disabled{opacity:.48;cursor:wait}.admin-status{margin-top:10px;padding:9px 10px;border-radius:9px;font-size:10px;line-height:1.5;display:none}.admin-status.show{display:block}.admin-status.ok{background:rgba(200,240,0,.06);border:1px solid rgba(200,240,0,.18);color:var(--lime)}.admin-status.err{background:rgba(127,29,29,.18);border:1px solid rgba(248,113,113,.20);color:#fca5a5}
 .admin-proof-list{display:grid;gap:8px;margin-top:12px}.admin-proof{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:11px;border:1px solid rgba(255,255,255,.07);border-radius:11px;background:rgba(255,255,255,.02)}.admin-proof strong{display:block;font-size:10px;line-height:1.35}.admin-proof span{display:block;margin-top:4px;color:var(--dim);font-size:9px;word-break:break-word}.admin-proof-rich{grid-template-columns:minmax(0,1fr);align-items:start}.admin-proof-main{min-width:0}.admin-proof-thumb{display:block;width:100%;max-height:170px;overflow:hidden;border-radius:9px;margin-bottom:8px;background:rgba(255,255,255,.03)}.admin-proof-thumb img{display:block;width:100%;height:170px;object-fit:cover}.admin-proof-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.admin-proof-actions .admin-btn,.admin-proof-actions a.admin-btn{font-size:9px;padding:7px 9px;text-decoration:none}.admin-proof-rich span{line-height:1.55}.admin-empty{padding:14px;border:1px dashed rgba(255,255,255,.10);border-radius:11px;color:var(--dim);font-size:10px;line-height:1.55}.admin-asset-sections{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:16px}.admin-asset-card{padding:17px;border:1px solid rgba(255,255,255,.08);border-radius:15px;background:rgba(255,255,255,.025)}.admin-asset-card h3{font-size:12px;font-weight:900}.admin-asset-card p{margin-top:7px;color:var(--dim);font-size:11px;line-height:1.6}@media(max-width:760px){.admin-asset-sections{grid-template-columns:1fr}}
 .admin-config{margin-top:15px;padding:11px;border-radius:10px;border:1px solid rgba(255,107,53,.20);background:rgba(255,107,53,.05);color:#ffc0ab;font-size:10px;line-height:1.55}
+.admin-project-management{margin-top:16px;padding:17px;border:1px solid rgba(34,211,238,.14);border-radius:15px;background:linear-gradient(145deg,rgba(34,211,238,.035),rgba(255,255,255,.018))}
+.admin-project-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.admin-project-list{display:grid;gap:8px;margin-top:12px}
+.admin-project-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:11px;border:1px solid rgba(255,255,255,.07);border-radius:11px;background:rgba(255,255,255,.02)}
+.admin-project-row strong{display:block;font-size:11px;line-height:1.35}
+.admin-project-meta{display:block;margin-top:4px;color:var(--dim);font-size:9px;line-height:1.5}
+.admin-project-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.admin-project-editor{margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.07)}
+.admin-project-editor[hidden]{display:none}
+.admin-section-editor{display:grid;gap:10px;margin-top:10px}
+.admin-section-row{padding:11px;border:1px solid rgba(255,255,255,.07);border-radius:11px;background:rgba(255,255,255,.018)}
+.admin-section-row-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.admin-section-row-head strong{font-size:10px;color:var(--cyan)}
+.admin-textarea{width:100%;min-height:82px;margin-top:5px;padding:10px 11px;border-radius:10px;border:1px solid rgba(255,255,255,.10);background:#080b10;color:#fff;outline:0;resize:vertical}
+.admin-textarea:focus{border-color:rgba(34,211,238,.46)}
+.admin-project-json{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;line-height:1.5}
+@media(max-width:760px){.admin-project-row{grid-template-columns:1fr}.admin-project-actions{justify-content:flex-start}}
+
 @media(max-width:760px){.admin-grid{grid-template-columns:1fr}.admin-row{grid-template-columns:1fr}.admin-dialog{width:100vw;height:100dvh;max-height:none;border-radius:0;border-left:0;border-right:0}.admin-scroll{padding:18px 15px 28px}}
 
 </style>
@@ -459,7 +477,62 @@ body.page-hidden .ambient,body.page-hidden .ticker,body.page-hidden .avatar-shel
       <div id="adminConfigNote" class="admin-config"></div>
       <form class="admin-form" id="adminLoginForm"><label class="admin-label"><span data-i18n="admin.email">Email admin</span><input class="admin-input" id="adminEmail" type="email" autocomplete="username" required></label><label class="admin-label"><span data-i18n="admin.password">Mật khẩu</span><input class="admin-input" id="adminPassword" type="password" autocomplete="current-password" required></label><div class="admin-actions"><button class="admin-btn primary" type="submit" data-i18n="admin.login">Đăng nhập</button></div><div id="adminLoginStatus" class="admin-status" aria-live="polite"></div></form>
     </div>
+
     <div id="adminPanel" hidden>
+      <section class="admin-project-management">
+        <div class="admin-project-head">
+          <div>
+            <h3 data-i18n="admin.projectManagement">Project Management</h3>
+            <p class="admin-note" data-i18n="admin.projectManagementCopy">Quản lý Project và Case Study content. Project tách biệt hoàn toàn khỏi Proof.</p>
+          </div>
+          <button class="admin-btn primary" type="button" id="newProjectBtn" data-i18n="admin.newProject">+ New Project</button>
+        </div>
+        <div id="projectManagementList" class="admin-project-list"></div>
+        <div class="admin-actions">
+          <button class="admin-btn" type="button" id="migrateProjectsBtn" data-i18n="admin.migrateProjects">Migrate existing Projects</button>
+        </div>
+        <p class="admin-note" data-i18n="admin.migrateCopy">Migrate idempotently từ hardcoded PROJECTS sang portfolio_projects và portfolio_project_sections.</p>
+        <div id="projectEditor" class="admin-project-editor" hidden>
+          <form class="admin-form" id="projectForm">
+            <input type="hidden" id="projectDbId">
+            <div class="admin-row">
+              <label class="admin-label"><span data-i18n="admin.slug">Slug</span><input class="admin-input" id="projectSlug" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*"></label>
+              <label class="admin-label"><span data-i18n="admin.sortOrder">Sort order</span><input class="admin-input" id="projectSortOrder" type="number" min="0" step="1" required></label>
+            </div>
+            <div class="admin-row">
+              <label class="admin-label"><span data-i18n="admin.titleVi">Tiêu đề VI</span><input class="admin-input" id="projectTitleVi" required></label>
+              <label class="admin-label"><span data-i18n="admin.titleEn">Title EN</span><input class="admin-input" id="projectTitleEn" required></label>
+            </div>
+            <div class="admin-row">
+              <label class="admin-label"><span data-i18n="admin.hookVi">Hook VI</span><textarea class="admin-textarea" id="projectHookVi"></textarea></label>
+              <label class="admin-label"><span data-i18n="admin.hookEn">Hook EN</span><textarea class="admin-textarea" id="projectHookEn"></textarea></label>
+            </div>
+            <div class="admin-row">
+              <label class="admin-label"><span data-i18n="admin.introVi">Intro VI</span><textarea class="admin-textarea" id="projectIntroVi"></textarea></label>
+              <label class="admin-label"><span data-i18n="admin.introEn">Intro EN</span><textarea class="admin-textarea" id="projectIntroEn"></textarea></label>
+            </div>
+            <div class="admin-row">
+              <label class="admin-label"><span data-i18n="admin.categories">Categories</span><input class="admin-input" id="projectCategories" placeholder="Marketing, AI, Automation"></label>
+              <label class="admin-label"><span data-i18n="admin.visualType">Visual type</span><input class="admin-input" id="projectVisualType" value="web"></label>
+            </div>
+            <div class="admin-row">
+              <label class="admin-label"><span data-i18n="admin.toneA">Tone A</span><input class="admin-input" id="projectToneA" placeholder="#22d3ee"></label>
+              <label class="admin-label"><span data-i18n="admin.toneB">Tone B</span><input class="admin-input" id="projectToneB" placeholder="#5b7cfa"></label>
+            </div>
+            <label class="admin-label"><span data-i18n="admin.stats">Stats JSON</span><textarea class="admin-textarea admin-project-json" id="projectStats" placeholder='[["193","valid responses"],["0.849","KMO"]]'></textarea></label>
+            <label class="admin-label"><span data-i18n="admin.published">Published</span><select class="admin-select" id="projectPublished"><option value="true">true</option><option value="false">false</option></select></label>
+            <div>
+              <div class="admin-project-head"><div><strong data-i18n="admin.sections">Case Study sections</strong><p class="admin-note" data-i18n="admin.sectionsCopy">Nội dung Case Study được lưu ở portfolio_project_sections, không lấy từ Proof metadata.</p></div><button class="admin-btn" type="button" id="addProjectSectionBtn" data-i18n="admin.addSection">+ Section</button></div>
+              <div id="projectSectionsEditor" class="admin-section-editor"></div>
+            </div>
+            <div class="admin-actions">
+              <button class="admin-btn primary" type="submit" id="saveProjectBtn" data-i18n="admin.saveProject">Save Project</button>
+              <button class="admin-btn" type="button" id="cancelProjectBtn" data-i18n="admin.cancel">Cancel</button>
+            </div>
+            <div id="projectStatus" class="admin-status" aria-live="polite"></div>
+          </form>
+        </div>
+      </section>
       <div class="admin-asset-sections">
         <section class="admin-asset-card">
           <h3 data-i18n="admin.avatarTitle">Profile avatar</h3><p data-i18n="admin.avatarCopy">Một avatar dùng chung cho toàn bộ homepage. Ảnh mới chỉ trở thành avatar active sau khi Storage và metadata đều thành công.</p>
@@ -535,7 +608,7 @@ const I18N={
     'proof.pdf':'Mở báo cáo','proof.image':'Xem hình','proof.gallery':'Xem gallery','proof.link':'Mở liên kết','proof.download':'Tải tài liệu',
     'admin.title':'Proof manager','admin.subtitle':'Đăng nhập Supabase để lưu proof thật vào Storage + Database.','admin.loginTitle':'Đăng nhập admin','admin.loginCopy':'Tài khoản phải tồn tại trong Supabase Auth. Quyền ghi/xóa phải được khóa bằng RLS ở Supabase.','admin.email':'Email admin','admin.password':'Mật khẩu','admin.login':'Đăng nhập','admin.uploadTitle':'Upload proof','admin.uploadCopy':'PDF, ảnh hoặc JSON. Chọn nhiều ảnh để tạo một gallery. Metadata sẽ được ghi vào database sau khi Storage upload thành công.','admin.project':'Project','admin.titleVi':'Tiêu đề VI','admin.titleEn':'Title EN','admin.files':'File','admin.upload':'Upload proof','admin.logout':'Đăng xuất','admin.existing':'Proof đã lưu','admin.existingCopy':'Chỉ hiển thị proof và gallery đã lưu trong asset registry.',
     'admin.schemaChecking':'Đang kiểm tra schema asset trên Supabase…','admin.configMissing':'Chưa cấu hình Supabase. Hãy điền CONFIG.supabase.url và CONFIG.supabase.anonKey. Frontend chỉ dùng anon key; không đặt service-role key vào file này.','admin.configReady':'Supabase đã được cấu hình ở frontend. Hãy bảo đảm Auth, Storage và RLS đã được thiết lập trước khi dùng.',
-    'admin.noProof':'Chưa có asset nào.','admin.loginRequired':'Hãy đăng nhập trước.','admin.loggedIn':'Đã đăng nhập.','admin.uploading':'Đang upload và ghi metadata…','admin.uploaded':'Upload và lưu metadata thành công.','admin.uploadFailed':'Upload thất bại. Kiểm tra Storage policy, Database policy và bucket.','admin.loginFailed':'Đăng nhập thất bại. Kiểm tra email, mật khẩu và Supabase Auth.','admin.deleted':'Đã xóa asset khỏi metadata và Storage.','admin.deleteFailed':'Không thể xóa asset hoàn tất. Kiểm tra Storage và RLS.','admin.notConfigured':'Supabase chưa được cấu hình.','admin.schemaMissing':'Supabase đã có config nhưng thiếu schema asset mới. Chạy migration SQL để thêm asset_type, owner_type và owner_id vào portfolio_proofs.','admin.authError':'Supabase từ chối phiên hoặc token. Kiểm tra Auth/session.', 'admin.permissionError':'Supabase từ chối quyền truy cập. Kiểm tra RLS và Storage policy.', 'admin.networkError':'Không thể kết nối tới Supabase. Kiểm tra mạng và URL project.', 'admin.loadError':'Không thể đọc asset registry từ Supabase.','admin.avatarTitle':'Profile avatar','admin.avatarCopy':'Một avatar dùng chung cho toàn bộ homepage. Ảnh mới chỉ trở thành avatar active sau khi Storage và metadata đều thành công.','admin.coverTitle':'Project cover','admin.coverCopy':'Ảnh cover tùy chọn cho từng project. Nếu chưa có asset, visual hiện tại vẫn được giữ nguyên.','admin.uploadAvatar':'Upload avatar','admin.uploadCover':'Upload cover','admin.avatarUploaded':'Avatar đã được lưu vào Storage + Database.','admin.coverUploaded':'Project cover đã được lưu vào Storage + Database.','admin.assetRequired':'File không hợp lệ.','admin.noSession':'Phiên đăng nhập không còn hợp lệ.','admin.projectMissing':'Project không tồn tại.'
+    'admin.noProof':'Chưa có asset nào.','admin.loginRequired':'Hãy đăng nhập trước.','admin.loggedIn':'Đã đăng nhập.','admin.uploading':'Đang upload và ghi metadata…','admin.uploaded':'Upload và lưu metadata thành công.','admin.uploadFailed':'Upload thất bại. Kiểm tra Storage policy, Database policy và bucket.','admin.loginFailed':'Đăng nhập thất bại. Kiểm tra email, mật khẩu và Supabase Auth.','admin.deleted':'Đã xóa asset khỏi metadata và Storage.','admin.deleteFailed':'Không thể xóa asset hoàn tất. Kiểm tra Storage và RLS.','admin.notConfigured':'Supabase chưa được cấu hình.','admin.schemaMissing':'Supabase đã có config nhưng thiếu schema asset mới. Chạy migration SQL để thêm asset_type, owner_type và owner_id vào portfolio_proofs.','admin.authError':'Supabase từ chối phiên hoặc token. Kiểm tra Auth/session.', 'admin.permissionError':'Supabase từ chối quyền truy cập. Kiểm tra RLS và Storage policy.', 'admin.networkError':'Không thể kết nối tới Supabase. Kiểm tra mạng và URL project.', 'admin.loadError':'Không thể đọc asset registry từ Supabase.','admin.avatarTitle':'Profile avatar','admin.avatarCopy':'Một avatar dùng chung cho toàn bộ homepage. Ảnh mới chỉ trở thành avatar active sau khi Storage và metadata đều thành công.','admin.coverTitle':'Project cover','admin.coverCopy':'Ảnh cover tùy chọn cho từng project. Nếu chưa có asset, visual hiện tại vẫn được giữ nguyên.','admin.uploadAvatar':'Upload avatar','admin.uploadCover':'Upload cover','admin.avatarUploaded':'Avatar đã được lưu vào Storage + Database.','admin.coverUploaded':'Project cover đã được lưu vào Storage + Database.','admin.assetRequired':'File không hợp lệ.','admin.noSession':'Phiên đăng nhập không còn hợp lệ.','admin.projectMissing':'Project không tồn tại.','admin.projectManagement':'PROJECT MANAGEMENT','admin.projectManagementCopy':'Quản lý Project và Case Study content. Project tách biệt hoàn toàn khỏi Proof.','admin.newProject':'+ New Project','admin.edit':'Edit','admin.delete':'Delete','admin.slug':'Slug','admin.sortOrder':'Sort order','admin.hookVi':'Hook VI','admin.hookEn':'Hook EN','admin.introVi':'Intro VI','admin.introEn':'Intro EN','admin.categories':'Categories','admin.visualType':'Visual type','admin.toneA':'Tone A','admin.toneB':'Tone B','admin.stats':'Stats JSON','admin.published':'Published','admin.sections':'Case Study sections','admin.sectionsCopy':'Nội dung Case Study được lưu ở portfolio_project_sections, không lấy từ Proof metadata.','admin.addSection':'+ Section','admin.removeSection':'Remove','admin.saveProject':'Save Project','admin.cancel':'Cancel','admin.migrateProjects':'Migrate existing Projects','admin.migrateCopy':'Migrate idempotently từ hardcoded PROJECTS sang portfolio_projects và portfolio_project_sections.','admin.migrated':'Migration thành công.','admin.migrationBlocked':'Migration bị Supabase/RLS từ chối. Kiểm tra policy Project và Section.','admin.projectSaved':'Project đã được lưu.','admin.projectDeleted':'Project đã được xóa cùng sections và assets liên quan.','admin.projectDeleteConfirm':'Xóa Project này? Sections, cover, proof và gallery thuộc đúng Project sẽ được xử lý.','admin.projectSlugLocked':'Slug của Project hiện có là read-only để không làm hỏng liên kết asset.','admin.projectCreate':'Tạo Project mới','admin.projectEdit':'Chỉnh sửa Project'
   },
   en:{
     'nav.projects':'Projects','nav.skills':'Capabilities','nav.experience':'Experience','nav.contact':'Contact','nav.cta':'Message me',
@@ -552,7 +625,7 @@ const I18N={
     'proof.pdf':'Open report','proof.image':'View image','proof.gallery':'View gallery','proof.link':'Open link','proof.download':'Download file',
     'admin.title':'Proof manager','admin.subtitle':'Sign in to Supabase to save real proof in Storage + Database.','admin.loginTitle':'Admin login','admin.loginCopy':'The account must exist in Supabase Auth. Write/delete access must be protected with Supabase RLS.','admin.email':'Admin email','admin.password':'Password','admin.login':'Sign in','admin.uploadTitle':'Upload proof','admin.uploadCopy':'PDF, image or JSON. Select multiple images to create a gallery. Metadata is written to the database after Storage upload succeeds.','admin.project':'Project','admin.titleVi':'Vietnamese title','admin.titleEn':'English title','admin.files':'File','admin.upload':'Upload proof','admin.logout':'Sign out','admin.existing':'Saved proof','admin.existingCopy':'Only saved proof and gallery assets are shown here.',
     'admin.schemaChecking':'Checking the asset schema on Supabase…','admin.configMissing':'Supabase is not configured. Fill CONFIG.supabase.url and CONFIG.supabase.anonKey. The frontend uses only the anon key; never place a service-role key here.','admin.configReady':'Supabase frontend configuration is present. Make sure Auth, Storage and RLS are configured before using the admin flow.',
-    'admin.noProof':'No assets are stored yet.','admin.loginRequired':'Please sign in first.','admin.loggedIn':'Signed in.','admin.uploading':'Uploading and saving metadata…','admin.uploaded':'Upload and metadata save succeeded.','admin.uploadFailed':'Upload failed. Check Storage policy, Database policy and bucket.','admin.loginFailed':'Login failed. Check the email, password and Supabase Auth.','admin.deleted':'Asset metadata and Storage object deleted.','admin.deleteFailed':'Could not complete asset deletion. Check Storage and RLS.','admin.notConfigured':'Supabase is not configured.','admin.schemaMissing':'Supabase is configured, but the new asset schema is missing. Run the SQL migration to add asset_type, owner_type and owner_id to portfolio_proofs.','admin.authError':'Supabase rejected the session or token. Check Auth/session.', 'admin.permissionError':'Supabase denied access. Check RLS and Storage policies.', 'admin.networkError':'Could not reach Supabase. Check the network and project URL.', 'admin.loadError':'Could not read the asset registry from Supabase.','admin.avatarTitle':'Profile avatar','admin.avatarCopy':'One shared avatar for the homepage. A new image becomes active only after both Storage and metadata succeed.','admin.coverTitle':'Project cover','admin.coverCopy':'Optional cover image for each project. Without one, the existing visual remains unchanged.','admin.uploadAvatar':'Upload avatar','admin.uploadCover':'Upload cover','admin.avatarUploaded':'Avatar saved to Storage + Database.','admin.coverUploaded':'Project cover saved to Storage + Database.','admin.assetRequired':'Invalid file.','admin.noSession':'The admin session is no longer valid.','admin.projectMissing':'Project not found.'
+    'admin.noProof':'No assets are stored yet.','admin.loginRequired':'Please sign in first.','admin.loggedIn':'Signed in.','admin.uploading':'Uploading and saving metadata…','admin.uploaded':'Upload and metadata save succeeded.','admin.uploadFailed':'Upload failed. Check Storage policy, Database policy and bucket.','admin.loginFailed':'Login failed. Check the email, password and Supabase Auth.','admin.deleted':'Asset metadata and Storage object deleted.','admin.deleteFailed':'Could not complete asset deletion. Check Storage and RLS.','admin.notConfigured':'Supabase is not configured.','admin.schemaMissing':'Supabase is configured, but the new asset schema is missing. Run the SQL migration to add asset_type, owner_type and owner_id to portfolio_proofs.','admin.authError':'Supabase rejected the session or token. Check Auth/session.', 'admin.permissionError':'Supabase denied access. Check RLS and Storage policies.', 'admin.networkError':'Could not reach Supabase. Check the network and project URL.', 'admin.loadError':'Could not read the asset registry from Supabase.','admin.avatarTitle':'Profile avatar','admin.avatarCopy':'One shared avatar for the homepage. A new image becomes active only after both Storage and metadata succeed.','admin.coverTitle':'Project cover','admin.coverCopy':'Optional cover image for each project. Without one, the existing visual remains unchanged.','admin.uploadAvatar':'Upload avatar','admin.uploadCover':'Upload cover','admin.avatarUploaded':'Avatar saved to Storage + Database.','admin.coverUploaded':'Project cover saved to Storage + Database.','admin.assetRequired':'Invalid file.','admin.noSession':'The admin session is no longer valid.','admin.projectMissing':'Project not found.','admin.projectManagement':'PROJECT MANAGEMENT','admin.projectManagementCopy':'Manage Projects and Case Study content separately from Proof assets.','admin.newProject':'+ New Project','admin.edit':'Edit','admin.delete':'Delete','admin.slug':'Slug','admin.sortOrder':'Sort order','admin.hookVi':'Hook VI','admin.hookEn':'Hook EN','admin.introVi':'Intro VI','admin.introEn':'Intro EN','admin.categories':'Categories','admin.visualType':'Visual type','admin.toneA':'Tone A','admin.toneB':'Tone B','admin.stats':'Stats JSON','admin.published':'Published','admin.sections':'Case Study sections','admin.sectionsCopy':'Case Study content is stored in portfolio_project_sections, not Proof metadata.','admin.addSection':'+ Section','admin.removeSection':'Remove','admin.saveProject':'Save Project','admin.cancel':'Cancel','admin.migrateProjects':'Migrate existing Projects','admin.migrateCopy':'Idempotently migrate hardcoded PROJECTS into portfolio_projects and portfolio_project_sections.','admin.migrated':'Migration completed.','admin.migrationBlocked':'Migration was denied by Supabase/RLS. Check Project and Section policies.','admin.projectSaved':'Project saved.','admin.projectDeleted':'Project and its related sections/assets were deleted.','admin.projectDeleteConfirm':'Delete this Project? Its own sections, cover, proofs and galleries will be processed.','admin.projectSlugLocked':'Existing Project slugs are read-only so asset relationships are not broken.','admin.projectCreate':'Create new Project','admin.projectEdit':'Edit Project'
   }
 };
 
@@ -566,6 +639,82 @@ const projectText=p=>p.content[currentLang];
 const toneClass=name=>({Marketing:'warm','Marketing Strategy':'warm','Consumer Insight':'warm',Communication:'warm',AI:'violet',Automation:'lime',Data:'cyan',Research:'cyan',Creative:'violet',Technology:'blue',MarTech:'blue',Education:'violet','Product Thinking':'blue'})[name]||'lime';
 const tag=name=>`<span class="pill ${toneClass(name)}">${esc(name)}</span>`;
 const statsH=stats=>stats?.length?`<div class="stat-row">${stats.map(([v,l])=>`<div class="stat"><strong>${esc(v)}</strong><span>${esc(l)}</span></div>`).join('')}</div>`:'';
+
+
+/* Project persistence adapter — DB is primary, hardcoded PROJECTS remains a fallback. */
+let projectDbState='fallback';
+let projectLoadPromise=null;
+const PROJECT_FALLBACK=PROJECTS.slice();
+
+function projectRuntimeFromDb(row,sections){
+  const categories=Array.isArray(row.categories)?row.categories:[];
+  const stats=Array.isArray(row.stats)?row.stats:[];
+  const ordered=(sections||[]).sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
+  const storyVi=ordered.map(s=>[s.title_vi||s.title_en||'',s.body_vi||s.body_en||'']);
+  const storyEn=ordered.map(s=>[s.title_en||s.title_vi||'',s.body_en||s.body_vi||'']);
+  const baseTone=PROJECT_FALLBACK.find(p=>p.id===row.slug)?.tone||['#22d3ee','#5b7cfa'];
+  const fallbackVisual=PROJECT_FALLBACK.find(p=>p.id===row.slug)?.visual||'web';
+  return {
+    id:row.slug,
+    dbId:row.id,
+    index:String(row.sort_order??1).padStart(2,'0'),
+    tone:[row.tone_a||baseTone[0],row.tone_b||baseTone[1]],
+    visual:row.visual_type||fallbackVisual,
+    published:row.published!==false,
+    content:{
+      vi:{category:categories,title:row.title_vi,hook:row.hook_vi||'',stats,intro:row.intro_vi||'',story:storyVi},
+      en:{category:categories,title:row.title_en,hook:row.hook_en||'',stats,intro:row.intro_en||'',story:storyEn}
+    },
+    proof:[]
+  };
+}
+async function fetchProjectRows(){
+  const r=await sbFetch('/rest/v1/portfolio_projects?select=id,slug,sort_order,published,title_vi,title_en,hook_vi,hook_en,intro_vi,intro_en,categories,stats,visual_type,tone_a,tone_b&order=sort_order.asc,id.asc',{method:'GET'},adminSession?.access_token||null);
+  return r.json();
+}
+async function fetchProjectSections(){
+  const r=await sbFetch('/rest/v1/portfolio_project_sections?select=id,project_id,sort_order,title_vi,body_vi,title_en,body_en&order=sort_order.asc,id.asc',{method:'GET'},adminSession?.access_token||null);
+  return r.json();
+}
+async function loadProjects({admin=false}={}){
+  if(!sbReady())return false;
+  if(projectLoadPromise&&!admin)return projectLoadPromise;
+  const work=(async()=>{
+    try{
+      const [rows,sections]=await Promise.all([fetchProjectRows(),fetchProjectSections()]);
+      if(!Array.isArray(rows)||rows.length===0){
+        projectDbState='empty';
+        return false;
+      }
+      const byProject=new Map();
+      (Array.isArray(sections)?sections:[]).forEach(s=>{
+        if(!byProject.has(s.project_id))byProject.set(s.project_id,[]);
+        byProject.get(s.project_id).push(s);
+      });
+      const runtime=rows.map(row=>projectRuntimeFromDb(row,byProject.get(row.id)||[]));
+      PROJECTS.splice(0,PROJECTS.length,...runtime);
+      projectDbState='ready';
+      renderProjects();
+      if(activeProject){
+        const fresh=PROJECTS.find(p=>p.id===activeProject.id);
+        if(fresh){activeProject=fresh;caseContent.innerHTML=caseHtml(fresh)}
+      }
+      if(adminDialog.open)renderAdmin();
+      return true;
+    }catch(err){
+      projectDbState=classifySupabaseError(err);
+      PROJECTS.splice(0,PROJECTS.length,...PROJECT_FALLBACK);
+      renderProjects();
+      if(adminDialog.open)renderAdmin();
+      return false;
+    }finally{
+      if(!admin)projectLoadPromise=null;
+    }
+  })();
+  if(!admin)projectLoadPromise=work;
+  return work;
+}
+function projectBySlug(slug){return PROJECTS.find(p=>p.id===slug)||PROJECT_FALLBACK.find(p=>p.id===slug)||null}
 
 function contentFor(p){return p.content[currentLang]||p.content.vi}
 function visualH(p){
@@ -582,7 +731,7 @@ function visualH(p){
 }
 
 function renderProjects(){
-  $('#projectList').innerHTML=PROJECTS.map(p=>{const c=contentFor(p);return `<article class="project-card reveal visible" style="--card-a:${p.tone[0]};--card-b:${p.tone[1]}"><div class="project-copy"><span class="project-index">CASE ${esc(p.index)}</span><div class="project-tags">${c.category.map(tag).join('')}</div><h3 class="project-title">${esc(c.title)}</h3><p class="project-hook">${esc(c.hook)}</p>${statsH(c.stats)}<div class="project-foot"><a class="case-btn" href="#/${p.id}">${esc(t('project.open'))} <span>↗</span></a><span class="muted" style="font-size:10px">Marketing × Technology</span></div></div><div class="project-visual">${visualH(p)}</div></article>`}).join('');
+  $('#projectList').innerHTML=PROJECTS.filter(p => p.published !== false).map(p=>{const c=contentFor(p);return `<article class="project-card reveal visible" style="--card-a:${p.tone[0]};--card-b:${p.tone[1]}"><div class="project-copy"><span class="project-index">CASE ${esc(p.index)}</span><div class="project-tags">${c.category.map(tag).join('')}</div><h3 class="project-title">${esc(c.title)}</h3><p class="project-hook">${esc(c.hook)}</p>${statsH(c.stats)}<div class="project-foot"><a class="case-btn" href="#/${p.id}">${esc(t('project.open'))} <span>↗</span></a><span class="muted" style="font-size:10px">Marketing × Technology</span></div></div><div class="project-visual">${visualH(p)}</div></div></article>`}).join('');
 }
 function renderSkills(){
   $('#skillsGrid').innerHTML=SKILLS.map(s=>{const c=s.content[currentLang];return `<article class="skill-card reveal visible" style="--skill-accent:${s.accent}"><div class="skill-num">${s.num}</div><div class="skill-orbit"></div><h3 class="skill-title">${esc(c.title)}</h3><p class="skill-copy">${esc(c.copy)}</p><div class="skill-items">${c.items.map(x=>`<span class="skill-item"><strong>•</strong> ${esc(x)}</span>`).join('')}</div></article>`}).join('');
@@ -647,7 +796,9 @@ function viewerHtml(it){
 }
 function parseHash(){
   if(location.hash==='#admin')return {admin:true};
-  const m=location.hash.match(/^#\/([a-z0-9-]+)(?:\/(\d+))?$/i);if(!m)return null;const project=PROJECTS.find(p=>p.id===m[1]);return project?{project,index:m[2]==null?null:Number(m[2])}:null;
+  const m=location.hash.match(/^#\/([a-z0-9-]+)(?:\/(\d+))?$/i);if(!m)return null;const project=PROJECTS.find(p=>p.id===m[1]);
+  if(!project||project.published===false)return null;
+  return {project,index:m[2]==null?null:Number(m[2])};
 }
 function closeNative(d){try{if(d.open)d.close()}catch(_){} }
 async function route(){
@@ -831,6 +982,244 @@ function openAdminAsset(id,action='open'){
   window.open(publicUrl(row.storage_path),'_blank','noopener');
 }
 
+
+function setProjectStatus(type,msg){setAdminStatus('#projectStatus',type,msg)}
+function projectSectionsFromRuntime(p){
+  const vi=p.content?.vi||{},en=p.content?.en||{};
+  const viStory=Array.isArray(vi.story)?vi.story:[],enStory=Array.isArray(en.story)?en.story:[];
+  const count=Math.max(viStory.length,enStory.length);
+  return Array.from({length:count},(_,i)=>({
+    sort_order:i,
+    title_vi:viStory[i]?.[0]||enStory[i]?.[0]||'',
+    body_vi:viStory[i]?.[1]||enStory[i]?.[1]||'',
+    title_en:enStory[i]?.[0]||viStory[i]?.[0]||'',
+    body_en:enStory[i]?.[1]||viStory[i]?.[1]||''
+  }));
+}
+function validateProjectPayload(payload,{creating=false}={}){
+  if(!payload.slug||!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(payload.slug))throw new Error('invalid_slug');
+  if(!payload.title_vi||!payload.title_en)throw new Error('project_title_required');
+  if(!Number.isInteger(payload.sort_order)||payload.sort_order<0)throw new Error('invalid_sort_order');
+  if(!Array.isArray(payload.categories))throw new Error('invalid_categories');
+  if(!Array.isArray(payload.stats))throw new Error('invalid_stats');
+  if(!creating&&payload.slug!==$('#projectSlug').dataset.originalSlug)throw new Error('slug_locked');
+}
+function projectFormPayload(){
+  let stats=[];
+  try{stats=JSON.parse($('#projectStats').value.trim()||'[]')}catch(_){throw new Error('invalid_stats_json')}
+  if(!Array.isArray(stats))throw new Error('invalid_stats_json');
+  return {
+    id:$('#projectDbId').value.trim()||null,
+    slug:$('#projectSlug').value.trim(),
+    sort_order:Number($('#projectSortOrder').value),
+    published:$('#projectPublished').value==='true',
+    title_vi:$('#projectTitleVi').value.trim(),
+    title_en:$('#projectTitleEn').value.trim(),
+    hook_vi:$('#projectHookVi').value,
+    hook_en:$('#projectHookEn').value,
+    intro_vi:$('#projectIntroVi').value,
+    intro_en:$('#projectIntroEn').value,
+    categories:$('#projectCategories').value.split(',').map(x=>x.trim()).filter(Boolean),
+    stats
+  };
+}
+function projectSectionPayloads(){
+  return $$('#projectSectionsEditor .admin-section-row').map((row,i)=>({
+    id:row.dataset.sectionId||null,
+    sort_order:i,
+    title_vi:row.querySelector('[data-section-title-vi]').value,
+    body_vi:row.querySelector('[data-section-body-vi]').value,
+    title_en:row.querySelector('[data-section-title-en]').value,
+    body_en:row.querySelector('[data-section-body-en]').value
+  }));
+}
+function renderProjectSectionEditor(sections=[]){
+  const host=$('#projectSectionsEditor');
+  host.innerHTML=sections.map((s,i)=>`<div class="admin-section-row" data-section-id="${esc(s.id||'')}">
+    <div class="admin-section-row-head"><strong>SECTION ${String(i+1).padStart(2,'0')}</strong><button class="admin-btn danger" type="button" data-remove-project-section>${esc(t('admin.removeSection'))}</button></div>
+    <div class="admin-row">
+      <label class="admin-label"><span>${esc(currentLang==='en'?'Title VI':'Tiêu đề VI')}</span><input class="admin-input" data-section-title-vi value="${esc(s.title_vi||'')}"></label>
+      <label class="admin-label"><span>Title EN</span><input class="admin-input" data-section-title-en value="${esc(s.title_en||'')}"></label>
+    </div>
+    <div class="admin-row">
+      <label class="admin-label"><span>${esc(currentLang==='en'?'Body VI':'Nội dung VI')}</span><textarea class="admin-textarea" data-section-body-vi>${esc(s.body_vi||'')}</textarea></label>
+      <label class="admin-label"><span>Body EN</span><textarea class="admin-textarea" data-section-body-en>${esc(s.body_en||'')}</textarea></label>
+    </div>
+  </div>`).join('');
+}
+function resetProjectEditor(){
+  $('#projectForm').reset();
+  $('#projectDbId').value='';
+  $('#projectSlug').disabled=false;
+  $('#projectSlug').dataset.originalSlug='';
+  $('#projectSortOrder').value=PROJECTS.length+1;
+  $('#projectVisualType').value='web';
+  $('#projectStats').value='[]';
+  $('#projectPublished').value='true';
+  renderProjectSectionEditor([]);
+  $('#projectEditor').hidden=true;
+  $('#projectStatus').className='admin-status';
+}
+function editProject(project){
+  $('#projectEditor').hidden=false;
+  $('#projectDbId').value=project.dbId||'';
+  $('#projectSlug').value=project.id;
+  $('#projectSlug').dataset.originalSlug=project.id;
+  $('#projectSlug').disabled=!!project.dbId;
+  $('#projectSortOrder').value=Number(project.index)||1;
+  const vi=project.content.vi,en=project.content.en;
+  $('#projectTitleVi').value=vi.title||'';$('#projectTitleEn').value=en.title||'';
+  $('#projectHookVi').value=vi.hook||'';$('#projectHookEn').value=en.hook||'';
+  $('#projectIntroVi').value=vi.intro||'';$('#projectIntroEn').value=en.intro||'';
+  $('#projectCategories').value=(vi.category||[]).join(', ');
+  $('#projectVisualType').value=project.visual||'web';
+  $('#projectToneA').value=project.tone?.[0]||'';$('#projectToneB').value=project.tone?.[1]||'';
+  $('#projectStats').value=JSON.stringify(vi.stats||[],null,2);
+  $('#projectPublished').value=project.published===false?'false':'true';
+  loadProjectSectionsIntoEditor(project);
+  $('#projectTitleVi').focus();
+}
+async function loadProjectSectionsIntoEditor(project){
+  if(!project.dbId){renderProjectSectionEditor(projectSectionsFromRuntime(project));return}
+  try{
+    const r=await sbFetch(`/rest/v1/portfolio_project_sections?select=id,project_id,sort_order,title_vi,body_vi,title_en,body_en&project_id=eq.${encodeURIComponent(project.dbId)}&order=sort_order.asc,id.asc`,{method:'GET'});
+    const rows=await r.json();renderProjectSectionEditor(Array.isArray(rows)&&rows.length?rows:projectSectionsFromRuntime(project));
+  }catch(_){renderProjectSectionEditor(projectSectionsFromRuntime(project))}
+}
+async function upsertProjectSections(projectId,sections){
+  const existingR=await sbFetch(`/rest/v1/portfolio_project_sections?select=id&project_id=eq.${encodeURIComponent(projectId)}`,{method:'GET'});
+  const existing=await existingR.json();
+  const incoming=sections.filter(s=>s.title_vi||s.title_en||s.body_vi||s.body_en);
+  const keepIds=new Set(incoming.filter(s=>s.id).map(s=>s.id));
+  const remove=(Array.isArray(existing)?existing:[]).filter(s=>!keepIds.has(s.id));
+  if(remove.length){
+    const ids=remove.map(s=>encodeURIComponent(s.id)).join(',');
+    await sbFetch(`/rest/v1/portfolio_project_sections?id=in.(${ids})`,{method:'DELETE',headers:{Prefer:'return=minimal'}});
+  }
+  if(incoming.length){
+    const rows=incoming.map((s,i)=>({...(s.id?{id:s.id}:{}),project_id:projectId,sort_order:i,title_vi:s.title_vi||null,body_vi:s.body_vi||null,title_en:s.title_en||null,body_en:s.body_en||null}));
+    await sbFetch('/rest/v1/portfolio_project_sections',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=representation'},body:JSON.stringify(rows)});
+  }
+}
+async function saveProject(e){
+  e.preventDefault();
+  if(!adminSession){setProjectStatus('err',t('admin.loginRequired'));return}
+  const btn=$('#saveProjectBtn');btn.disabled=true;setProjectStatus('ok',t('admin.uploading'));
+  try{
+    const payload=projectFormPayload(),creating=!payload.id;
+    validateProjectPayload(payload,{creating});
+    if(!creating)payload.slug=$('#projectSlug').dataset.originalSlug;
+    const body={slug:payload.slug,sort_order:payload.sort_order,published:payload.published,title_vi:payload.title_vi,title_en:payload.title_en,hook_vi:payload.hook_vi||null,hook_en:payload.hook_en||null,intro_vi:payload.intro_vi||null,intro_en:payload.intro_en||null,categories:payload.categories,stats:payload.stats,visual_type:$('#projectVisualType').value.trim()||'web',tone_a:$('#projectToneA').value.trim()||null,tone_b:$('#projectToneB').value.trim()||null};
+    let projectId=payload.id;
+    if(creating){
+      const r=await sbFetch('/rest/v1/portfolio_projects',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(body)});
+      const rows=await r.json();if(!Array.isArray(rows)||rows.length!==1)throw new Error('project_insert_failed');projectId=rows[0].id;
+    }else{
+      await sbFetch(`/rest/v1/portfolio_projects?id=eq.${encodeURIComponent(projectId)}`,{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify(body)});
+    }
+    await upsertProjectSections(projectId,projectSectionPayloads());
+    await loadProjects({admin:true});
+    await loadAssets();
+    resetProjectEditor();refreshAdminProjectList();
+    setProjectStatus('ok',t('admin.projectSaved'));
+  }catch(err){
+    setProjectStatus('err',projectErrorText(err));
+  }finally{btn.disabled=false}
+}
+function projectErrorText(err){
+  const kind=classifySupabaseError(err);
+  if(kind==='permission'||kind==='auth'||err?.status===403||err?.status===401)return t('admin.migrationBlocked');
+  if(err?.message==='invalid_slug')return currentLang==='en'?'Slug must use lowercase letters, numbers and hyphens.':'Slug chỉ dùng chữ thường, số và dấu gạch ngang.';
+  if(err?.message==='project_title_required')return currentLang==='en'?'Both project titles are required.':'Cần nhập đủ tiêu đề Project VI và EN.';
+  if(err?.message==='invalid_stats_json'||err?.message==='invalid_stats')return currentLang==='en'?'Stats must be a valid JSON array.':'Stats phải là một mảng JSON hợp lệ.';
+  if(err?.message==='slug_locked')return t('admin.projectSlugLocked');
+  return err?.message||t('admin.uploadFailed');
+}
+function refreshAdminProjectList(){
+  const host=$('#projectManagementList');if(!host)return;
+  if(!adminSession){host.innerHTML=`<div class="admin-empty">${esc(t('admin.loginRequired'))}</div>`;return}
+  const dbProjects=PROJECTS.filter(p=>p.dbId);
+  const rows=dbProjects.length?dbProjects:PROJECTS;
+  host.innerHTML=rows.map(p=>`<article class="admin-project-row">
+    <div><strong>${esc(p.content[currentLang].title)}</strong><span class="admin-project-meta">${esc(p.id)} · ${p.dbId?'DB UUID':'fallback'} · ${p.published===false?'unpublished':'published'}</span></div>
+    <div class="admin-project-actions">${p.dbId?`<button class="admin-btn" type="button" data-edit-project="${esc(p.id)}">${esc(t('admin.edit'))}</button><button class="admin-btn danger" type="button" data-delete-project="${esc(p.id)}">${esc(t('admin.delete'))}</button>`:''}</div>
+  </article>`).join('');
+}
+async function deleteProject(project){
+  if(!adminSession||!project?.dbId)return;
+  if(!confirm(t('admin.projectDeleteConfirm')))return;
+  setProjectStatus('ok',t('admin.uploading'));
+  const projectId=project.dbId,slug=project.id;
+  let projectRow=null,sections=[],assetRows=[],sectionsDeleted=false,projectDeleted=false,assetsDeleted=false;
+  try{
+    const projectR=await sbFetch(`/rest/v1/portfolio_projects?select=id,slug,sort_order,published,title_vi,title_en,hook_vi,hook_en,intro_vi,intro_en,categories,stats,visual_type,tone_a,tone_b&id=eq.${encodeURIComponent(projectId)}`.replace('?select=','?select='),{method:'GET'});
+    const projectRows=await projectR.json();projectRow=Array.isArray(projectRows)?projectRows[0]:null;
+    if(!projectRow)throw new Error('project_not_found');
+
+    const sectionR=await sbFetch(`/rest/v1/portfolio_project_sections?select=id,project_id,sort_order,title_vi,body_vi,title_en,body_en&project_id=eq.${encodeURIComponent(projectId)}`,{method:'GET'});
+    sections=await sectionR.json();
+    const proofR=await sbFetch(`/rest/v1/portfolio_proofs?select=id,project_id,asset_type,owner_type,owner_id,type,title_vi,title_en,storage_path,original_name,mime_type,file_size,gallery_id,created_at,description_vi,description_en,sort_order,updated_at&or=(project_id.eq.${encodeURIComponent(slug)},owner_id.eq.${encodeURIComponent(slug)})&asset_type=in.(project_cover,proof,gallery)`,{method:'GET'});
+    assetRows=await proofR.json();
+    if(!Array.isArray(assetRows))throw new Error('project_asset_lookup_failed');
+
+    // Snapshot exact asset bytes before destructive operations.
+    const snapshots=[];for(const row of assetRows)snapshots.push(await snapshotStorageRow(row));
+    try{
+      if(assetRows.length){await deleteStorage(assetRows.map(r=>r.storage_path));assetsDeleted=true;await deleteMetadataRows(assetRows)}
+      if(Array.isArray(sections)&&sections.length){
+        const ids=sections.map(s=>encodeURIComponent(s.id)).join(',');
+        await sbFetch(`/rest/v1/portfolio_project_sections?id=in.(${ids})`,{method:'DELETE',headers:{Prefer:'return=minimal'}});
+        sectionsDeleted=true;
+      }
+      await sbFetch(`/rest/v1/portfolio_projects?id=eq.${encodeURIComponent(projectId)}`,{method:'DELETE',headers:{Prefer:'return=minimal'}});
+      projectDeleted=true;
+    }catch(err){
+      // Compensating rollback: restore the exact assets and any deleted sections/project row.
+      if(assetsDeleted){
+        for(const snap of snapshots){try{await restoreStorageSnapshot(snap)}catch(_){}}
+        for(const row of assetRows){try{await restoreMetadataRow(row)}catch(_){}}
+      }
+      if(sectionsDeleted&&sections.length){
+        for(const section of sections){try{await sbFetch('/rest/v1/portfolio_project_sections',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(section)})}catch(_){}}
+      }
+      if(projectDeleted&&projectRow){
+        try{await sbFetch('/rest/v1/portfolio_projects',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(projectRow)})}catch(_){}
+      }
+      throw err;
+    }
+    // DB deletion succeeded. A later client refresh failure must not be reported as a deletion failure.
+    try{await loadProjects({admin:true});await loadAssets()}catch(_){}
+    resetProjectEditor();refreshAdminProjectList();setProjectStatus('ok',t('admin.projectDeleted'));
+  }catch(err){
+    setProjectStatus('err',projectErrorText(err));
+  }
+}
+async function migrateExistingProjects(){
+  if(!adminSession){setProjectStatus('err',t('admin.loginRequired'));return}
+  const btn=$('#migrateProjectsBtn');btn.disabled=true;setProjectStatus('ok',t('admin.uploading'));
+  try{
+    for(const p of PROJECT_FALLBACK){
+      const lookup=await sbFetch(`/rest/v1/portfolio_projects?select=id,slug&slug=eq.${encodeURIComponent(p.id)}`,{method:'GET'});
+      const found=await lookup.json();
+      let row=Array.isArray(found)&&found[0];
+      if(!row){
+        const c=p.content.vi,e=p.content.en;
+        const body={slug:p.id,sort_order:Number(p.index)||1,published:true,title_vi:c.title,title_en:e.title,hook_vi:c.hook||null,hook_en:e.hook||null,intro_vi:c.intro||null,intro_en:e.intro||null,categories:c.category||[],stats:c.stats||[],visual_type:p.visual||'web',tone_a:p.tone?.[0]||null,tone_b:p.tone?.[1]||null};
+        const ins=await sbFetch('/rest/v1/portfolio_projects',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(body)});
+        const created=await ins.json();if(!Array.isArray(created)||created.length!==1)throw new Error('project_migration_insert_failed');row=created[0];
+      }
+      const secR=await sbFetch(`/rest/v1/portfolio_project_sections?select=id&project_id=eq.${encodeURIComponent(row.id)}`,{method:'GET'});
+      const secs=await secR.json();
+      if(!Array.isArray(secs)||secs.length===0){
+        const story=projectSectionsFromRuntime(p);
+        if(story.length)await upsertProjectSections(row.id,story);
+      }
+    }
+    await loadProjects({admin:true});await loadAssets();refreshAdminProjectList();setProjectStatus('ok',t('admin.migrated'));
+  }catch(err){setProjectStatus('err',projectErrorText(err))}
+  finally{btn.disabled=false}
+}
+
 async function adminLogin(email,password){
   if(!sbReady())throw new Error('supabase_not_configured');
   const r=await fetch(CONFIG.supabase.url.replace(/\/$/,'')+'/auth/v1/token?grant_type=password',{method:'POST',headers:sbHeaders(),body:JSON.stringify({email,password})});
@@ -844,7 +1233,7 @@ async function restoreSession(){
   try{const raw=sessionStorage.getItem('hqv-admin-session');if(!raw)return;adminSession=JSON.parse(raw);const r=await sbFetch('/auth/v1/user',{method:'GET'});const user=await r.json();if(!user?.id)throw new Error('invalid');adminSession.user=user;sessionStorage.setItem('hqv-admin-session',JSON.stringify(adminSession))}catch(_){adminSession=null;sessionStorage.removeItem('hqv-admin-session')}
 }
 function setAdminStatus(id,type,msg){const el=$(id);el.className=`admin-status show ${type}`;el.textContent=msg}
-function populateAdminProjects(){const html=PROJECTS.map(p=>`<option value="${esc(p.id)}">${esc(p.content[currentLang].title)}</option>`).join('');$('#adminProject').innerHTML=html;$('#coverProject').innerHTML=html}
+function populateAdminProjects(){const html=PROJECTS.map(p=>`<option value="${esc(p.id)}">${esc(p.content[currentLang].title)}</option>`).join('');$('#adminProject').innerHTML=html;$('#coverProject').innerHTML=html;refreshAdminProjectList()}
 function renderAdmin(){
   populateAdminProjects();
   const configured=sbReady();
@@ -854,7 +1243,7 @@ function renderAdmin(){
   $('#adminLoginPanel').hidden=!!adminSession;
   $('#adminPanel').hidden=!adminSession;
   renderAvatar();
-  if(adminSession)refreshAdminList();
+  if(adminSession){refreshAdminProjectList();refreshAdminList();}
 }
 
 async function uploadStorage(file,path){
@@ -1017,6 +1406,20 @@ async function removeAssetRows(rows){
   }
 }
 
+
+function logAssetFailure(err,context={}){
+  console.error('[HQV asset]',{...context,error:err?.message||String(err),status:err?.status,detail:err?.detail});
+}
+function formatAssetUploadError(err){
+  const kind=classifySupabaseError(err);
+  if(kind==='not_configured')return t('admin.notConfigured');
+  if(kind==='auth')return t('admin.authError');
+  if(kind==='permission')return t('admin.permissionError');
+  if(kind==='network')return t('admin.networkError');
+  if(kind==='schema_missing')return t('admin.schemaMissing');
+  return err?.message||t('admin.uploadFailed');
+}
+
 async function doAvatarUpload(e){
   e.preventDefault();const files=[...$('#avatarFile').files],btn=$('#avatarUploadBtn');if(!files.length){setAdminStatus('#avatarUploadStatus','err',t('admin.assetRequired'));return}if(!adminSession){setAdminStatus('#avatarUploadStatus','err',t('admin.loginRequired'));return}btn.disabled=true;setAdminStatus('#avatarUploadStatus','ok',t('admin.uploading'));
   try{const rows=await uploadAssetBatch({assetType:'avatar',ownerType:'profile',ownerId:'hqv',titleVi:'Ảnh đại diện Hoàng Quốc Việt',titleEn:'Hoàng Quốc Việt profile avatar',files});await replaceSingleAsset('avatar','profile','hqv',rows);await loadAssets();$('#avatarUploadForm').reset();setAdminStatus('#avatarUploadStatus','ok',t('admin.avatarUploaded'))}catch(err){setAdminStatus('#avatarUploadStatus','err',err.message==='asset_schema_missing'?t('admin.schemaMissing'):err.message==='supabase_not_configured'?t('admin.notConfigured'):err.message==='supabase_auth_error'?t('admin.authError'):err.message==='supabase_permission_error'?t('admin.permissionError'):err.message==='supabase_network_error'?t('admin.networkError'):t('admin.uploadFailed'))}finally{btn.disabled=false}
@@ -1050,6 +1453,17 @@ $('#proofUploadForm').addEventListener('submit',doProofUpload);
 $('#avatarUploadForm').addEventListener('submit',doAvatarUpload);
 $('#coverUploadForm').addEventListener('submit',doCoverUpload);
 $('#adminLogout').addEventListener('click',()=>{adminSession=null;sessionStorage.removeItem('hqv-admin-session');renderAdmin()});
+$('#projectForm').addEventListener('submit',saveProject);
+$('#newProjectBtn').addEventListener('click',()=>{resetProjectEditor();$('#projectEditor').hidden=false;$('#projectTitleVi').focus()});
+$('#cancelProjectBtn').addEventListener('click',resetProjectEditor);
+$('#addProjectSectionBtn').addEventListener('click',()=>{const current=projectSectionPayloads();current.push({sort_order:current.length,title_vi:'',body_vi:'',title_en:'',body_en:''});renderProjectSectionEditor(current)});
+$('#migrateProjectsBtn').addEventListener('click',migrateExistingProjects);
+document.addEventListener('click',e=>{
+  const edit=e.target.closest('[data-edit-project]');if(edit){const p=projectBySlug(edit.dataset.editProject);if(p)editProject(p);return}
+  const del=e.target.closest('[data-delete-project]');if(del){const p=projectBySlug(del.dataset.deleteProject);if(p)deleteProject(p);return}
+  const remove=e.target.closest('[data-remove-project-section]');if(remove){remove.closest('.admin-section-row')?.remove();return}
+});
+
 document.addEventListener('click',e=>{const del=e.target.closest('[data-delete-asset]');if(del){deleteAsset(del.dataset.deleteAsset);return}const rep=e.target.closest('[data-replace-asset]');if(rep){replaceProofAsset(rep.dataset.replaceAsset);return}const open=e.target.closest('[data-open-asset]');if(open){openAdminAsset(open.dataset.openAsset,open.dataset.action||'open')}});
 
 /* Contact form */
@@ -1063,7 +1477,7 @@ document.addEventListener('visibilitychange',()=>document.body.classList.toggle(
 /* Initial render */
 applyStatic();
 restoreSession().then(()=>{if(adminDialog.open)renderAdmin()});
-loadAllProofs().catch(()=>{});
+loadProjects().then(()=>loadAllProofs()).catch(()=>{});
 route();
 </script>
 </body>
