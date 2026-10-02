@@ -462,6 +462,134 @@ body.page-hidden .ambient,body.page-hidden .ticker,body.page-hidden .avatar-shel
 .project-editor-lifecycle{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:10px 0 2px}
 .project-lifecycle-actions{display:flex;gap:7px;flex-wrap:wrap}
 @media(max-width:760px){.global-grid-2,.global-grid-3,.global-lang{grid-template-columns:1fr}.global-field.full{grid-column:auto}.global-cms-head{flex-direction:column}.project-editor-lifecycle{align-items:flex-start}.project-lifecycle-actions{width:100%}.project-lifecycle-actions .admin-btn{flex:1 1 140px}}
+
+/* ============================================================
+   HERO RESPONSIVE SYSTEM — one centered coordinate system
+   Horizontal alignment is container-driven; device tiers only
+   change scale/spacing, not the center anchor.
+   ============================================================ */
+.hero{
+  --hero-pad-inline:clamp(16px,4vw,32px);
+  --hero-nav-space:76px;
+  inline-size:100%;
+  max-inline-size:100%;
+  min-inline-size:0;
+  min-block-size:100svh;
+  padding-inline:var(--hero-pad-inline);
+  padding-block-start:clamp(104px,12vh,136px);
+  padding-block-end:clamp(28px,5vh,44px);
+  box-sizing:border-box;
+  overflow:clip;
+}
+.hero-inner{
+  inline-size:min(960px,100%);
+  width:min(960px,100%);
+  max-inline-size:960px;
+  min-inline-size:0;
+  margin-inline:auto;
+  justify-self:center;
+  align-self:center;
+  box-sizing:border-box;
+}
+.hero-inner > *{
+  min-inline-size:0;
+  max-inline-size:100%;
+}
+.avatar-shell{
+  flex:0 0 auto;
+  inline-size:clamp(176px,20vw,238px);
+  width:clamp(176px,20vw,238px);
+  max-inline-size:100%;
+}
+.hero h1{
+  inline-size:100%;
+  max-inline-size:100%;
+  min-inline-size:0;
+  text-align:center;
+  text-wrap:balance;
+  overflow-wrap:anywhere;
+}
+.hero-role,.hero-sub{
+  inline-size:100%;
+  max-inline-size:100%;
+  min-inline-size:0;
+  overflow-wrap:anywhere;
+}
+.hero-actions{
+  inline-size:100%;
+  max-inline-size:100%;
+}
+.ticker-wrap{
+  inline-size:100%;
+  max-inline-size:100%;
+  min-inline-size:0;
+}
+
+/* Tablet — reduce scale while preserving the same center anchor. */
+@media (min-width:601px) and (max-width:900px){
+  .hero{
+    --hero-pad-inline:clamp(24px,4vw,34px);
+    padding-block-start:clamp(98px,12vh,122px);
+    padding-block-end:34px;
+  }
+  .hero-inner{inline-size:min(760px,100%);width:min(760px,100%)}
+  .avatar-shell{inline-size:clamp(176px,24vw,210px);width:clamp(176px,24vw,210px);margin-block-end:24px}
+  .hero h1{font-size:clamp(48px,8vw,76px);line-height:.93;letter-spacing:-.07em}
+  .hero-role{font-size:clamp(15px,2.4vw,19px);line-height:1.4}
+  .hero-sub{font-size:15px;max-inline-size:680px}
+  .ticker-wrap{margin-top:56px}
+}
+
+/* Mobile — compact, centered, safe-area aware. */
+@media (max-width:600px){
+  .hero{
+    --hero-pad-inline:16px;
+    padding-block-start:calc(72px + env(safe-area-inset-top,0px));
+    padding-block-end:calc(24px + env(safe-area-inset-bottom,0px));
+  }
+  .hero-inner{inline-size:100%;width:100%;max-inline-size:100%}
+  .avatar-shell{inline-size:clamp(164px,45vw,194px);width:clamp(164px,45vw,194px);margin-block-end:20px}
+  .avatar-meta{left:11px;right:11px;bottom:10px;font-size:8px;letter-spacing:.09em}
+  .hero .status{max-inline-size:100%;white-space:normal;text-align:center;justify-content:center}
+  .hero h1{
+    margin-top:18px;
+    font-size:clamp(38px,11.8vw,56px);
+    line-height:.96;
+    letter-spacing:-.075em;
+  }
+  .hero-role{
+    margin-top:16px;
+    font-size:clamp(14px,4vw,17px);
+    line-height:1.42;
+  }
+  .hero-sub{
+    margin-top:13px;
+    max-inline-size:100%;
+    font-size:14px;
+    line-height:1.72;
+  }
+  .hero-actions{
+    margin-top:21px;
+    gap:8px;
+  }
+  .hero-actions > a{
+    min-width:0;
+    max-width:100%;
+  }
+  .ticker-wrap{margin-top:42px}
+  .ticker{padding-block:11px}
+}
+
+/* Very narrow phones — never allow the hero identity to exceed the viewport. */
+@media (max-width:360px){
+  .hero{--hero-pad-inline:12px}
+  .avatar-shell{inline-size:160px;width:160px}
+  .hero h1{font-size:clamp(36px,11vw,48px)}
+  .hero-role{font-size:13px}
+  .hero-sub{font-size:13px}
+  .primary-btn,.ghost-btn{padding-inline:13px;font-size:11px}
+}
+
 </style>
 </head>
 <body>
