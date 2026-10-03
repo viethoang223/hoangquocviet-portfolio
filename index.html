@@ -592,6 +592,251 @@ body.page-hidden .ambient,body.page-hidden .ticker,body.page-hidden .avatar-shel
 }
 
 </style>
+
+<style id="admin-editorial-ux">
+/* ============================================================
+   ADMIN CASE STUDY — editorial section editor
+   Presentation layer only. Existing blocks JSONB remains intact.
+   ============================================================ */
+.admin-editorial-section{
+  padding:18px;
+  border:1px solid rgba(255,255,255,.075);
+  border-radius:16px;
+  background:linear-gradient(145deg,rgba(255,255,255,.028),rgba(255,255,255,.012));
+}
+.admin-editorial-section + .admin-editorial-section{margin-top:12px}
+.admin-editorial-section-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+  margin-bottom:14px;
+}
+.admin-editorial-section-id{
+  color:var(--cyan);
+  font:9px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.13em;
+  text-transform:uppercase;
+}
+.admin-editorial-section-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+  justify-content:flex-end;
+}
+.admin-editorial-section-actions .admin-btn{
+  min-height:28px;
+  padding:0 9px;
+  font-size:8px;
+}
+.admin-editorial-title-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+.admin-editorial-title-grid .admin-label{min-width:0}
+.admin-editorial-language-tabs{
+  display:flex;
+  align-items:center;
+  gap:4px;
+  margin-top:14px;
+  padding:4px;
+  width:max-content;
+  max-width:100%;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:999px;
+  background:rgba(255,255,255,.018);
+}
+.admin-editorial-language-tab{
+  min-width:58px;
+  min-height:30px;
+  padding:0 10px;
+  border:0;
+  border-radius:999px;
+  background:transparent;
+  color:var(--dim);
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.08em;
+  cursor:pointer;
+}
+.admin-editorial-language-tab.is-active{
+  color:#fff;
+  background:rgba(255,255,255,.085);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+}
+.admin-editorial-wrap{
+  margin-top:10px;
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:14px;
+  background:#080b10;
+  overflow:hidden;
+}
+.admin-editorial-toolbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  flex-wrap:wrap;
+  padding:7px;
+  border-bottom:1px solid rgba(255,255,255,.07);
+  background:rgba(255,255,255,.025);
+}
+.admin-editorial-toolbar .admin-richtext-toolbar{
+  margin:0;
+  padding:0;
+  border:0;
+  background:transparent;
+}
+.admin-editorial-add{
+  display:flex;
+  align-items:center;
+  gap:5px;
+  margin-left:auto;
+}
+.admin-editorial-add .admin-select{
+  min-width:130px;
+  min-height:30px;
+  padding-top:6px;
+  padding-bottom:6px;
+  font-size:8px;
+}
+.admin-editorial-surface{
+  min-height:260px;
+  padding:15px 16px 18px;
+}
+.admin-editorial-lang-pane[hidden]{display:none}
+.admin-editorial-segment{
+  margin:0;
+  padding:0;
+}
+.admin-editorial-segment + .admin-editorial-segment{
+  margin-top:9px;
+}
+.admin-editorial-segment [data-richtext-editor]{
+  min-height:34px;
+  padding:4px 2px;
+  outline:0;
+  color:#fff;
+  font-size:13px;
+  line-height:1.8;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+}
+.admin-editorial-segment [data-richtext-editor]:focus{
+  outline:0;
+}
+.admin-editorial-segment [data-richtext-editor]:empty::before{
+  content:attr(data-placeholder);
+  color:rgba(255,255,255,.30);
+}
+.admin-editorial-segment [data-richtext-editor] p{
+  margin:0;
+}
+.admin-editorial-segment [data-richtext-editor] h2,
+.admin-editorial-segment [data-richtext-editor] h3{
+  margin:8px 0;
+  line-height:1.15;
+}
+.admin-editorial-segment [data-richtext-editor] blockquote{
+  margin:7px 0;
+  padding:7px 12px;
+  border-left:2px solid var(--cyan);
+  color:var(--muted);
+  background:rgba(255,255,255,.025);
+}
+.admin-editorial-segment [data-richtext-editor] ul,
+.admin-editorial-segment [data-richtext-editor] ol{
+  margin:7px 0;
+  padding-left:24px;
+}
+.admin-editorial-segment [data-richtext-editor] a{
+  color:var(--cyan);
+  text-decoration:underline;
+}
+.admin-editorial-special-list{
+  margin-top:14px;
+  display:grid;
+  gap:8px;
+}
+.admin-editorial-special{
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:12px;
+  background:rgba(0,0,0,.13);
+  overflow:hidden;
+}
+.admin-editorial-special-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:9px 11px;
+  border-bottom:1px solid rgba(255,255,255,.06);
+}
+.admin-editorial-special-head strong{
+  color:var(--cyan);
+  font:9px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.10em;
+  text-transform:uppercase;
+}
+.admin-editorial-special-head .admin-btn{
+  min-height:28px;
+  padding:0 9px;
+  font-size:8px;
+}
+.admin-editorial-special-body{
+  padding:11px;
+}
+.admin-editorial-special-body .admin-block-preview{
+  display:none;
+}
+.admin-editorial-empty-special{
+  padding:12px;
+  border:1px dashed rgba(255,255,255,.09);
+  border-radius:9px;
+  color:var(--dim);
+  font-size:9px;
+  line-height:1.5;
+}
+.admin-editorial-section-foot{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:13px;
+  color:var(--dim);
+  font-size:9px;
+}
+.admin-editorial-section-foot .admin-note{margin:0}
+.admin-editorial-section-foot-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
+@media(max-width:760px){
+  .admin-editorial-section{padding:14px}
+  .admin-editorial-section-head{display:block}
+  .admin-editorial-section-actions{
+    margin-top:10px;
+    justify-content:flex-start;
+  }
+  .admin-editorial-title-grid{grid-template-columns:1fr}
+  .admin-editorial-language-tabs{width:100%}
+  .admin-editorial-language-tab{flex:1}
+  .admin-editorial-toolbar{display:block}
+  .admin-editorial-toolbar .admin-richtext-toolbar{width:100%}
+  .admin-editorial-add{
+    margin:7px 0 0;
+    width:100%;
+  }
+  .admin-editorial-add .admin-select{flex:1;min-width:0}
+  .admin-editorial-surface{min-height:230px;padding:13px 12px 16px}
+  .admin-editorial-segment [data-richtext-editor]{font-size:13px;line-height:1.78}
+  .admin-editorial-special-head{align-items:flex-start}
+}
+</style>
+
 </head>
 <body>
 <div class="page-atmosphere" aria-hidden="true">
@@ -2065,10 +2310,152 @@ function renderBlockEditor(block,index,total){
   </article>`;
 }
 function sectionBlocksFromRow(row){
-  try{return validateBlockDocument(JSON.parse(row.dataset.blocks||'{"version":1,"items":[]}'))}catch(_){return {version:BLOCKS_VERSION,items:[]}}
+  try{return validateBlockDocument(JSON.parse(row.dataset.blocks||'{"version":1,"items":[]}'))}
+  catch(_){return {version:BLOCKS_VERSION,items:[]}}
+}
+function editorialTextBlockType(type){
+  return ['heading','paragraph','richtext','quote','cta'].includes(type);
+}
+function editorialTextForLang(block,lang){
+  const c=block.content||{};
+  return String((block.type==='heading'?c[`title_${lang}`]:null)??c[`text_${lang}`]??c[`title_${lang}`]??c.text??'');
+}
+function editorialTextHtml(block,lang){
+  const raw=editorialTextForLang(block,lang);
+  if(block.type==='richtext')return sanitizeRichText(raw);
+  return esc(raw).replace(/\r?\n/g,'<br>');
+}
+function editorialPlainFromHtml(html){
+  const clean=sanitizeRichText(String(html||''));
+  const box=document.createElement('div');
+  box.innerHTML=clean;
+  box.querySelectorAll('br').forEach(br=>br.replaceWith(document.createTextNode('\n')));
+  box.querySelectorAll('div,p,h1,h2,h3,h4,h5,h6,blockquote').forEach(el=>{
+    if(el!==box&&el.nextSibling)el.parentNode.insertBefore(document.createTextNode('\n'),el.nextSibling);
+  });
+  return String(box.textContent||'').replace(/\u00a0/g,' ').replace(/\n{3,}/g,'\n\n').trim();
+}
+function editorialHasFormatting(html){
+  return /<(?:strong|em|u|a|h[1-6]|ul|ol|li|blockquote|span)\b/i.test(String(html||''));
+}
+function editorialToolbarHtml(lang){
+  const btns=[['bold','<strong>B</strong>'],['italic','<em>I</em>'],['underline','<u>U</u>'],['formatBlock:H2','H2'],['formatBlock:H3','H3'],['insertUnorderedList','• List'],['insertOrderedList','1. List'],['createLink','Link'],['formatBlock:BLOCKQUOTE','Quote'],['undo','↶'],['redo','↷']];
+  return `<div class="admin-richtext-toolbar" role="toolbar" aria-label="${esc(`Rich text ${lang.toUpperCase()}`)}">${btns.map(([cmd,label])=>`<button type="button" data-richtext-command="${esc(cmd)}">${label}</button>`).join('')}</div>`;
+}
+function editorialTextSegmentHtml(block,index,lang){
+  const tag=block.type==='heading'?'h3':block.type==='quote'?'blockquote':'div';
+  const placeholder=currentLang==='en'?'Write this section…':'Nhập nội dung cho section…';
+  const content=editorialTextHtml(block,lang);
+  return `<div class="admin-editorial-segment" data-block-index="${index}" data-editorial-text-block>
+    <div data-editorial-lang-pane="${lang}">
+      <${tag} class="admin-editorial-content" contenteditable="true" spellcheck="true" data-richtext-editor="text_${lang}" data-placeholder="${esc(placeholder)}">${content}</${tag}>
+    </div>
+  </div>`;
+}
+function editorialSpecialLabel(block){
+  const map={
+    list:t('admin.blockList'),image:t('admin.blockImage'),gallery:t('admin.blockGallery'),
+    video:t('admin.blockVideo'),workflow:t('admin.blockWorkflow'),divider:t('admin.blockDivider'),
+    proof:t('admin.blockProof')
+  };
+  return map[block.type]||blockTypeLabel(block.type);
+}
+function editorialSpecialBlockHtml(block,index){
+  const body=block.type==='divider'
+    ? `<div class="admin-editorial-empty-special">${esc(currentLang==='en'?'Divider — visual separator retained from the existing block model.':'Divider — dải phân cách trực quan được giữ nguyên từ block hiện có.')}</div>`
+    : blockEditorFields(block);
+  return `<article class="admin-editorial-special" data-block-index="${index}">
+    <div class="admin-editorial-special-head">
+      <strong>${esc(editorialSpecialLabel(block))}</strong>
+      <button class="admin-btn danger" type="button" data-editorial-remove-block>${esc(currentLang==='en'?'Remove':'Bỏ')}</button>
+    </div>
+    <div class="admin-editorial-special-body">${body}</div>
+  </article>`;
+}
+function editorialSectionBodyHtml(doc,rowLang){
+  const textBlocks=[],specialBlocks=[];
+  doc.items.forEach((block,index)=>{
+    if(editorialTextBlockType(block.type))textBlocks.push({block,index});
+    else specialBlocks.push({block,index});
+  });
+  const textSurface=`
+    <div class="admin-editorial-surface">
+      ${textBlocks.length?textBlocks.map(({block,index})=>`
+        <div class="admin-editorial-segment" data-block-index="${index}" data-editorial-text-block>
+          <div class="admin-editorial-lang-pane" data-editorial-lang-pane="vi" ${rowLang==='vi'?'':'hidden'}>
+            <${block.type==='heading'?'h3':block.type==='quote'?'blockquote':'div'} class="admin-editorial-content" contenteditable="true" spellcheck="true" data-richtext-editor="text_vi" data-placeholder="${esc(currentLang==='en'?'Write this section…':'Nhập nội dung cho section…')}">${editorialTextHtml(block,'vi')}</${block.type==='heading'?'h3':block.type==='quote'?'blockquote':'div'}>
+          </div>
+          <div class="admin-editorial-lang-pane" data-editorial-lang-pane="en" ${rowLang==='en'?'':'hidden'}>
+            <${block.type==='heading'?'h3':block.type==='quote'?'blockquote':'div'} class="admin-editorial-content" contenteditable="true" spellcheck="true" data-richtext-editor="text_en" data-placeholder="${esc(currentLang==='en'?'Write this section…':'Nhập nội dung cho section…')}">${editorialTextHtml(block,'en')}</${block.type==='heading'?'h3':block.type==='quote'?'blockquote':'div'}>
+          </div>
+        </div>`).join(''):`<div class="admin-editorial-empty-special">${esc(currentLang==='en'?'This section is ready for content.':'Section này đang trống, bạn có thể bắt đầu viết.')}</div>`}
+    </div>`;
+  const specialSurface=specialBlocks.length
+    ?`<div class="admin-editorial-special-list">${specialBlocks.map(x=>editorialSpecialBlockHtml(x.block,x.index)).join('')}</div>`:'';
+  return {textSurface,specialSurface,hasText:textBlocks.length>0};
+}
+function refreshEditorialSectionRow(row){
+  const doc=sectionBlocksFromRow(row);
+  row.dataset.blocks=JSON.stringify(doc);
+  const lang=row.dataset.editorialLang==='en'?'en':'vi';
+  const bodyHost=row.querySelector('[data-editorial-section-body]');
+  if(!bodyHost)return;
+  const parts=editorialSectionBodyHtml(doc,lang);
+  const toolbar=`<div class="admin-editorial-toolbar" data-richtext-wrap>
+    ${editorialToolbarHtml(lang)}
+    <div class="admin-editorial-add">
+      <select class="admin-select" data-editorial-add-type aria-label="${esc(currentLang==='en'?'Add content type':'Thêm loại nội dung')}">
+        <option value="paragraph">${esc(t('admin.blockParagraph'))}</option>
+        <option value="heading">${esc(t('admin.blockHeading'))}</option>
+        <option value="richtext">${esc(t('admin.blockRichtext'))}</option>
+        <option value="quote">${esc(t('admin.blockQuote'))}</option>
+        <option value="list">${esc(t('admin.blockList'))}</option>
+        <option value="image">${esc(t('admin.blockImage'))}</option>
+        <option value="gallery">${esc(t('admin.blockGallery'))}</option>
+        <option value="video">${esc(t('admin.blockVideo'))}</option>
+        <option value="workflow">${esc(t('admin.blockWorkflow'))}</option>
+        <option value="divider">${esc(t('admin.blockDivider'))}</option>
+        <option value="proof">${esc(t('admin.blockProof'))}</option>
+        <option value="cta">${esc(t('admin.blockCta'))}</option>
+      </select>
+      <button class="admin-btn" type="button" data-editorial-add>${esc(currentLang==='en'?'+ Add content':'+ Thêm nội dung')}</button>
+    </div>
+  </div>`;
+  bodyHost.innerHTML=`${toolbar}${parts.textSurface}${parts.specialSurface}`;
+}
+function syncEditorialTextBlockFromEditor(blockEl,block){
+  const editors={vi:blockEl.querySelector('[data-richtext-editor="text_vi"]'),en:blockEl.querySelector('[data-richtext-editor="text_en"]')};
+  const values={
+    vi:sanitizeRichText(editors.vi?.innerHTML||''),
+    en:sanitizeRichText(editors.en?.innerHTML||'')
+  };
+  const formatted=editorialHasFormatting(values.vi)||editorialHasFormatting(values.en);
+  block.content=block.content||{};
+  if(formatted){
+    block.type='richtext';
+    block.content.text_vi=values.vi;
+    block.content.text_en=values.en;
+    delete block.content.title_vi;
+    delete block.content.title_en;
+  }else{
+    if(block.type==='heading' && ('title_vi' in block.content || 'title_en' in block.content)){
+      block.content.title_vi=editorialPlainFromHtml(values.vi);
+      block.content.title_en=editorialPlainFromHtml(values.en);
+    }else{
+      block.content.text_vi=editorialPlainFromHtml(values.vi);
+      block.content.text_en=editorialPlainFromHtml(values.en);
+    }
+  }
+  return block;
+}
+function syncEditorialSpecialBlockFromEditor(blockEl,block){
+  return syncBlockFromEditor(blockEl,block);
 }
 function syncBlockFromEditor(blockEl,block){
-  blockEl.querySelectorAll('[data-richtext-editor]').forEach(el=>{block.content[el.dataset.richtextEditor]=sanitizeRichText(el.innerHTML)});
+  blockEl.querySelectorAll('[data-richtext-editor]').forEach(el=>{
+    const key=el.dataset.richtextEditor;
+    block.content[key]=sanitizeRichText(el.innerHTML);
+  });
   blockEl.querySelectorAll('[data-block-content]').forEach(el=>{block.content[el.dataset.blockContent]=el.value});
   blockEl.querySelectorAll('[data-block-setting]').forEach(el=>{block.settings[el.dataset.blockSetting]=el.value.trim()});
   blockEl.querySelectorAll('[data-block-items]').forEach(el=>{block.content[el.dataset.blockItems]=el.value.split(/\n+/).map(x=>x.trim()).filter(Boolean)});
@@ -2081,15 +2468,15 @@ function updateSectionBlockPreview(blockEl,block){
   catch(_){host.innerHTML=`<div class="admin-block-empty">${esc(t('admin.invalidBlock'))}</div>`}
 }
 function refreshSectionBlockEditor(row){
-  const doc=sectionBlocksFromRow(row);
-  row.dataset.blocks=JSON.stringify(doc);
-  const host=row.querySelector('[data-block-list]');if(!host)return;
-  host.innerHTML=doc.items.length?doc.items.map((b,i)=>renderBlockEditor(b,i,doc.items.length)).join(''):`<div class="admin-block-empty">${esc(t('admin.noBlocks'))}</div>`;
-  [...host.querySelectorAll('[data-block-index]')].forEach((el,i)=>updateSectionBlockPreview(el,doc.items[i]));
+  refreshEditorialSectionRow(row);
 }
 function readSectionBlockEditors(row){
   const doc=sectionBlocksFromRow(row);
-  [...row.querySelectorAll('[data-block-index]')].forEach(el=>{const i=Number(el.dataset.blockIndex);if(doc.items[i])syncBlockFromEditor(el,doc.items[i])});
+  [...row.querySelectorAll('[data-block-index]')].forEach(el=>{
+    const i=Number(el.dataset.blockIndex);if(!doc.items[i])return;
+    if(editorialTextBlockType(doc.items[i].type))syncEditorialTextBlockFromEditor(el,doc.items[i]);
+    else syncEditorialSpecialBlockFromEditor(el,doc.items[i]);
+  });
   validateBlockDocument(doc);row.dataset.blocks=JSON.stringify(doc);return doc;
 }
 function legacyBodyFromBlocks(doc,lang){
@@ -2098,7 +2485,7 @@ function legacyBodyFromBlocks(doc,lang){
 function projectSectionPayloads(){
   return $$('#projectSectionsEditor .admin-section-row').map((row,i)=>{
     const doc=readSectionBlockEditors(row);
-    return {id:row.dataset.sectionId||null,sort_order:i,title_vi:row.querySelector('[data-section-title-vi]').value,body_vi:legacyBodyFromBlocks(doc,'vi'),title_en:row.querySelector('[data-section-title-en]').value,body_en:legacyBodyFromBlocks(doc,'en'),blocks:doc};
+    return {id:row.dataset.sectionId||null,sort_order:i,title_vi:row.querySelector('[data-section-title-vi]').value,title_en:row.querySelector('[data-section-title-en]').value,body_vi:legacyBodyFromBlocks(doc,'vi'),body_en:legacyBodyFromBlocks(doc,'en'),blocks:doc};
   });
 }
 function renderProjectSectionEditor(sections=[]){
@@ -2106,18 +2493,48 @@ function renderProjectSectionEditor(sections=[]){
   const host=$('#projectSectionsEditor');
   host.innerHTML=sections.map((s,i)=>{
     const doc=normalizeBlockDocument(s.blocks,s.body_vi,s.body_en);
-    return `<div class="admin-section-row" data-section-id="${esc(s.id||'')}" data-blocks="${esc(JSON.stringify(doc))}">
-      <div class="admin-section-row-head"><strong>SECTION ${String(i+1).padStart(2,'0')}</strong><div class="admin-section-row-head-actions"><button class="admin-btn" type="button" data-section-up ${i===0?'disabled':''}>${esc(t('admin.sectionUp'))}</button><button class="admin-btn" type="button" data-section-down ${i===sections.length-1?'disabled':''}>${esc(t('admin.sectionDown'))}</button><button class="admin-btn" type="button" data-duplicate-project-section>${esc(t('admin.duplicateSection'))}</button><button class="admin-btn danger" type="button" data-remove-project-section>${esc(t('admin.removeSection'))}</button></div></div>
-      <div class="admin-row">
+    const lang=currentLang==='en'?'en':'vi';
+    return `<section class="admin-section-row admin-editorial-section" data-section-id="${esc(s.id||'')}" data-blocks="${esc(JSON.stringify(doc))}" data-editorial-lang="${lang}">
+      <div class="admin-editorial-section-head">
+        <div><div class="admin-editorial-section-id">SECTION ${String(i+1).padStart(2,'0')}</div></div>
+        <div class="admin-editorial-section-actions">
+          <button class="admin-btn" type="button" data-section-up ${i===0?'disabled':''} aria-label="${esc(t('admin.sectionUp'))}">↑</button>
+          <button class="admin-btn" type="button" data-section-down ${i===sections.length-1?'disabled':''} aria-label="${esc(t('admin.sectionDown'))}">↓</button>
+          <button class="admin-btn" type="button" data-duplicate-project-section aria-label="${esc(t('admin.duplicateSection'))}">${esc(currentLang==='en'?'Duplicate':'Nhân bản')}</button>
+          <button class="admin-btn danger" type="button" data-remove-project-section aria-label="${esc(t('admin.removeSection'))}">×</button>
+        </div>
+      </div>
+      <div class="admin-editorial-title-grid">
         <label class="admin-label"><span>${esc(currentLang==='en'?'Title VI':'Tiêu đề VI')}</span><input class="admin-input" data-section-title-vi value="${esc(s.title_vi||'')}"></label>
         <label class="admin-label"><span>Title EN</span><input class="admin-input" data-section-title-en value="${esc(s.title_en||'')}"></label>
       </div>
-      <div class="admin-project-preview-bar"><span>${esc(t('admin.previewUnsaved'))}</span><button class="admin-btn" type="button" data-preview-project>${esc(t('admin.previewCaseStudy'))}</button></div><div class="admin-section-editor-toolbar"><span class="admin-section-order">${esc(t('admin.blockEditorCopy'))}</span><div class="admin-actions"><select class="admin-select admin-block-type-select" data-block-type-select aria-label="${esc(currentLang==='en'?'Block type':'Loại block')}"><option value="paragraph">${esc(t('admin.blockParagraph'))}</option><option value="heading">${esc(t('admin.blockHeading'))}</option><option value="richtext">${esc(t('admin.blockRichtext'))}</option><option value="quote">${esc(t('admin.blockQuote'))}</option><option value="list">${esc(t('admin.blockList'))}</option><option value="image">${esc(t('admin.blockImage'))}</option><option value="gallery">${esc(t('admin.blockGallery'))}</option><option value="video">${esc(t('admin.blockVideo'))}</option><option value="workflow">${esc(t('admin.blockWorkflow'))}</option><option value="divider">${esc(t('admin.blockDivider'))}</option><option value="proof">${esc(t('admin.blockProof'))}</option><option value="cta">${esc(t('admin.blockCta'))}</option></select><button class="admin-btn" type="button" data-preview-section>${esc(t('admin.preview'))}</button><button class="admin-btn primary" type="button" data-add-block>${esc(t('admin.addBlock'))}</button></div></div>
-      <div class="admin-block-list" data-block-list></div>
-      <p class="admin-note">${esc(t('admin.addSectionHint'))}</p>
-    </div>`;
+      <div class="admin-editorial-language-tabs" role="tablist" aria-label="${esc(currentLang==='en'?'Section language':'Ngôn ngữ section')}">
+        <button class="admin-editorial-language-tab is-active" type="button" data-editorial-lang-tab="vi" role="tab" aria-selected="true">VI</button>
+        <button class="admin-editorial-language-tab" type="button" data-editorial-lang-tab="en" role="tab" aria-selected="false">EN</button>
+      </div>
+      <div class="admin-editorial-wrap" data-editorial-section-body></div>
+      <div class="admin-editorial-section-foot">
+        <div class="admin-note">${esc(t('admin.blockEditorCopy'))}</div>
+      </div>
+    </section>`;
   }).join('');
-  $$('#projectSectionsEditor .admin-section-row').forEach(refreshSectionBlockEditor);
+  $$('#projectSectionsEditor .admin-section-row').forEach(row=>{
+    refreshEditorialSectionRow(row);
+    row.querySelectorAll('[data-editorial-lang-tab]').forEach(tab=>{
+      tab.addEventListener('click',()=>{
+        const lang=tab.dataset.editorialLangTab==='en'?'en':'vi';
+        row.dataset.editorialLang=lang;
+        row.querySelectorAll('[data-editorial-lang-tab]').forEach(x=>{
+          const active=x.dataset.editorialLangTab===lang;
+          x.classList.toggle('is-active',active);
+          x.setAttribute('aria-selected',active?'true':'false');
+        });
+        row.querySelectorAll('[data-editorial-lang-pane]').forEach(pane=>{
+          pane.hidden=pane.dataset.editorialLangPane!==lang;
+        });
+      });
+    });
+  });
 }
 function renderProjectMediaManager(project){
   const host=$('#projectMediaList');if(!host)return;
@@ -2589,7 +3006,8 @@ function previewCurrentProject(){
   catch(err){console.error('Project preview failed',err);setProjectStatus('err',err.message||String(err));}
 }
 function replaceSectionBlocks(row,items){
-  row.dataset.blocks=JSON.stringify({version:BLOCKS_VERSION,items});refreshSectionBlockEditor(row);
+  row.dataset.blocks=JSON.stringify({version:BLOCKS_VERSION,items});
+  refreshSectionBlockEditor(row);
 }
 document.addEventListener('click',e=>{
   const edit=e.target.closest('[data-edit-project]');if(edit){const p=projectBySlug(edit.dataset.editProject);if(p)editProject(p);return}
@@ -2598,11 +3016,34 @@ document.addEventListener('click',e=>{
   const sectionUp=e.target.closest('[data-section-up]');if(sectionUp){const row=sectionUp.closest('.admin-section-row');if(row?.previousElementSibling){row.parentElement.insertBefore(row,row.previousElementSibling);renderProjectSectionEditor(projectSectionPayloads());}return}
   const sectionDown=e.target.closest('[data-section-down]');if(sectionDown){const row=sectionDown.closest('.admin-section-row');if(row?.nextElementSibling){row.parentElement.insertBefore(row.nextElementSibling,row);renderProjectSectionEditor(projectSectionPayloads());}return}
   const duplicateSection=e.target.closest('[data-duplicate-project-section]');if(duplicateSection){const row=duplicateSection.closest('.admin-section-row');if(!row)return;const payload=projectSectionPayloads(),rows=[...document.querySelectorAll('#projectSectionsEditor .admin-section-row')],index=rows.indexOf(row);const copy=JSON.parse(JSON.stringify(payload[index]||{}));copy.id=null;copy.title_vi=copy.title_vi?`${copy.title_vi} · Copy`:'';copy.title_en=copy.title_en?`${copy.title_en} · Copy`:'';copy.blocks=normalizeBlockDocument(copy.blocks);copy.blocks.items=copy.blocks.items.map(b=>({...b,id:newId()}));payload.splice(index+1,0,copy);renderProjectSectionEditor(payload);return}
-  const addBlock=e.target.closest('[data-add-block]');if(addBlock){const row=addBlock.closest('.admin-section-row');if(!row)return;const select=row.querySelector('[data-block-type-select]');const type=select?.value||'paragraph';const doc=sectionBlocksFromRow(row);doc.items.push(newBlock(type));replaceSectionBlocks(row,doc.items);return}
-  const up=e.target.closest('[data-block-up]');if(up){const row=up.closest('.admin-section-row'),block=up.closest('[data-block-index]');if(!row||!block)return;const doc=sectionBlocksFromRow(row),i=Number(block.dataset.blockIndex);if(i>0){[doc.items[i-1],doc.items[i]]=[doc.items[i],doc.items[i-1]];replaceSectionBlocks(row,doc.items)}return}
-  const down=e.target.closest('[data-block-down]');if(down){const row=down.closest('.admin-section-row'),block=down.closest('[data-block-index]');if(!row||!block)return;const doc=sectionBlocksFromRow(row),i=Number(block.dataset.blockIndex);if(i<doc.items.length-1){[doc.items[i+1],doc.items[i]]=[doc.items[i],doc.items[i+1]];replaceSectionBlocks(row,doc.items)}return}
-  const duplicate=e.target.closest('[data-block-duplicate]');if(duplicate){const row=duplicate.closest('.admin-section-row'),block=duplicate.closest('[data-block-index]');if(!row||!block)return;const doc=sectionBlocksFromRow(row),i=Number(block.dataset.blockIndex);if(!doc.items[i])return;const copy=JSON.parse(JSON.stringify(doc.items[i]));copy.id=newId();doc.items.splice(i+1,0,copy);replaceSectionBlocks(row,doc.items);return}
-  const delBlock=e.target.closest('[data-block-delete]');if(delBlock){const row=delBlock.closest('.admin-section-row'),block=delBlock.closest('[data-block-index]');if(!row||!block)return;const doc=sectionBlocksFromRow(row),i=Number(block.dataset.blockIndex);doc.items.splice(i,1);replaceSectionBlocks(row,doc.items);return}
+  const editorialLangTab=e.target.closest('[data-editorial-lang-tab]');if(editorialLangTab){
+    const row=editorialLangTab.closest('.admin-section-row');if(!row)return;
+    const lang=editorialLangTab.dataset.editorialLangTab==='en'?'en':'vi';
+    row.dataset.editorialLang=lang;
+    row.querySelectorAll('[data-editorial-lang-tab]').forEach(tab=>{
+      const active=tab.dataset.editorialLang===lang;
+      tab.classList.toggle('is-active',active);
+      tab.setAttribute('aria-selected',active?'true':'false');
+    });
+    row.querySelectorAll('[data-editorial-lang-pane]').forEach(pane=>{pane.hidden=pane.dataset.editorialLangPane!==lang});
+    return;
+  }
+  const editorialAdd=e.target.closest('[data-editorial-add]');if(editorialAdd){
+    const row=editorialAdd.closest('.admin-section-row');if(!row)return;
+    const doc=readSectionBlockEditors(row);
+    const type=row.querySelector('[data-editorial-add-type]')?.value||'paragraph';
+    doc.items.push(newBlock(type));
+    row.dataset.blocks=JSON.stringify(doc);
+    renderProjectSectionEditor(projectSectionPayloads());
+    return;
+  }
+  const editorialRemove=e.target.closest('[data-editorial-remove-block]');if(editorialRemove){
+    const row=editorialRemove.closest('.admin-section-row'),block=editorialRemove.closest('[data-block-index]');if(!row||!block)return;
+    const doc=sectionBlocksFromRow(row),i=Number(block.dataset.blockIndex);if(!doc.items[i])return;
+    doc.items.splice(i,1);row.dataset.blocks=JSON.stringify(doc);
+    renderProjectSectionEditor(projectSectionPayloads());
+    return;
+  }
   const imageRemove=e.target.closest('[data-image-remove]');if(imageRemove){const blockEl=imageRemove.closest('[data-block-index]'),row=blockEl?.closest('.admin-section-row');if(!blockEl||!row)return;const doc=sectionBlocksFromRow(row),i=Number(blockEl.dataset.blockIndex);if(!doc.items[i])return;doc.items[i].settings.asset_id='';replaceSectionBlocks(row,doc.items);return}
   const previewProject=e.target.closest('[data-preview-project]');if(previewProject){previewCurrentProject();return}
   const preview=e.target.closest('[data-preview-section]');if(preview){const row=preview.closest('.admin-section-row');if(!row)return;const doc=readSectionBlockEditors(row);const lang=currentLang==='en'?'en':'vi';const title=lang==='en'?(row.querySelector('[data-section-title-en]')?.value||'Preview'):(row.querySelector('[data-section-title-vi]')?.value||'Xem trước');const w=window.open('','_blank','noopener');if(!w){alert(currentLang==='en'?'Popup blocked. Allow popups to preview.':'Trình duyệt đã chặn cửa sổ preview. Hãy cho phép popup.');return}w.document.write(`<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>body{margin:0;background:#0a0b10;color:#fff;font:15px/1.8 system-ui,sans-serif}.wrap{max-width:760px;margin:0 auto;padding:48px 20px}.k{color:#22d3ee;font:10px ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase}h1{font-size:38px;line-height:1.05} .case-copy{color:rgba(255,255,255,.76);margin:18px 0}.case-pull-quote{border-left:2px solid #ff6b35;padding-left:16px;color:rgba(255,255,255,.82)}ul{padding-left:22px}.article-media{margin:28px 0}.article-media img{display:block;width:auto;height:auto;max-width:100%;margin:auto}.case-flow{display:flex;overflow:auto}.case-flow-step{min-width:150px;padding:14px;border:1px solid rgba(34,211,238,.2)}.case-flow-step span{color:#22d3ee}.article-media-placeholder{padding:30px;border:1px dashed rgba(34,211,238,.2);color:#78808d}</style></head><body><main class="wrap"><div class="k">CASE STUDY · ${esc(title)}</div><h1>${esc(title)}</h1>${renderBlockDocument(doc,lang,{blocks:doc})}</main></body></html>`);w.document.close();return}
@@ -2688,7 +3129,11 @@ document.addEventListener('click',async e=>{
 document.addEventListener('click',e=>{
   const cmd=e.target.closest('[data-richtext-command]');
   if(cmd){
-    const wrap=cmd.closest('[data-richtext-wrap]'),editor=wrap?.querySelector('[data-richtext-editor]');if(!editor)return;
+    const wrap=cmd.closest('[data-richtext-wrap]');
+    const row=cmd.closest('.admin-section-row');
+    const lang=row?.dataset.editorialLang==='en'?'en':'vi';
+    const editor=wrap?.querySelector(`[data-richtext-editor="text_${lang}"]`)||wrap?.querySelector('[data-richtext-editor]');
+    if(!editor)return;
     editor.focus();
     const spec=cmd.dataset.richtextCommand;
     if(spec==='createLink'){
@@ -2745,7 +3190,8 @@ document.addEventListener('input',e=>{
   if(!field)return;
   const row=field.closest('.admin-section-row'),blockEl=field.closest('[data-block-index]');if(!row||!blockEl)return;
   const doc=sectionBlocksFromRow(row),i=Number(blockEl.dataset.blockIndex);if(!doc.items[i])return;
-  syncBlockFromEditor(blockEl,doc.items[i]);row.dataset.blocks=JSON.stringify(doc);updateSectionBlockPreview(blockEl,doc.items[i]);
+  if(editorialTextBlockType(doc.items[i].type))syncEditorialTextBlockFromEditor(blockEl,doc.items[i]);else syncBlockFromEditor(blockEl,doc.items[i]);
+  row.dataset.blocks=JSON.stringify(doc);
 });
 
 document.addEventListener('click',e=>{const download=e.target.closest('[data-download-asset]');if(download){downloadAdminAsset(download.dataset.downloadAsset);return}const del=e.target.closest('[data-delete-asset]');if(del){deleteAsset(del.dataset.deleteAsset);return}const rep=e.target.closest('[data-replace-asset]');if(rep){replaceProofAsset(rep.dataset.replaceAsset);return}const open=e.target.closest('[data-open-asset]');if(open){openAdminAsset(open.dataset.openAsset,open.dataset.action||'open')}});
