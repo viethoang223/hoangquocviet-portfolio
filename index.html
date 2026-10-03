@@ -842,6 +842,25 @@ body.page-hidden .ambient,body.page-hidden .ticker,body.page-hidden .avatar-shel
   .admin-editorial-special-head{align-items:flex-start}
 }
 </style>
+<style id="admin-block-stream">
+/* Case Study editor — ordered block stream (admin) + media sizing used by the shared block renderer (public) */
+.admin-block-stream-list{display:flex;flex-direction:column;gap:0;margin-top:12px}
+.admin-block-stream-list .admin-block{cursor:default;margin:0}
+.admin-block-stream-list .admin-block-textarea{overflow:auto;line-height:1.7}
+.admin-block-textarea-para{min-height:84px}
+.admin-block-textarea-heading{min-height:44px;font-weight:700}
+.admin-ins{display:flex;flex-direction:column;align-items:center;padding:7px 0}
+.admin-ins-btn{appearance:none;min-height:28px;padding:0 14px;border:1px dashed rgba(34,211,238,.3);border-radius:999px;background:transparent;color:var(--cyan);font:700 9px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.08em;cursor:pointer;opacity:.7;transition:opacity .15s,border-color .15s,background .15s}
+.admin-ins-btn:hover,.admin-ins-btn:focus-visible,.admin-ins.is-open .admin-ins-btn,.admin-ins.is-empty .admin-ins-btn{opacity:1;border-color:rgba(34,211,238,.6);background:rgba(34,211,238,.06)}
+.admin-ins-menu{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-top:8px}
+.admin-ins-menu[hidden]{display:none}
+.admin-ins-menu .admin-btn{min-height:30px;padding:0 11px;font-size:9px}
+.admin-block-stream-list .admin-richtext-wrap{margin:0}
+.case-video{position:relative;width:100%;aspect-ratio:16/9;background:#000;border-radius:12px;overflow:hidden}
+.case-video iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.article-media video{display:block;width:100%;height:auto;max-width:100%;border-radius:12px;background:#000}
+.admin-block-preview-content .case-video{border-radius:8px;max-width:420px}
+</style>
 
 </head>
 <body>
@@ -1429,9 +1448,20 @@ function blockText(block,lang){
   const content=block?.content&&typeof block.content==='object'?block.content:{};
   return String(content[`text_${lang}`]??content[`body_${lang}`]??content.text??'');
 }
+function legacySplitParagraphs(text){
+  return String(text||'').replace(/\r\n?/g,'\n').split(/\n[ \t]*\n+/).map(x=>x.trim()).filter(Boolean);
+}
+/* Legacy body_vi/body_en -> paragraph blocks. Splits ONLY on explicit blank lines, and only when VI/EN line up (or one side is empty); otherwise the text is kept whole rather than guessed. */
 function legacyParagraphDocument(bodyVi='',bodyEn=''){
   const vi=String(bodyVi||''),en=String(bodyEn||'');
-  return {version:BLOCKS_VERSION,items:(vi||en)?[{id:newId(),type:'paragraph',content:{text_vi:vi,text_en:en},settings:{}}]:[]};
+  if(!vi&&!en)return {version:BLOCKS_VERSION,items:[]};
+  const pv=legacySplitParagraphs(vi),pe=legacySplitParagraphs(en);
+  const aligned=pv.length&&pe.length?pv.length===pe.length:true;
+  const count=Math.max(pv.length,pe.length);
+  if(aligned&&count>1){
+    return {version:BLOCKS_VERSION,items:Array.from({length:count},(_,i)=>({id:newId(),type:'paragraph',content:{text_vi:pv[i]||'',text_en:pe[i]||''},settings:{}}))};
+  }
+  return {version:BLOCKS_VERSION,items:[{id:newId(),type:'paragraph',content:{text_vi:vi,text_en:en},settings:{}}]};
 }
 function normalizeBlockDocument(value,bodyVi='',bodyEn=''){
   let doc=value;
@@ -1444,22 +1474,26 @@ function normalizeBlockDocument(value,bodyVi='',bodyEn=''){
     const settings=b.settings&&typeof b.settings==='object'?b.settings:{};
     return {id:String(b.id||`${type}-${i+1}`),type,content,settings};
   });
+  if(!items.length&&(bodyVi||bodyEn))return legacyParagraphDocument(bodyVi,bodyEn);
   return {version:Number(doc.version)||BLOCKS_VERSION,items};
 }
-function validateBlockDocument(value){
-  const doc=normalizeBlockDocument(value);
+function validateBlockDocument(value,bodyVi='',bodyEn=''){
+  const doc=normalizeBlockDocument(value,bodyVi,bodyEn);
   if(doc.version!==BLOCKS_VERSION)throw new Error('unsupported_blocks_version');
   if(!Array.isArray(doc.items))throw new Error('invalid_blocks_items');
   doc.items.forEach((b,i)=>{if(!b.id||!BLOCK_TYPES.has(b.type)||!b.content||typeof b.content!=='object'||!b.settings||typeof b.settings!=='object')throw new Error(`invalid_block_${i}`)});
   return doc;
 }
 function blocksForSection(section){return validateBlockDocument(section?.blocks,section?.body_vi,section?.body_en)}
-function blocksWithLegacyBody(section){
-  const doc=blocksForSection(section);
-  if(doc.items.length===1&&doc.items[0].type==='paragraph'){
-    return {version:BLOCKS_VERSION,items:[{...doc.items[0],content:{...doc.items[0].content,text_vi:String(section.body_vi||''),text_en:String(section.body_en||'')}}]};
-  }
-  return doc;
+function blocksAreAuthored(raw){
+  let doc=raw;
+  if(typeof doc==='string'){try{doc=JSON.parse(doc)}catch(_){return false}}
+  return !!doc&&typeof doc==='object'&&Array.isArray(doc.items)&&doc.items.length>0;
+}
+/* Single decision point for every renderer: a Section whose blocks hold content is rendered from blocks ONLY.
+   body_vi/body_en are a legacy fallback for rows that have no blocks (marked __legacyBody) and are never rendered next to blocks. */
+function sectionHasBlockStream(section){
+  return !!section&&!section.__legacyBody&&blocksAreAuthored(section.blocks);
 }
 function safeLinkHref(value){
   const raw=String(value||'').trim();
@@ -1539,7 +1573,7 @@ function getAsset(assetId){if(!assetId)return null;return adminAssets.get(assetI
 function getAssets({projectId='',type=''}={}){
   let rows=[...adminAssets.values()];
   if(type)rows=rows.filter(row=>String(row.asset_type||row.type||'')===String(type));
-  if(projectId)rows.sort((a,b)=>{const ap=String(a.project_id||a.owner_id||'')===String(projectId)?0:1,bp=String(b.project_id||b.owner_id||'')===String(projectId)?0:1;if(ap!==bp)return ap-bp;return String(b.created_at||'').localeCompare(String(a.created_at||''));});
+  if(projectId)rows.sort((a,b)=>{const keys=mediaProjectKeys(projectId);const ap=mediaAssetBelongsTo(a,keys)?0:1,bp=mediaAssetBelongsTo(b,keys)?0:1;if(ap!==bp)return ap-bp;return String(b.created_at||'').localeCompare(String(a.created_at||''));});
   return rows;
 }
 function listAssets(filters={}){return getAssets(filters)}
@@ -1553,6 +1587,7 @@ const mediaLibraryState={query:'',filter:'all',projectId:'',mode:'single',accept
 const MAX_ASSET_FILE_BYTES=50*1024*1024;
 function mediaAccepts(row,accept){
   const mime=String(row?.mime_type||'').toLowerCase(),type=String(row?.asset_type||row?.type||'').toLowerCase();
+  if(accept==='video')return mime.startsWith('video/');
   if(accept==='image')return mime.startsWith('image/')||type==='gallery';
   if(accept==='proof')return ['pdf','json','image','gallery'].includes(type)||mime.startsWith('image/')||mime==='application/pdf'||mime==='application/json';
   return true;
@@ -1565,6 +1600,9 @@ function mediaFilterMatch(row,filter){
   return true;
 }
 function mediaAssetProject(row){return row?.project_id||row?.owner_id||''}
+/* An asset belongs to a project if EITHER of its link fields matches EITHER identity of that project (slug or DB uuid). */
+function mediaProjectKeys(key){const k=String(key||'');if(!k)return null;const keys=new Set([k]);const p=PROJECTS.find(x=>x.id===k||String(x.dbId||'')===k)||PROJECT_FALLBACK.find(x=>x.id===k);if(p){keys.add(String(p.id));if(p.dbId)keys.add(String(p.dbId))}return keys}
+function mediaAssetBelongsTo(row,keys){if(!keys)return true;return [row?.project_id,row?.owner_id].some(v=>v!=null&&v!==''&&keys.has(String(v)))}
 function mediaUsage(assetId){
   const refs=[];
   const known=assetLoadState==='ready'&&PROJECTS.every(project=>Array.isArray(project.sections));
@@ -1605,7 +1643,7 @@ function mediaDetailHtml(row){
 function mediaLibraryRows(){
   let rows=searchAssets(mediaLibraryState.query);
   rows=rows.filter(row=>mediaFilterMatch(row,mediaLibraryState.filter));
-  if(mediaLibraryState.projectId)rows=rows.filter(row=>String(mediaAssetProject(row))===String(mediaLibraryState.projectId));
+  if(mediaLibraryState.projectId){const keys=mediaProjectKeys(mediaLibraryState.projectId);rows=rows.filter(row=>mediaAssetBelongsTo(row,keys))}
   rows=rows.filter(row=>mediaAccepts(row,mediaLibraryState.accept));
   return rows;
 }
@@ -1666,14 +1704,14 @@ function renderBlock(block,lang,context={}){
   const title=esc(String(c[`title_${lang}`]??c[`caption_${lang}`]??''));
   switch(block.type){
     case 'heading': return `<h3 class="case-block-heading">${title||text}</h3>`;
-    case 'paragraph': return text?`<p class="case-copy">${text}</p>`:'';
+    case 'paragraph': return text?`<p class="case-copy">${text.replace(/\r?\n/g,'<br>')}</p>`:'';
     case 'richtext': { const html=sanitizeRichText(String(c[`text_${lang}`]??c.text??'')); return html?`<div class="case-copy case-richtext">${html}</div>`:''; }
     case 'quote': return `<blockquote class="case-pull-quote">${text}</blockquote>`;
     case 'list': { const items=Array.isArray(c[`items_${lang}`])?c[`items_${lang}`]:Array.isArray(c.items)?c.items:[]; return items.length?`<ul class="case-block-list">${items.map(x=>`<li>${esc(String(x))}</li>`).join('')}</ul>`:''; }
     case 'divider': return `<hr class="case-block-divider">`;
     case 'image': { const a=assetForBlock(s.asset_id); if(!a)return `<div class="article-media-placeholder">${esc(title|| (lang==='en'?'Image placeholder':'Vị trí hình ảnh'))}</div>`; const alt=String(c[`alt_${lang}`]||c.alt||a.original_name||''); const caption=esc(String(c[`caption_${lang}`]??c[`caption_${lang==='en'?'vi':'en'}`]??'')); return `<figure class="article-media"><img src="${esc(a.url)}" alt="${esc(alt)}" loading="lazy" style="width:auto;height:auto;max-width:100%;object-fit:contain"><figcaption>${caption}</figcaption></figure>`; }
     case 'gallery': { const ids=Array.isArray(s.asset_ids)?s.asset_ids:[]; const assets=ids.map(assetForBlock).filter(Boolean); return assets.length?`<figure class="article-media"><div class="gallery">${assets.map(a=>`<img src="${esc(a.url)}" alt="${esc(a.original_name||'')}" loading="lazy">`).join('')}</div><figcaption>${title}</figcaption></figure>`:`<div class="article-media-placeholder">${esc(title||(lang==='en'?'Gallery placeholder':'Vị trí gallery'))}</div>`; }
-    case 'video': { const url=safeEmbedUrl(s.url||c.url||''); return url?`<figure class="article-media"><div class="case-video"><iframe src="${esc(url)}" title="${esc(title||'Video')}" loading="lazy" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div><figcaption>${title}</figcaption></figure>`:''; }
+    case 'video': { const url=safeEmbedUrl(s.url||c.url||''); if(url)return `<figure class="article-media"><div class="case-video"><iframe src="${esc(url)}" title="${esc(title||'Video')}" loading="lazy" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div><figcaption>${title}</figcaption></figure>`; const va=assetForBlock(s.asset_id); if(va&&String(va.mime_type||'').toLowerCase().startsWith('video/'))return `<figure class="article-media"><video src="${esc(va.url)}" controls playsinline preload="metadata"></video><figcaption>${title}</figcaption></figure>`; return ''; }
     case 'workflow': { const items=Array.isArray(c[`items_${lang}`])?c[`items_${lang}`]:Array.isArray(c.items)?c.items:[]; return items.length?`<figure class="article-media"><div class="case-flow">${items.map((x,i)=>`<div class="case-flow-step"><span>${String(i+1).padStart(2,'0')}</span><strong>${esc(String(x))}</strong></div>`).join('')}</div><figcaption>${title}</figcaption></figure>`:''; }
     case 'proof': { const a=assetForBlock(s.asset_id); return a?`<div class="proof-actions"><button class="admin-btn" type="button" data-open-asset="${esc(a.id)}" data-action="open">${esc(lang==='en'?'Open evidence':'Mở bằng chứng')}</button></div>`:''; }
     case 'cta': return `<div class="case-cta">${esc(String(c[`text_${lang}`]??c.text??c[`title_${lang}`]??c.title??''))}</div>`;
@@ -1696,7 +1734,7 @@ function projectRuntimeFromDb(row,sections){
   const ordered=(sections||[]).sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
   const storyVi=ordered.map(s=>[s.title_vi||s.title_en||'',s.body_vi||s.body_en||'']);
   const storyEn=ordered.map(s=>[s.title_en||s.title_vi||'',s.body_en||s.body_vi||'']);
-  const sectionDocs=ordered.map(s=>({...s,blocks:normalizeBlockDocument(s.blocks,s.body_vi,s.body_en)}));
+  const sectionDocs=ordered.map(s=>({...s,__legacyBody:!blocksAreAuthored(s.blocks),blocks:normalizeBlockDocument(s.blocks,s.body_vi,s.body_en)}));
   const baseTone=PROJECT_FALLBACK.find(p=>p.id===row.slug)?.tone||['#22d3ee','#5b7cfa'];
   const fallbackVisual=PROJECT_FALLBACK.find(p=>p.id===row.slug)?.visual||'web';
   return {
@@ -1925,11 +1963,10 @@ function caseHtml(p){
     proofOpen:'Mở bằng chứng'
   };
 
-  if(p.id!=='lead-intent'){
-    const sectionDocs=Array.isArray(p.sections)&&p.sections.length?p.sections:story.map(([label,text])=>({title_vi:label,title_en:label,body_vi:text,body_en:text,blocks:legacyParagraphDocument(text,text)}));
+    const sectionDocs=Array.isArray(p.sections)&&p.sections.length?p.sections:story.map(([label,text])=>({title_vi:label,title_en:label,body_vi:text,body_en:text,__legacyBody:true,blocks:legacyParagraphDocument(text,text)}));
     const sections=sectionDocs.map((section,i)=>{const label=locale?(section.title_en||section.title_vi||labels.system):(section.title_vi||section.title_en||labels.system);const rendered=renderBlockDocument(section.blocks, currentLang==='en'?'en':'vi', section);return `<section class="case-section"><div class="case-section-head"><div class="case-section-no">${String(i+1).padStart(2,'0')}</div><div><p class="case-section-kicker">${esc(label)}</p><h2>${esc(label)}</h2>${rendered}</div></div></section>`}).join('');
-    const proofSection=proof?`<section class="case-section case-evidence"><div class="case-section-head"><div class="case-section-no">${String(story.length+1).padStart(2,'0')}</div><div><p class="case-section-kicker">${esc(labels.evidence)}</p><h2>${esc(labels.evidence)}</h2><div class="proof-actions">${proof}</div></div></div></section>`:'';
-    return `<article class="case-article">
+    const proofSection=proof?`<section class="case-section case-evidence"><div class="case-section-head"><div class="case-section-no">${String(sectionDocs.length+1).padStart(2,'0')}</div><div><p class="case-section-kicker">${esc(labels.evidence)}</p><h2>${esc(labels.evidence)}</h2><div class="proof-actions">${proof}</div></div></div></section>`:'';
+    return `<article class="case-article${p.id==='lead-intent'?' case-lead-intent':''}">
       <header class="case-article-header">
         <button class="modal-close" type="button" data-close="case" aria-label="${esc(t('modal.close'))}">✕</button>
         <div class="case-hero-meta"><span>${esc(labels.eyebrow)}</span><span>${esc(c.category?.join(' · ')||labels.project)}</span></div>
@@ -1943,38 +1980,6 @@ function caseHtml(p){
       <div class="case-article-body">${sections}${proofSection}</div>
       ${articleProjectNav(p)}
     </article>`;
-  }
-
-  const problem=byIndex(0),flow=byIndex(1),output=byIndex(2),marketing=byIndex(4);
-  const flowItems=String(flow[1]||'').split('→').map(x=>x.trim()).filter(Boolean);
-  const outputSection=(Array.isArray(p.sections)&&p.sections[2])?p.sections[2]:{title_vi:output[0]||labels.output,title_en:output[0]||labels.output,body_vi:output[1]||'',body_en:output[1]||'',blocks:legacyParagraphDocument(output[1]||'',output[1]||'')};
-  const outputRendered=renderBlockDocument(outputSection.blocks,currentLang==='en'?'en':'vi',outputSection);
-  const marketingItems=String(marketing[1]||'').split('·').map(x=>x.trim()).filter(Boolean);
-  const logicSteps=locale?['AI Processing','Intent Classification','Structured JSON','Lead Signal']:['AI Processing','Intent Classification','Structured JSON','Lead Signal'];
-  const flowCaption=flow[1]||'';
-  return `<article class="case-article case-lead-intent">
-    <header class="case-article-header">
-      <button class="modal-close" type="button" data-close="case" aria-label="${esc(t('modal.close'))}">✕</button>
-      <div class="case-hero-meta"><span>${esc(labels.eyebrow)}</span><span>${esc(c.category.join(' · '))}</span></div>
-      <h1 class="case-hero-title">${esc(c.title)}</h1>
-      <p class="case-hero-lead">${esc(c.intro)}</p>
-      <p class="case-hero-hook">${esc(c.hook)}</p>
-      ${articleMetaHtml(p,c,techItems)}
-      <div class="case-hero-visual">${articleMediaHtml(p)}</div>
-      ${statsH(c.stats)}
-    </header>
-    <div class="case-article-body">
-      <section class="case-section"><div class="case-section-head"><div class="case-section-no">01</div><div><p class="case-section-kicker">${esc(labels.system)}</p><h2>${esc(problem[0]||'Problem')}</h2><p class="case-copy">${esc(problem[1])}</p></div></div></section>
-      <section class="case-section"><div class="case-section-head"><div class="case-section-no">02</div><div><p class="case-section-kicker">${esc(labels.system)}</p><h2>${esc(labels.workflow)}</h2><p class="case-copy">${esc(flowCaption)}</p></div></div><figure class="article-media"><div class="case-flow">${flowItems.map((item,i)=>`<div class="case-flow-step"><span>${String(i+1).padStart(2,'0')}</span><strong>${esc(item)}</strong></div>`).join('')}</div><figcaption>${esc(locale?'Workflow from source discovery to automated notification.':'Luồng xử lý từ thu thập nguồn đến thông báo tự động.')}</figcaption></figure></section>
-      <section class="case-section"><div class="case-section-head"><div class="case-section-no">03</div><div><p class="case-section-kicker">${esc(labels.data)}</p><h2>${esc(locale?(outputSection.title_en||outputSection.title_vi||labels.output):(outputSection.title_vi||outputSection.title_en||labels.output))}</h2>${outputRendered}</div></div></section>
-      <section class="case-section"><div class="case-section-head"><div class="case-section-no">04</div><div><p class="case-section-kicker">${esc(labels.logic)}</p><h2>${esc(labels.logic)}</h2><p class="case-copy">${esc(labels.logicLead)}</p></div></div><div class="case-logic-line">${logicSteps.map((step,i)=>`${i?'<i>→</i>':''}<span>${esc(step)}</span>`).join('')}</div></section>
-      <section class="case-section"><div class="case-section-head"><div class="case-section-no">05</div><div><p class="case-section-kicker">${esc(labels.technology)}</p><h2>${esc(tech[0]||labels.technology)}</h2></div></div><div class="case-tag-grid">${techItems.map(item=>`<span>${esc(item)}</span>`).join('')}</div></section>
-      <section class="case-section"><div class="case-section-head"><div class="case-section-no">06</div><div><p class="case-section-kicker">${esc(labels.application)}</p><h2>${esc(marketing[0]||labels.application)}</h2></div></div><div class="case-tag-grid case-tag-grid-wide">${marketingItems.map(item=>`<span>${esc(item)}</span>`).join('')}</div></section>
-      ${proof?`<section class="case-section case-evidence"><div class="case-section-head"><div class="case-section-no">07</div><div><p class="case-section-kicker">${esc(labels.evidence)}</p><h2>${esc(labels.evidence)}</h2><p class="case-copy case-copy-muted">${esc(locale?'Evidence currently stored in the existing Proof layer.':'Bằng chứng hiện được lưu trong lớp Proof hiện có.')}</p><div class="proof-actions">${proof}</div></div></div></section>`:''}
-      <section class="case-section case-takeaway"><div class="case-section-head"><div class="case-section-no">08</div><div><p class="case-section-kicker">${esc(labels.demonstrates)}</p><h2>${esc(labels.demonstrates)}</h2><div class="case-takeaway-line">${esc(labels.demo)}</div></div></div></section>
-    </div>
-    ${articleProjectNav(p)}
-  </article>`;
 }
 
 async function downloadProofUrl(url,name){
@@ -2268,67 +2273,66 @@ function richTextEditorHtml(field,value,langLabel){
   const btns=[['bold','<strong>B</strong>'],['italic','<em>I</em>'],['underline','<u>U</u>'],['formatBlock:H2','H2'],['formatBlock:H3','H3'],['insertUnorderedList','• List'],['insertOrderedList','1. List'],['createLink','Link'],['formatBlock:BLOCKQUOTE','Quote'],['undo','↶'],['redo','↷']];
   return `<div class="admin-richtext-wrap" data-richtext-wrap data-richtext-field="${esc(field)}"><div class="admin-richtext-toolbar" role="toolbar" aria-label="${esc(`Rich text ${langLabel}`)}">${btns.map(([cmd,label])=>`<button type="button" data-richtext-command="${esc(cmd)}">${label}</button>`).join('')}</div><div class="admin-richtext-editor" contenteditable="true" spellcheck="true" data-richtext-editor="${esc(field)}" data-placeholder="${esc(placeholder)}">${html}</div></div>`;
 }
-function blockEditorFields(block){
-  const c=block.content||{},s=block.settings||{};
-  const textTypes=new Set(['heading','paragraph','richtext','quote','cta']);
-  if(block.type==='richtext')return `<div class="admin-block-grid">
-    <label class="admin-block-field"><span>${esc(t('admin.textVi'))}</span>${richTextEditorHtml('text_vi',blockText(block,'vi'),'VI')}</label>
-    <label class="admin-block-field"><span>${esc(t('admin.textEn'))}</span>${richTextEditorHtml('text_en',blockText(block,'en'),'EN')}</label>
-  </div>`;
-  if(textTypes.has(block.type))return `<div class="admin-block-grid">
-    <label class="admin-block-field"><span>${esc(t('admin.textVi'))}</span><textarea class="admin-block-textarea" data-block-content="text_vi">${esc(blockText(block,'vi'))}</textarea></label>
-    <label class="admin-block-field"><span>${esc(t('admin.textEn'))}</span><textarea class="admin-block-textarea" data-block-content="text_en">${esc(blockText(block,'en'))}</textarea></label>
-  </div>`;
-  if(block.type==='list'||block.type==='workflow')return `<div class="admin-block-grid">
-    <label class="admin-block-field"><span>${esc(t('admin.itemsVi'))}</span><textarea class="admin-block-textarea" data-block-items="items_vi">${esc((Array.isArray(c.items_vi)?c.items_vi:[]).join('\n'))}</textarea></label>
-    <label class="admin-block-field"><span>${esc(t('admin.itemsEn'))}</span><textarea class="admin-block-textarea" data-block-items="items_en">${esc((Array.isArray(c.items_en)?c.items_en:[]).join('\n'))}</textarea></label>
-    <label class="admin-block-field full"><span>${esc(t('admin.captionVi'))}</span><input class="admin-block-input" data-block-content="caption_vi" value="${esc(c.caption_vi||'')}"></label>
-    <label class="admin-block-field full"><span>${esc(t('admin.captionEn'))}</span><input class="admin-block-input" data-block-content="caption_en" value="${esc(c.caption_en||'')}"></label>
-  </div>`;
-  if(block.type==='image')return `<div class="admin-block-grid">
-    <div class="admin-block-field full"><span>${esc(currentLang==='en'?'Image asset':'Asset hình ảnh')}</span>${imageBlockPickerHtml(block)}</div>
-    <label class="admin-block-field"><span>${esc(t('admin.captionVi'))}</span><input class="admin-block-input" data-block-content="caption_vi" value="${esc(c.caption_vi||'')}"></label>
-    <label class="admin-block-field"><span>${esc(t('admin.captionEn'))}</span><input class="admin-block-input" data-block-content="caption_en" value="${esc(c.caption_en||'')}"></label>
-    <label class="admin-block-field"><span>${esc(t('admin.altVi'))}</span><input class="admin-block-input" data-block-content="alt_vi" value="${esc(c.alt_vi||'')}"></label>
-    <label class="admin-block-field"><span>${esc(t('admin.altEn'))}</span><input class="admin-block-input" data-block-content="alt_en" value="${esc(c.alt_en||'')}"></label>
-  </div>`;
-  if(block.type==='gallery')return `<div class="admin-block-grid">
-    <div class="admin-block-field full"><span>${esc(t('admin.manageGallery'))}</span><div class="admin-actions"><button class="admin-btn" type="button" data-gallery-manage>${esc(t('admin.manageGallery'))}</button></div>${galleryItemsHtml(s.asset_ids)}</div>
-    <label class="admin-block-field"><span>${esc(t('admin.captionVi'))}</span><input class="admin-block-input" data-block-content="caption_vi" value="${esc(c.caption_vi||'')}"></label>
-    <label class="admin-block-field"><span>${esc(t('admin.captionEn'))}</span><input class="admin-block-input" data-block-content="caption_en" value="${esc(c.caption_en||'')}"></label>
-  </div>`;
-  if(block.type==='video')return `<div class="admin-block-grid">
-    <label class="admin-block-field full"><span>${esc(t('admin.videoUrl'))}</span><input class="admin-block-input" data-block-setting="url" value="${esc(s.url||'')}" placeholder="https://..."></label>
-    <label class="admin-block-field"><span>${esc(t('admin.captionVi'))}</span><input class="admin-block-input" data-block-content="caption_vi" value="${esc(c.caption_vi||'')}"></label>
-    <label class="admin-block-field"><span>${esc(t('admin.captionEn'))}</span><input class="admin-block-input" data-block-content="caption_en" value="${esc(c.caption_en||'')}"></label>
-  </div>`;
-  if(block.type==='proof'){const a=s.asset_id?getAsset(s.asset_id):null;return `<div class="admin-block-field full"><span>${esc(t('admin.proofChoose'))}</span><div class="admin-image-picker" data-proof-picker>${a?`<div class="admin-image-meta"><div><strong>${esc(a.original_name||a.id)}</strong><small>${esc(mediaTypeLabel(a))} · ${esc(a.mime_type||'')}</small><small>${esc(a.id)}</small></div></div>`:`<div class="admin-image-empty">${esc(t('admin.mediaNoSelection'))}</div>`}<div class="admin-actions"><button class="admin-btn" type="button" data-proof-choose>${esc(t('admin.chooseMedia'))}</button>${a?`<button class="admin-btn danger" type="button" data-proof-remove>${esc(currentLang==='en'?'Remove':'Bỏ chọn')}</button>`:''}</div></div></div>`;}
-  return `<div class="admin-block-empty">${esc(currentLang==='en'?'This block type has no editable fields.':'Block này không có trường cần chỉnh sửa.')}</div>`;
+function blockEditorFields(block,lang){
+  const c=block.content||{},s=block.settings||{},L=String(lang).toUpperCase(),vi=currentLang!=='en';
+  const field=(label,inner,cls='')=>`<label class="admin-block-field${cls?' '+cls:''}"><span>${esc(label)}</span>${inner}</label>`;
+  const input=(key,val)=>`<input class="admin-block-input" data-block-content="${esc(key)}" value="${esc(val||'')}">`;
+  const area=(attr,key,val,cls='',rows=3)=>`<textarea class="admin-block-textarea${cls}" rows="${rows}" ${attr}="${esc(key)}">${esc(val)}</textarea>`;
+  const rowsFor=val=>Math.min(18,Math.max(3,Math.ceil(String(val||'').length/80)+(String(val||'').split('\n').length-1)));
+  const cap=`${vi?'Chú thích':'Caption'} ${L}`;
+  let inner='';
+  if(block.type==='richtext'){
+    inner=`<div class="admin-block-field full"><span>${L}</span>${richTextEditorHtml(`text_${lang}`,blockText(block,lang),L)}</div>`;
+  }else if(block.type==='heading'){
+    inner=field(L,area('data-block-content',editorialTextKey(block,lang),editorialTextForLang(block,lang),' admin-block-textarea-heading',1),'full');
+  }else if(block.type==='paragraph'||block.type==='quote'||block.type==='cta'){
+    const v=blockText(block,lang);
+    inner=field(L,area('data-block-content',`text_${lang}`,v,block.type==='paragraph'?' admin-block-textarea-para':'',rowsFor(v)),'full');
+  }else if(block.type==='list'||block.type==='workflow'){
+    const items=Array.isArray(c[`items_${lang}`])?c[`items_${lang}`]:[];
+    inner=field(`${vi?'Mục':'Items'} ${L} · ${vi?'mỗi dòng một mục':'one item per line'}`,area('data-block-items',`items_${lang}`,items.join('\n'),'',Math.min(12,Math.max(3,items.length+1))),'full')+field(cap,input(`caption_${lang}`,c[`caption_${lang}`]),'full');
+  }else if(block.type==='image'){
+    inner=`<div class="admin-block-field full"><span>${esc(vi?'Asset hình ảnh / GIF':'Image / GIF asset')}</span>${imageBlockPickerHtml(block)}</div>`+field(cap,input(`caption_${lang}`,c[`caption_${lang}`]),'full')+field(`Alt ${L}`,input(`alt_${lang}`,c[`alt_${lang}`]),'full');
+  }else if(block.type==='gallery'){
+    inner=`<div class="admin-block-field full"><span>${esc(t('admin.manageGallery'))}</span><div class="admin-actions"><button class="admin-btn" type="button" data-gallery-manage>${esc(t('admin.manageGallery'))}</button></div>${galleryItemsHtml(s.asset_ids)}</div>`+field(cap,input(`caption_${lang}`,c[`caption_${lang}`]),'full');
+  }else if(block.type==='video'){
+    const a=s.asset_id?getAsset(s.asset_id):null;
+    const meta=a?`<div class="admin-image-meta"><div><strong>${esc(a.original_name||a.id)}</strong><small>${esc(mediaTypeLabel(a))} · ${esc(a.mime_type||'')}</small><small>${esc(a.id)}</small></div></div>`:`<div class="admin-image-empty">${esc(t('admin.mediaNoSelection'))}</div>`;
+    inner=field(t('admin.videoUrl'),`<input class="admin-block-input" data-block-setting="url" value="${esc(s.url||'')}" placeholder="https://...">`,'full')
+      +`<div class="admin-block-field full"><span>${esc(vi?'Hoặc chọn video có sẵn trong Media Library':'Or pick an existing video from the Media Library')}</span><div class="admin-image-picker" data-video-picker>${meta}<div class="admin-actions"><button class="admin-btn" type="button" data-video-choose>${esc(t('admin.chooseMedia'))}</button>${a?`<button class="admin-btn danger" type="button" data-video-remove>${esc(vi?'Bỏ chọn':'Remove')}</button>`:''}</div></div></div>`
+      +field(cap,input(`caption_${lang}`,c[`caption_${lang}`]),'full');
+  }else if(block.type==='proof'){
+    const a=s.asset_id?getAsset(s.asset_id):null;
+    inner=`<div class="admin-block-field full"><span>${esc(t('admin.proofChoose'))}</span><div class="admin-image-picker" data-proof-picker>${a?`<div class="admin-image-meta"><div><strong>${esc(a.original_name||a.id)}</strong><small>${esc(mediaTypeLabel(a))} · ${esc(a.mime_type||'')}</small><small>${esc(a.id)}</small></div></div>`:`<div class="admin-image-empty">${esc(t('admin.mediaNoSelection'))}</div>`}<div class="admin-actions"><button class="admin-btn" type="button" data-proof-choose>${esc(t('admin.chooseMedia'))}</button>${a?`<button class="admin-btn danger" type="button" data-proof-remove>${esc(vi?'Bỏ chọn':'Remove')}</button>`:''}</div></div></div>`;
+  }else if(block.type==='divider'){
+    inner=`<div class="admin-block-empty">${esc(vi?'Divider — dải phân cách, không có nội dung cần nhập.':'Divider — a visual separator, nothing to type.')}</div>`;
+  }else{
+    inner=`<div class="admin-block-empty">${esc(vi?'Block này không có trường cần chỉnh sửa.':'This block type has no editable fields.')}</div>`;
+  }
+  return `<div class="admin-block-grid">${inner}</div>`;
 }
-function renderBlockEditor(block,index,total){
-  return `<article class="admin-block" draggable="true" data-block-index="${index}">
+function renderBlockEditor(block,index,total,lang){
+  return `<article class="admin-block" data-block-id="${esc(block.id)}" data-block-type="${esc(block.type)}">
     <div class="admin-block-head"><strong>${String(index+1).padStart(2,'0')} · ${esc(blockTypeLabel(block.type))}</strong><div class="admin-block-actions">
       <button class="admin-btn" type="button" data-block-up ${index===0?'disabled':''}>${esc(t('admin.moveUp'))}</button>
       <button class="admin-btn" type="button" data-block-down ${index===total-1?'disabled':''}>${esc(t('admin.moveDown'))}</button>
       <button class="admin-btn" type="button" data-block-duplicate>${esc(t('admin.duplicate'))}</button>
       <button class="admin-btn danger" type="button" data-block-delete>${esc(t('admin.blockDelete'))}</button>
     </div></div>
-    <div class="admin-block-body">${blockEditorFields(block)}<div class="admin-block-preview"><div class="admin-block-preview-label">${esc(t('admin.previewLabel'))}</div><div class="admin-block-preview-content" data-block-preview></div></div></div>
+    <div class="admin-block-body">${blockEditorFields(block,lang)}<div class="admin-block-preview"><div class="admin-block-preview-label">${esc(t('admin.previewLabel'))} · ${String(lang).toUpperCase()}</div><div class="admin-block-preview-content" data-block-preview></div></div></div>
   </article>`;
 }
 function sectionBlocksFromRow(row){
   try{return validateBlockDocument(JSON.parse(row.dataset.blocks||'{"version":1,"items":[]}'))}
   catch(_){return {version:BLOCKS_VERSION,items:[]}}
 }
-const EDITORIAL_LANGS=['vi','en'];
-const EDITORIAL_BLOCK_TAGS=new Set(['P','DIV','H1','H2','H3','H4','H5','H6','BLOCKQUOTE','UL','OL','PRE']);
-/* Per-section editor state (transient, never persisted): last known segment ids + snapshot per language pane. */
-const editorialRowState=new WeakMap();
+/* Case Study Section editor: ONE SECTION = MANY ORDERED CONTENT BLOCKS.
+   Every block (paragraph, image, video, …) is its own card. Card order in the DOM === doc.items order === public render order.
+   The language tab only decides which language's text fields are shown; the other language's data is never touched. */
 function editorialTextBlockType(type){
   return ['heading','paragraph','richtext','quote','cta'].includes(type);
 }
 function editorialLangOf(row){return row&&row.dataset.editorialLang==='en'?'en':'vi'}
-function editorialEditor(row,lang){return row?row.querySelector(`[data-editorial-surface="${lang}"]`):null}
 function editorialTextForLang(block,lang){
   const c=block.content||{};
   if(block.type==='heading'){
@@ -2349,72 +2353,17 @@ function editorialTextKey(block,lang){
   }
   return `text_${lang}`;
 }
-function editorialTextHtml(block,lang){
-  const raw=editorialTextForLang(block,lang);
-  if(block.type==='richtext')return sanitizeRichText(raw);
-  return esc(raw).replace(/\r?\n/g,'<br>');
-}
-function editorialPlainFromHtml(html){
-  const clean=sanitizeRichText(String(html||''));
-  const box=document.createElement('div');
-  box.innerHTML=clean;
-  box.querySelectorAll('br').forEach(br=>br.replaceWith(document.createTextNode('\n')));
-  box.querySelectorAll('div,p,h1,h2,h3,h4,h5,h6,blockquote,li').forEach(el=>{
-    if(el!==box&&el.nextSibling)el.parentNode.insertBefore(document.createTextNode('\n'),el.nextSibling);
+function editorialAutosize(root){
+  (root||document).querySelectorAll('textarea.admin-block-textarea-para,textarea.admin-block-textarea-heading').forEach(el=>{
+    const h=el.scrollHeight;
+    if(h>0)el.style.height=Math.max(h+2,el.classList.contains('admin-block-textarea-heading')?44:84)+'px';
   });
-  return String(box.textContent||'').replace(/\u00a0/g,' ').replace(/\n{3,}/g,'\n\n').trim();
 }
-/* Expects already-sanitized HTML. Covers both Chrome (<b>/<i>) and Firefox (<strong>/<em>) output. */
-function editorialHasFormatting(html){
-  return /<(?:strong|b|em|i|u|a|h[1-6]|ul|ol|li|blockquote)\b/i.test(String(html||''));
-}
-function editorialSegPlain(el){
-  return editorialPlainFromHtml(el.tagName==='UL'||el.tagName==='OL'?el.outerHTML:el.innerHTML);
-}
-function editorialSegHtml(el){
-  return sanitizeRichText(el.tagName==='P'||el.tagName==='DIV'?el.innerHTML:el.outerHTML);
-}
-function editorialToolbarHtml(lang){
-  const btns=[['bold','<strong>B</strong>'],['italic','<em>I</em>'],['underline','<u>U</u>'],['formatBlock:H2','H2'],['formatBlock:H3','H3'],['insertUnorderedList','• List'],['insertOrderedList','1. List'],['createLink','Link'],['formatBlock:BLOCKQUOTE','Quote'],['undo','↶'],['redo','↷']];
-  return `<div class="admin-richtext-toolbar" role="toolbar" aria-label="${esc(`Rich text ${lang.toUpperCase()}`)}">${btns.map(([cmd,label])=>`<button type="button" data-richtext-command="${esc(cmd)}">${label}</button>`).join('')}</div>`;
-}
-function editorialSegmentTag(type){
-  return type==='heading'?'h3':type==='quote'?'blockquote':(type==='richtext'||type==='cta')?'div':'p';
-}
-/* One segment of the continuous surface == one existing text block (its id is carried on the element). */
-function editorialSegmentHtml(block,lang){
-  const tag=editorialSegmentTag(block.type);
-  return `<${tag} data-block-id="${esc(block.id)}" data-block-type="${esc(block.type)}">${editorialTextHtml(block,lang)||'<br>'}</${tag}>`;
-}
-function editorialSpecialLabel(block){
-  const map={
-    list:t('admin.blockList'),image:t('admin.blockImage'),gallery:t('admin.blockGallery'),
-    video:t('admin.blockVideo'),workflow:t('admin.blockWorkflow'),divider:t('admin.blockDivider'),
-    proof:t('admin.blockProof')
-  };
-  return map[block.type]||blockTypeLabel(block.type);
-}
-function editorialSpecialBlockHtml(block){
-  const body=block.type==='divider'
-    ? `<div class="admin-editorial-empty-special">${esc(currentLang==='en'?'Divider — visual separator retained from the existing block model.':'Divider — dải phân cách trực quan được giữ nguyên từ block hiện có.')}</div>`
-    : blockEditorFields(block);
-  return `<article class="admin-editorial-special" data-editorial-special data-block-id="${esc(block.id)}">
-    <div class="admin-editorial-special-head">
-      <strong>${esc(editorialSpecialLabel(block))}</strong>
-      <button class="admin-btn danger" type="button" data-editorial-remove-block>${esc(currentLang==='en'?'Remove':'Bỏ')}</button>
-    </div>
-    <div class="admin-editorial-special-body">${body}</div>
-  </article>`;
-}
-function editorialSectionBodyHtml(doc,rowLang){
-  const textBlocks=doc.items.filter(b=>editorialTextBlockType(b.type));
-  const specialBlocks=doc.items.filter(b=>!editorialTextBlockType(b.type));
-  const placeholder=currentLang==='en'?'Write this section…':'Nhập nội dung cho section…';
-  const pane=lang=>`<div class="admin-editorial-lang-pane" data-editorial-lang-pane="${lang}" ${rowLang===lang?'':'hidden'}><div class="admin-editorial-content" contenteditable="true" spellcheck="true" role="textbox" aria-multiline="true" aria-label="${lang.toUpperCase()}" data-richtext-editor="text_${lang}" data-editorial-surface="${lang}" data-placeholder="${esc(placeholder)}">${textBlocks.map(b=>editorialSegmentHtml(b,lang)).join('')}</div></div>`;
-  const textSurface=`<div class="admin-editorial-surface"><div class="admin-editorial-segment">${pane('vi')}${pane('en')}</div></div>`;
-  const specialSurface=specialBlocks.length
-    ?`<div class="admin-editorial-special-list">${specialBlocks.map(b=>editorialSpecialBlockHtml(b)).join('')}</div>`:'';
-  return {textSurface,specialSurface,hasText:textBlocks.length>0};
+const EDITORIAL_ADD_MENU=[['paragraph','paragraph'],['heading','heading'],['image','image'],['video','video'],['gif','image'],['gallery','gallery'],['quote','quote'],['list','list'],['workflow','workflow'],['proof','proof'],['divider','divider'],['cta','cta'],['richtext','richtext']];
+function editorialInserterHtml(at,total){
+  const add=currentLang==='en'?'+ Add content':'+ Thêm nội dung';
+  const items=EDITORIAL_ADD_MENU.map(([key,type])=>`<button class="admin-btn" type="button" data-ins-type="${type}">${esc(key==='gif'?'GIF':blockTypeLabel(type))}</button>`).join('');
+  return `<div class="admin-ins${total===0?' is-empty':''}" data-ins-at="${at}"><button class="admin-ins-btn" type="button" data-ins-toggle aria-expanded="false">${esc(add)}</button><div class="admin-ins-menu" hidden>${items}</div></div>`;
 }
 function editorialSyncTabs(row){
   const lang=editorialLangOf(row);
@@ -2424,219 +2373,28 @@ function editorialSyncTabs(row){
     tab.setAttribute('aria-selected',active?'true':'false');
   });
 }
-/* Remember what each pane looked like right after render/sync, so untouched segments are never rewritten. */
-function editorialCaptureState(row){
-  const state={seq:{vi:[],en:[]},snap:{vi:new Map(),en:new Map()}};
-  EDITORIAL_LANGS.forEach(L=>{
-    const ed=editorialEditor(row,L);if(!ed)return;
-    [...ed.children].forEach(el=>{
-      const id=el.getAttribute('data-block-id');
-      if(!id||!EDITORIAL_BLOCK_TAGS.has(el.tagName))return;
-      state.seq[L].push(id);
-      state.snap[L].set(id,{tag:el.tagName,html:el.innerHTML});
-    });
-  });
-  editorialRowState.set(row,state);
+function updateSectionBlockPreview(blockEl,block,lang){
+  const host=blockEl.querySelector('[data-block-preview]');if(!host)return;
+  try{host.innerHTML=renderBlock(block,lang==='en'?'en':'vi',{adminPreview:true})||`<div class="admin-block-empty">${esc(currentLang==='en'?'Nothing to preview yet.':'Chưa có nội dung để xem trước.')}</div>`}
+  catch(_){host.innerHTML=`<div class="admin-block-empty">${esc(t('admin.invalidBlock'))}</div>`}
 }
+/* Render the ordered block stream of one Section: [+] block [+] block … [+] */
 function refreshEditorialSectionRow(row){
   const doc=sectionBlocksFromRow(row);
+  const seen=new Set();doc.items.forEach(b=>{if(seen.has(b.id))b.id=newId();seen.add(b.id)});
   row.dataset.blocks=JSON.stringify(doc);
   const lang=editorialLangOf(row);
-  const bodyHost=row.querySelector('[data-editorial-section-body]');
-  if(!bodyHost)return;
-  const parts=editorialSectionBodyHtml(doc,lang);
-  const toolbar=`<div class="admin-editorial-toolbar" data-richtext-wrap>
-    ${editorialToolbarHtml(lang)}
-    <div class="admin-editorial-add">
-      <select class="admin-select" data-editorial-add-type aria-label="${esc(currentLang==='en'?'Add content type':'Thêm loại nội dung')}">
-        <option value="paragraph">${esc(t('admin.blockParagraph'))}</option>
-        <option value="heading">${esc(t('admin.blockHeading'))}</option>
-        <option value="richtext">${esc(t('admin.blockRichtext'))}</option>
-        <option value="quote">${esc(t('admin.blockQuote'))}</option>
-        <option value="list">${esc(t('admin.blockList'))}</option>
-        <option value="image">${esc(t('admin.blockImage'))}</option>
-        <option value="gallery">${esc(t('admin.blockGallery'))}</option>
-        <option value="video">${esc(t('admin.blockVideo'))}</option>
-        <option value="workflow">${esc(t('admin.blockWorkflow'))}</option>
-        <option value="divider">${esc(t('admin.blockDivider'))}</option>
-        <option value="proof">${esc(t('admin.blockProof'))}</option>
-        <option value="cta">${esc(t('admin.blockCta'))}</option>
-      </select>
-      <button class="admin-btn" type="button" data-editorial-add>${esc(currentLang==='en'?'+ Add content':'+ Thêm nội dung')}</button>
-    </div>
-  </div>`;
-  bodyHost.innerHTML=`${toolbar}${parts.textSurface}${parts.specialSurface}`;
-  editorialCaptureState(row);
+  const host=row.querySelector('[data-editorial-section-body]');
+  if(!host)return;
+  const total=doc.items.length;
+  host.innerHTML=`<div class="admin-block-stream-list" data-block-stream>${doc.items.map((b,i)=>`${editorialInserterHtml(i,total)}${renderBlockEditor(b,i,total,lang)}`).join('')}${editorialInserterHtml(total,total)}</div>`;
+  const cards=[...host.querySelectorAll('article[data-block-id]')];
+  cards.forEach((el,i)=>{if(doc.items[i])updateSectionBlockPreview(el,doc.items[i],lang)});
+  editorialAutosize(host);
   editorialSyncTabs(row);
 }
-/* Wrap stray top-level text/inline nodes (e.g. text typed into an empty editor) in <p>, keeping the caret. */
-function editorialNormalizeEditor(editor){
-  const sel=window.getSelection?window.getSelection():null;
-  const keep=sel&&sel.rangeCount&&editor.contains(sel.anchorNode)&&editor.contains(sel.focusNode)
-    ?{a:sel.anchorNode,ao:sel.anchorOffset,f:sel.focusNode,fo:sel.focusOffset}:null;
-  let run=[],changed=false,lastWrap=null;
-  const flush=()=>{
-    if(!run.length)return;
-    const blank=run.every(n=>(n.nodeType===Node.TEXT_NODE&&n.textContent.trim()==='')||(n.nodeType===Node.ELEMENT_NODE&&n.tagName==='BR'));
-    if(!blank){
-      const p=document.createElement('p');
-      editor.insertBefore(p,run[0]);
-      run.forEach(n=>p.appendChild(n));
-      changed=true;lastWrap=p;
-    }
-    run=[];
-  };
-  [...editor.childNodes].forEach(n=>{
-    if(n.nodeType===Node.ELEMENT_NODE&&EDITORIAL_BLOCK_TAGS.has(n.tagName)){flush();return}
-    if(n.nodeType===Node.COMMENT_NODE)return;
-    run.push(n);
-  });
-  flush();
-  if(changed&&keep&&sel){
-    try{
-      if(keep.a===editor||keep.f===editor){const r=document.createRange();r.selectNodeContents(lastWrap);r.collapse(false);sel.removeAllRanges();sel.addRange(r)}
-      else sel.setBaseAndExtent(keep.a,keep.ao,keep.f,keep.fo);
-    }catch(_){}
-  }
-}
-function editorialParseEditor(editor){
-  editorialNormalizeEditor(editor);
-  return [...editor.children].filter(el=>EDITORIAL_BLOCK_TAGS.has(el.tagName)).map(el=>({el,id:null,skip:false,isNew:false}));
-}
-function editorialNewBlockType(el){
-  const tag=el.tagName;
-  if(/^H[1-6]$/.test(tag))return 'heading';
-  if(tag==='BLOCKQUOTE')return 'quote';
-  if(tag==='UL'||tag==='OL')return 'richtext';
-  return editorialHasFormatting(editorialSegHtml(el))?'richtext':'paragraph';
-}
-/* Paragraph -> richtext keeps both languages intact (plain text becomes escaped HTML). Only called when real formatting exists. */
-function editorialConvertToRichtext(block){
-  if(block.type==='richtext')return;
-  block.content=block.content||{};
-  EDITORIAL_LANGS.forEach(L=>{
-    const raw=String(block.content[`text_${L}`]??block.content.text??'');
-    block.content[`text_${L}`]=sanitizeRichText(esc(raw).replace(/\r?\n/g,'<br>'));
-  });
-  block.type='richtext';
-}
-/* Write one segment back into its block WITHOUT changing the block type (except paragraph -> richtext when formatted). */
-function editorialApplySegment(block,lang,seg){
-  block.content=block.content||{};
-  if(block.type==='richtext'){block.content[`text_${lang}`]=editorialSegHtml(seg.el);return}
-  if(block.type==='paragraph'){
-    const html=editorialSegHtml(seg.el);
-    if(editorialHasFormatting(html)){editorialConvertToRichtext(block);block.content[`text_${lang}`]=html;return}
-  }
-  block.content[editorialTextKey(block,lang)]=editorialSegPlain(seg.el);
-}
-function editorialClearLang(block,lang){
-  block.content=block.content||{};
-  block.content[`text_${lang}`]='';
-  if(block.type==='heading'&&`title_${lang}` in block.content)block.content[`title_${lang}`]='';
-}
-function editorialBlockPlain(block,lang){
-  const raw=editorialTextForLang(block,lang);
-  return block.type==='richtext'?richTextToPlainText(raw):String(raw).trim();
-}
-function editorialIsEmptyBlock(block){return EDITORIAL_LANGS.every(L=>editorialBlockPlain(block,L)==='')}
-function editorialSegChanged(state,lang,seg){
-  const s=state.snap[lang].get(seg.id);
-  return !s||s.tag!==seg.el.tagName||s.html!==seg.el.innerHTML;
-}
-/* Rebuild doc.items: text blocks follow the surface order, special blocks stay attached to their preceding text block. */
-function editorialRebuildItems(items,resultIds,byId,newIds=new Set()){
-  const hadText=items.some(b=>editorialTextBlockType(b.type));
-  const inResult=new Set(resultIds);
-  const leading=[],byAnchor=new Map();
-  let last=null;
-  items.forEach(b=>{
-    if(editorialTextBlockType(b.type)){if(inResult.has(b.id))last=b.id;return}
-    if(last===null)leading.push(b);
-    else{if(!byAnchor.has(last))byAnchor.set(last,[]);byAnchor.get(last).push(b)}
-  });
-  const out=[];
-  if(hadText)out.push(...leading);
-  /* brand-new text blocks stay adjacent to the block they were typed after; that block's media follows the whole run */
-  let pending=[];
-  resultIds.forEach(id=>{
-    if(!newIds.has(id)){out.push(...pending);pending=byAnchor.get(id)||[]}
-    out.push(byId.get(id));
-  });
-  out.push(...pending);
-  if(!hadText)out.push(...leading);
-  return out;
-}
-function editorialReconcileText(row,doc,state){
-  const byId=new Map();
-  doc.items.forEach(b=>{if(editorialTextBlockType(b.type)&&!byId.has(b.id))byId.set(b.id,b)});
-  const removed=new Set();
-  EDITORIAL_LANGS.forEach(L=>{
-    const editor=editorialEditor(row,L);if(!editor)return;
-    const segs=editorialParseEditor(editor);
-    const prevSeq=state.seq[L];
-    const orderIds=doc.items.filter(b=>editorialTextBlockType(b.type)&&!removed.has(b.id)).map(b=>b.id);
-    const baseIndex=new Map(orderIds.map((id,i)=>[id,i]));
-    /* 1) match elements to blocks by id (first occurrence wins; Enter-split clones are treated as new) */
-    const used=new Set();
-    segs.forEach(s=>{
-      const raw=s.el.getAttribute('data-block-id');
-      if(raw&&byId.has(raw)&&!removed.has(raw)&&!used.has(raw)){s.id=raw;used.add(raw)}
-    });
-    /* 2) an element the browser replaced (e.g. formatBlock) lost its id: re-attach it to the block that vanished from the same gap */
-    segs.forEach((s,i)=>{
-      if(s.id)return;
-      let prev=-1;for(let k=i-1;k>=0;k--){if(segs[k].id){prev=baseIndex.get(segs[k].id);break}}
-      let next=orderIds.length;for(let k=i+1;k<segs.length;k++){if(segs[k].id&&!segs[k].claimed){next=baseIndex.get(segs[k].id);break}}
-      for(let j=prev+1;j<next;j++){
-        const cand=orderIds[j];
-        if(!used.has(cand)&&prevSeq.includes(cand)){s.id=cand;s.claimed=true;used.add(cand);break}
-      }
-    });
-    /* 3) write changed content / create blocks for genuinely new segments */
-    const seqIds=[],created=[];
-    segs.forEach(s=>{
-      if(!s.id){
-        if(editorialSegPlain(s.el)===''){s.skip=true;return}
-        const block=newBlock(editorialNewBlockType(s.el));
-        s.id=block.id;s.isNew=true;byId.set(block.id,block);created.push(block);
-        editorialApplySegment(block,L,s);
-      }else if(editorialSegChanged(state,L,s)){
-        editorialApplySegment(byId.get(s.id),L,s);
-      }
-      seqIds.push(s.id);
-    });
-    /* 4) structure: deletions, insertions, reordering coming from this pane */
-    const sameSeq=seqIds.length===prevSeq.length&&seqIds.every((id,i)=>id===prevSeq[i]);
-    if(!sameSeq||created.length){
-      prevSeq.filter(id=>!seqIds.includes(id)&&byId.has(id)&&!removed.has(id)).forEach(id=>{
-        const b=byId.get(id);
-        editorialClearLang(b,L);
-        if(editorialIsEmptyBlock(b))removed.add(id);
-      });
-      const base=doc.items.filter(b=>editorialTextBlockType(b.type)&&!removed.has(b.id)).map(b=>b.id);
-      const result=seqIds.slice();
-      base.forEach((id,j)=>{
-        if(result.includes(id))return;
-        let pos=0;
-        for(let k=j-1;k>=0;k--){const at=result.indexOf(base[k]);if(at>=0){pos=at+1;break}}
-        result.splice(pos,0,id);
-      });
-      doc.items=editorialRebuildItems(doc.items,result,byId,new Set(created.map(b=>b.id)));
-    }
-    /* 5) stamp ids on the DOM (idempotent next sync) and refresh the snapshot */
-    const snap=new Map();
-    segs.forEach(s=>{
-      if(s.skip)return;
-      const b=byId.get(s.id);
-      s.el.setAttribute('data-block-id',s.id);
-      s.el.setAttribute('data-block-type',b.type);
-      snap.set(s.id,{tag:s.el.tagName,html:s.el.innerHTML});
-    });
-    state.seq[L]=seqIds;state.snap[L]=snap;
-  });
-}
 function syncBlockFromEditor(blockEl,block){
+  block.content=block.content||{};block.settings=block.settings||{};
   blockEl.querySelectorAll('[data-richtext-editor]').forEach(el=>{
     const key=el.dataset.richtextEditor;
     block.content[key]=sanitizeRichText(el.innerHTML);
@@ -2647,28 +2405,21 @@ function syncBlockFromEditor(blockEl,block){
   blockEl.querySelectorAll('[data-block-setting-list]').forEach(el=>{block.settings[el.dataset.blockSettingList]=el.value.split(/\n+/).map(x=>x.trim()).filter(Boolean)});
   return block;
 }
-function updateSectionBlockPreview(blockEl,block){
-  const host=blockEl.querySelector('[data-block-preview]');if(!host)return;
-  try{const lang=currentLang==='en'?'en':'vi';host.innerHTML=renderBlock(block,lang,{adminPreview:true})||`<div class="admin-block-empty">${esc(currentLang==='en'?'Nothing to preview yet.':'Chưa có nội dung để xem trước.')}</div>`}
-  catch(_){host.innerHTML=`<div class="admin-block-empty">${esc(t('admin.invalidBlock'))}</div>`}
-}
 function refreshSectionBlockEditor(row){
   refreshEditorialSectionRow(row);
 }
-/* Single entry point that pulls EVERYTHING currently on screen for this Section (both language panes + every special block) into the block document. */
+/* Single entry point that pulls EVERYTHING currently on screen for this Section into the block document, card by card, in order. */
 function readSectionBlockEditors(row){
   const doc=sectionBlocksFromRow(row);
-  row.querySelectorAll('[data-editorial-special][data-block-id]').forEach(el=>{
-    const block=doc.items.find(b=>b.id===el.dataset.blockId);
-    if(block&&!editorialTextBlockType(block.type))syncBlockFromEditor(el,block);
+  [...row.querySelectorAll('article[data-block-id]')].forEach((el,i)=>{
+    const block=doc.items[i];
+    if(block&&block.id===el.dataset.blockId)syncBlockFromEditor(el,block);
   });
-  const state=editorialRowState.get(row);
-  if(state)editorialReconcileText(row,doc,state);
   validateBlockDocument(doc);
   row.dataset.blocks=JSON.stringify(doc);
   return doc;
 }
-/* Every structural change (add/remove/reorder blocks or media) goes through here: sync first, mutate, re-render. */
+/* Every structural change (add/remove/move/duplicate blocks or pick media) goes through here: sync first, mutate, re-render. */
 function mutateEditorialRow(row,mutator,opts={}){
   if(!row||!row.isConnected)return null;
   const doc=readSectionBlockEditors(row);
@@ -2680,14 +2431,12 @@ function mutateEditorialRow(row,mutator,opts={}){
   return doc;
 }
 function editorialPlaceCaret(row,id){
-  const ed=editorialEditor(row,editorialLangOf(row));
-  const el=ed&&[...ed.children].find(x=>x.getAttribute('data-block-id')===id);
-  if(!el)return;
+  const card=[...row.querySelectorAll('article[data-block-id]')].find(x=>x.dataset.blockId===id);
+  if(!card)return;
   try{
-    ed.focus({preventScroll:true});
-    const r=document.createRange();r.setStart(el,0);r.collapse(true);
-    const s=window.getSelection();s.removeAllRanges();s.addRange(r);
-    el.scrollIntoView({block:'nearest'});
+    const field=card.querySelector('textarea,input.admin-block-input,[contenteditable="true"]');
+    if(field)field.focus({preventScroll:true});
+    card.scrollIntoView({block:'nearest'});
   }catch(_){}
 }
 function editorialSetLang(row,lang){
@@ -2695,21 +2444,21 @@ function editorialSetLang(row,lang){
   if(editorialLangOf(row)===next){editorialSyncTabs(row);return}
   readSectionBlockEditors(row);            /* nothing typed in the old language may be lost */
   row.dataset.editorialLang=next;
-  refreshEditorialSectionRow(row);         /* re-render both panes from the document so new/removed segments are mirrored */
+  refreshEditorialSectionRow(row);         /* same blocks, same order — only the language fields change */
 }
-function editorialSpecialContext(trigger){
-  const blockEl=trigger.closest('[data-editorial-special]'),row=trigger.closest('.admin-section-row');
+function editorialBlockContext(trigger){
+  const blockEl=trigger.closest('article[data-block-id]'),row=trigger.closest('.admin-section-row');
   return blockEl&&row?{row,blockId:blockEl.dataset.blockId}:null;
 }
-function editorialMutateSpecial(row,blockId,fn){
+function editorialMutateBlock(row,blockId,fn,opts){
   return mutateEditorialRow(row,doc=>{
     const b=doc.items.find(x=>x.id===blockId);
     if(!b)return false;
     return fn(b,doc);
-  });
+  },opts);
 }
-function editorialPickAsset(trigger,{mode,accept,title}){
-  const ctx=editorialSpecialContext(trigger);if(!ctx)return;
+function editorialPickAsset(trigger,{mode,accept,title,clearUrl=false}){
+  const ctx=editorialBlockContext(trigger);if(!ctx)return;
   const {row,blockId}=ctx;
   const key=mode==='single'?'asset_id':'asset_ids';
   const doc=readSectionBlockEditors(row);   /* sync before the editor is covered by the media dialog */
@@ -2718,7 +2467,7 @@ function editorialPickAsset(trigger,{mode,accept,title}){
     mode,accept,projectId:window.__blockEditorProjectId||'',title,
     selectedId:mode==='single'?(block.settings?.asset_id||null):null,
     selectedIds:mode==='multi'?(block.settings?.asset_ids||[]):[],
-    onConfirm:value=>{editorialMutateSpecial(row,blockId,b=>{b.settings[key]=value})}
+    onConfirm:value=>{editorialMutateBlock(row,blockId,b=>{b.settings[key]=value;if(clearUrl)b.settings.url=''},{focusId:blockId})}
   });
 }
 function legacyBodyFromBlocks(doc,lang){
@@ -2731,7 +2480,7 @@ function projectSectionPayloads(){
   });
 }
 function renderProjectSectionEditor(sections=[],langs=null){
-  window.__blockEditorProjectId=$('#projectSlug')?.dataset.originalSlug?projectBySlug($('#projectSlug').dataset.originalSlug)?.id:($('#projectSlug')?.value||'');
+  window.__blockEditorProjectId=$('#projectSlug')?.dataset.originalSlug||$('#projectSlug')?.value||'';
   const host=$('#projectSectionsEditor');
   host.innerHTML=sections.map((s,i)=>{
     const doc=normalizeBlockDocument(s.blocks,s.body_vi,s.body_en);
@@ -2797,7 +2546,7 @@ async function loadProjectSectionsIntoEditor(project){
 async function upsertProjectSections(projectId,sections){
   const existingR=await sbFetch(`/rest/v1/portfolio_project_sections?select=id&project_id=eq.${encodeURIComponent(projectId)}`,{method:'GET'});const existing=await existingR.json();const incoming=sections.filter(s=>s.title_vi||s.title_en||s.body_vi||s.body_en||(s.blocks&&Array.isArray(s.blocks.items)&&s.blocks.items.length));const keepIds=new Set(incoming.filter(s=>s.id).map(s=>s.id));const remove=(Array.isArray(existing)?existing:[]).filter(s=>!keepIds.has(s.id));
   if(remove.length){const ids=remove.map(s=>encodeURIComponent(s.id)).join(',');await sbFetch(`/rest/v1/portfolio_project_sections?id=in.(${ids})`,{method:'DELETE',headers:{Prefer:'return=minimal'}})}
-  if(incoming.length){const rows=incoming.map((s,i)=>{const doc=sanitizeBlockDocument(s.blocks&&typeof s.blocks==='object'?blocksWithLegacyBody({...s,blocks:s.blocks}):legacyParagraphDocument(s.body_vi,s.body_en));validateBlockDocument(doc);return {...(s.id?{id:s.id}:{}),project_id:projectId,sort_order:i,title_vi:s.title_vi||null,body_vi:s.body_vi||null,title_en:s.title_en||null,body_en:s.body_en||null,blocks:doc};});await sbFetch('/rest/v1/portfolio_project_sections',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=representation'},body:JSON.stringify(rows)})}
+  if(incoming.length){const rows=incoming.map((s,i)=>{const doc=sanitizeBlockDocument(s.blocks&&typeof s.blocks==='object'&&Array.isArray(s.blocks.items)?s.blocks:legacyParagraphDocument(s.body_vi,s.body_en));validateBlockDocument(doc);const bodyVi=legacyBodyFromBlocks(doc,'vi'),bodyEn=legacyBodyFromBlocks(doc,'en');return {...(s.id?{id:s.id}:{}),project_id:projectId,sort_order:i,title_vi:s.title_vi||null,body_vi:bodyVi||null,title_en:s.title_en||null,body_en:bodyEn||null,blocks:doc};});await sbFetch('/rest/v1/portfolio_project_sections',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=representation'},body:JSON.stringify(rows)})}
 }
 function projectDraftPayloadFromEditor(){return {version:1,project:projectFormPayload(),sections:projectSectionPayloads()}}
 async function saveProjectDraft(){
@@ -2811,7 +2560,7 @@ function validateProjectForPublish(payload,sections){
   validateProjectPayload(payload,{creating:!payload.id});
   const problems=[];if(!payload.title_vi||!payload.title_en)problems.push('Project titles VI and EN are required.');if(!Array.isArray(sections)||!sections.length)problems.push('At least one section is required.');
   const cover=projectCovers.get(payload.slug);if(cover&&!getAsset(cover.id))problems.push(`Project ${payload.slug} / Cover: asset is missing.`);
-  (sections||[]).forEach((section,si)=>{let doc;try{doc=validateBlockDocument(section.blocks)}catch(err){problems.push(`Section ${String(si+1).padStart(2,'0')}: ${err.message}`);return}if(!doc.items.length)problems.push(`Section ${String(si+1).padStart(2,'0')} has no content blocks.`);doc.items.forEach((b,bi)=>{const prefix=`Section ${String(si+1).padStart(2,'0')} · Block ${String(bi+1).padStart(2,'0')}`;if(b.type==='image'){const a=getAsset(b.settings?.asset_id);if(!a)problems.push(`${prefix}: Image asset is missing.`);else if(a.asset_type!=='proof'&&a.asset_type!=='gallery')problems.push(`${prefix}: Selected asset is not a project media/proof asset.`);else if(!String(a.mime_type||'').startsWith('image/'))problems.push(`${prefix}: Selected asset is not an image.`)}if(b.type==='gallery'){const ids=Array.isArray(b.settings?.asset_ids)?b.settings.asset_ids:[];if(!ids.length)problems.push(`${prefix}: Gallery is empty.`);ids.forEach(id=>{const a=getAsset(id);if(!a)problems.push(`${prefix}: Gallery asset ${id} is missing.`);else if(a.asset_type!=='gallery'&&a.asset_type!=='proof')problems.push(`${prefix}: Gallery asset ${id} is not a project media asset.`);else if(!String(a.mime_type||'').startsWith('image/'))problems.push(`${prefix}: Gallery reference ${id} is not an image asset.`)})}if(b.type==='proof'&&b.settings?.asset_id){const a=getAsset(b.settings.asset_id);if(!a)problems.push(`${prefix}: Proof asset is missing.`);else if(!['proof','gallery','project_cover'].includes(a.asset_type))problems.push(`${prefix}: Selected asset is not a valid proof/media asset.`)}if(b.type==='video'&&b.settings?.url&&!safeEmbedUrl(b.settings.url))problems.push(`${prefix}: Unsupported video URL.`)});});
+  (sections||[]).forEach((section,si)=>{let doc;try{doc=validateBlockDocument(section.blocks)}catch(err){problems.push(`Section ${String(si+1).padStart(2,'0')}: ${err.message}`);return}if(!doc.items.length)problems.push(`Section ${String(si+1).padStart(2,'0')} has no content blocks.`);doc.items.forEach((b,bi)=>{const prefix=`Section ${String(si+1).padStart(2,'0')} · Block ${String(bi+1).padStart(2,'0')}`;if(b.type==='image'){const a=getAsset(b.settings?.asset_id);if(!a)problems.push(`${prefix}: Image asset is missing.`);else if(a.asset_type!=='proof'&&a.asset_type!=='gallery')problems.push(`${prefix}: Selected asset is not a project media/proof asset.`);else if(!String(a.mime_type||'').startsWith('image/'))problems.push(`${prefix}: Selected asset is not an image.`)}if(b.type==='gallery'){const ids=Array.isArray(b.settings?.asset_ids)?b.settings.asset_ids:[];if(!ids.length)problems.push(`${prefix}: Gallery is empty.`);ids.forEach(id=>{const a=getAsset(id);if(!a)problems.push(`${prefix}: Gallery asset ${id} is missing.`);else if(a.asset_type!=='gallery'&&a.asset_type!=='proof')problems.push(`${prefix}: Gallery asset ${id} is not a project media asset.`);else if(!String(a.mime_type||'').startsWith('image/'))problems.push(`${prefix}: Gallery reference ${id} is not an image asset.`)})}if(b.type==='proof'&&b.settings?.asset_id){const a=getAsset(b.settings.asset_id);if(!a)problems.push(`${prefix}: Proof asset is missing.`);else if(!['proof','gallery','project_cover'].includes(a.asset_type))problems.push(`${prefix}: Selected asset is not a valid proof/media asset.`)}if(b.type==='video'&&b.settings?.url&&!safeEmbedUrl(b.settings.url))problems.push(`${prefix}: Unsupported video URL.`);if(b.type==='video'&&!b.settings?.url&&b.settings?.asset_id){const va=getAsset(b.settings.asset_id);if(!va)problems.push(`${prefix}: Video asset is missing.`);else if(!String(va.mime_type||'').toLowerCase().startsWith('video/'))problems.push(`${prefix}: Selected asset is not a video.`)}});});
   if(problems.length){const e=new Error('publish_validation_failed');e.validation=problems;throw e}
 }
 async function currentProjectSnapshot(projectId){const pr=await sbFetch(`/rest/v1/portfolio_projects?select=id,slug,sort_order,published,title_vi,title_en,hook_vi,hook_en,intro_vi,intro_en,categories,stats,visual_type,tone_a,tone_b&id=eq.${encodeURIComponent(projectId)}`,{method:'GET'});const rows=await pr.json();if(!Array.isArray(rows)||!rows[0])throw new Error('project_not_found');const sr=await sbFetch(`/rest/v1/portfolio_project_sections?select=id,project_id,sort_order,title_vi,body_vi,title_en,body_en,blocks&project_id=eq.${encodeURIComponent(projectId)}&order=sort_order.asc,id.asc`,{method:'GET'});const sections=await sr.json();return {row:rows[0],sections:Array.isArray(sections)?sections:[]}}
@@ -3229,12 +2978,8 @@ $('#globalSaveDraftBtn').addEventListener('click',saveGlobalDraft);$('#globalPre
 document.addEventListener('input',e=>{const field=e.target.closest('[data-global-field],[data-global-array]');if(field)mergeEditorInputs()});
 $('#closeGlobalPreview').addEventListener('click',()=>{if(isGlobalPreview)window.close();else{$('#globalPreviewBanner').hidden=true;globalPreviewContent=null;isGlobalPreview=false;renderGlobalContent(currentLang)}});
 function previewCurrentProject(){
-  try{const base=projectBySlug($('#projectSlug')?.dataset.originalSlug||$('#projectSlug')?.value);if(!base)return;const payload=projectFormPayload(),sections=projectSectionPayloads();const draft={...base,published:false,content:{vi:{...base.content.vi,title:payload.title_vi,hook:payload.hook_vi,intro:payload.intro_vi,category:payload.categories,stats:payload.stats,story:sections.map(s=>[s.title_vi,s.body_vi])},en:{...base.content.en,title:payload.title_en,hook:payload.hook_en,intro:payload.intro_en,category:payload.categories,stats:payload.stats,story:sections.map(s=>[s.title_en,s.body_en])}},sections};const win=window.open('','_blank','noopener');if(!win){alert(currentLang==='en'?'Popup blocked. Allow popups to preview.':'Trình duyệt đã chặn cửa sổ preview.');return;}const html=caseHtml(draft);win.document.write(`<!doctype html><html lang="${currentLang==='en'?'en':'vi'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DRAFT PREVIEW · ${esc(currentLang==='en'?payload.title_en:payload.title_vi)}</title><style>body{margin:0;background:#0a0b10;color:#fff;font:15px/1.8 system-ui,sans-serif}.case-article{max-width:940px;margin:0 auto;padding:40px 20px}.case-article-body{max-width:760px;margin:0 auto}.case-hero-visual img,.article-media img{display:block;width:auto;height:auto;max-width:100%;object-fit:contain;margin:auto}.case-copy{color:rgba(255,255,255,.76);overflow-wrap:anywhere}.case-section{margin:40px 0}.case-section h2{font-size:28px}.case-flow{display:flex;gap:10px;overflow:auto}.case-flow-step{min-width:150px;padding:14px;border:1px solid rgba(34,211,238,.2)}.article-media{margin:28px 0}.article-media figcaption{color:#78808d;font-size:12px}.case-footer{margin-top:50px}.draft-preview-banner{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:100;padding:9px 12px;border:1px solid rgba(255,107,53,.45);border-radius:999px;background:#120b08;color:#ffd0bd;font:800 10px ui-monospace,monospace;letter-spacing:.08em} </style></head><body><div class="draft-preview-banner">DRAFT PREVIEW</div>${html}</body></html>`);win.document.close();}
+  try{const base=projectBySlug($('#projectSlug')?.dataset.originalSlug||$('#projectSlug')?.value);if(!base)return;const payload=projectFormPayload(),sections=projectSectionPayloads();const draft={...base,published:false,content:{vi:{...base.content.vi,title:payload.title_vi,hook:payload.hook_vi,intro:payload.intro_vi,category:payload.categories,stats:payload.stats,story:sections.map(s=>[s.title_vi,s.body_vi])},en:{...base.content.en,title:payload.title_en,hook:payload.hook_en,intro:payload.intro_en,category:payload.categories,stats:payload.stats,story:sections.map(s=>[s.title_en,s.body_en])}},sections};const win=window.open('','_blank','noopener');if(!win){alert(currentLang==='en'?'Popup blocked. Allow popups to preview.':'Trình duyệt đã chặn cửa sổ preview.');return;}const html=caseHtml(draft);win.document.write(`<!doctype html><html lang="${currentLang==='en'?'en':'vi'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DRAFT PREVIEW · ${esc(currentLang==='en'?payload.title_en:payload.title_vi)}</title><style>body{margin:0;background:#0a0b10;color:#fff;font:15px/1.8 system-ui,sans-serif}.case-article{max-width:940px;margin:0 auto;padding:40px 20px}.case-article-body{max-width:760px;margin:0 auto}.case-hero-visual img,.article-media img{display:block;width:auto;height:auto;max-width:100%;object-fit:contain;margin:auto}.case-copy{color:rgba(255,255,255,.76);overflow-wrap:anywhere}.case-section{margin:40px 0}.case-section h2{font-size:28px}.case-flow{display:flex;gap:10px;overflow:auto}.case-flow-step{min-width:150px;padding:14px;border:1px solid rgba(34,211,238,.2)}.article-media{margin:28px 0}.article-media figcaption{color:#78808d;font-size:12px}.case-footer{margin-top:50px}.case-video{position:relative;aspect-ratio:16/9;background:#000}.case-video iframe{position:absolute;inset:0;width:100%;height:100%;border:0}.article-media video{display:block;width:100%;height:auto}.draft-preview-banner{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:100;padding:9px 12px;border:1px solid rgba(255,107,53,.45);border-radius:999px;background:#120b08;color:#ffd0bd;font:800 10px ui-monospace,monospace;letter-spacing:.08em} </style></head><body><div class="draft-preview-banner">DRAFT PREVIEW</div>${html}</body></html>`);win.document.close();}
   catch(err){console.error('Project preview failed',err);setProjectStatus('err',err.message||String(err));}
-}
-function replaceSectionBlocks(row,items){
-  row.dataset.blocks=JSON.stringify({version:BLOCKS_VERSION,items});
-  refreshSectionBlockEditor(row);
 }
 document.addEventListener('click',e=>{
   const edit=e.target.closest('[data-edit-project]');if(edit){const p=projectBySlug(edit.dataset.editProject);if(p)editProject(p);return}
@@ -3243,26 +2988,45 @@ document.addEventListener('click',e=>{
   const sectionUp=e.target.closest('[data-section-up]');if(sectionUp){const row=sectionUp.closest('.admin-section-row');if(row?.previousElementSibling){row.parentElement.insertBefore(row,row.previousElementSibling);renderProjectSectionEditor(projectSectionPayloads(),projectSectionLangs());}return}
   const sectionDown=e.target.closest('[data-section-down]');if(sectionDown){const row=sectionDown.closest('.admin-section-row');if(row?.nextElementSibling){row.parentElement.insertBefore(row.nextElementSibling,row);renderProjectSectionEditor(projectSectionPayloads(),projectSectionLangs());}return}
   const duplicateSection=e.target.closest('[data-duplicate-project-section]');if(duplicateSection){const row=duplicateSection.closest('.admin-section-row');if(!row)return;const payload=projectSectionPayloads(),rows=[...document.querySelectorAll('#projectSectionsEditor .admin-section-row')],index=rows.indexOf(row);const copy=JSON.parse(JSON.stringify(payload[index]||{}));copy.id=null;copy.title_vi=copy.title_vi?`${copy.title_vi} · Copy`:'';copy.title_en=copy.title_en?`${copy.title_en} · Copy`:'';copy.blocks=normalizeBlockDocument(copy.blocks);copy.blocks.items=copy.blocks.items.map(b=>({...b,id:newId()}));const langs=projectSectionLangs();langs.splice(index+1,0,langs[index]);payload.splice(index+1,0,copy);renderProjectSectionEditor(payload,langs);return}
+  if(!e.target.closest('.admin-ins'))document.querySelectorAll('.admin-ins.is-open').forEach(x=>{x.classList.remove('is-open');const m=x.querySelector('.admin-ins-menu');if(m)m.hidden=true;x.querySelector('[data-ins-toggle]')?.setAttribute('aria-expanded','false')});
   const editorialLangTab=e.target.closest('[data-editorial-lang-tab]');if(editorialLangTab){
     const row=editorialLangTab.closest('.admin-section-row');if(!row)return;
     editorialSetLang(row,editorialLangTab.dataset.editorialLangTab);
     return;
   }
-  const editorialAdd=e.target.closest('[data-editorial-add]');if(editorialAdd){
-    const row=editorialAdd.closest('.admin-section-row');if(!row)return;
-    const type=row.querySelector('[data-editorial-add-type]')?.value||'paragraph';
-    const block=newBlock(type);
-    mutateEditorialRow(row,doc=>{doc.items.push(block)},{focusId:editorialTextBlockType(type)?block.id:null});
+  const insToggle=e.target.closest('[data-ins-toggle]');if(insToggle){
+    const ins=insToggle.closest('.admin-ins'),menu=ins&&ins.querySelector('.admin-ins-menu');if(!menu)return;
+    const willOpen=menu.hidden;
+    document.querySelectorAll('.admin-ins.is-open').forEach(x=>{x.classList.remove('is-open');const m=x.querySelector('.admin-ins-menu');if(m)m.hidden=true;x.querySelector('[data-ins-toggle]')?.setAttribute('aria-expanded','false')});
+    menu.hidden=!willOpen;ins.classList.toggle('is-open',willOpen);insToggle.setAttribute('aria-expanded',willOpen?'true':'false');
     return;
   }
-  const editorialRemove=e.target.closest('[data-editorial-remove-block]');if(editorialRemove){
-    const ctx=editorialSpecialContext(editorialRemove);if(!ctx)return;
-    editorialMutateSpecial(ctx.row,ctx.blockId,(b,doc)=>{const i=doc.items.indexOf(b);if(i<0)return false;doc.items.splice(i,1)});
+  const insType=e.target.closest('[data-ins-type]');if(insType){
+    const ins=insType.closest('.admin-ins'),row=insType.closest('.admin-section-row');if(!ins||!row)return;
+    const at=Number(ins.dataset.insAt),block=newBlock(insType.dataset.insType);
+    mutateEditorialRow(row,doc=>{const pos=Number.isInteger(at)?Math.max(0,Math.min(at,doc.items.length)):doc.items.length;doc.items.splice(pos,0,block)},{focusId:block.id});
+    return;
+  }
+  const blockMove=e.target.closest('[data-block-up],[data-block-down]');if(blockMove){
+    const ctx=editorialBlockContext(blockMove);if(!ctx)return;
+    const dir=blockMove.hasAttribute('data-block-up')?-1:1;
+    editorialMutateBlock(ctx.row,ctx.blockId,(b,doc)=>{const i=doc.items.indexOf(b),k=i+dir;if(i<0||k<0||k>=doc.items.length)return false;[doc.items[i],doc.items[k]]=[doc.items[k],doc.items[i]]},{focusId:ctx.blockId});
+    return;
+  }
+  const blockDup=e.target.closest('[data-block-duplicate]');if(blockDup){
+    const ctx=editorialBlockContext(blockDup);if(!ctx)return;
+    const copyId=newId();
+    editorialMutateBlock(ctx.row,ctx.blockId,(b,doc)=>{const i=doc.items.indexOf(b);if(i<0)return false;doc.items.splice(i+1,0,{...JSON.parse(JSON.stringify(b)),id:copyId})},{focusId:copyId});
+    return;
+  }
+  const blockDel=e.target.closest('[data-block-delete]');if(blockDel){
+    const ctx=editorialBlockContext(blockDel);if(!ctx)return;
+    editorialMutateBlock(ctx.row,ctx.blockId,(b,doc)=>{const i=doc.items.indexOf(b);if(i<0)return false;doc.items.splice(i,1)});
     return;
   }
   const imageRemove=e.target.closest('[data-image-remove]');if(imageRemove){
-    const ctx=editorialSpecialContext(imageRemove);if(!ctx)return;
-    editorialMutateSpecial(ctx.row,ctx.blockId,b=>{b.settings.asset_id=''});
+    const ctx=editorialBlockContext(imageRemove);if(!ctx)return;
+    editorialMutateBlock(ctx.row,ctx.blockId,b=>{b.settings.asset_id=''});
     return;
   }
   const previewProject=e.target.closest('[data-preview-project]');if(previewProject){previewCurrentProject();return}
@@ -3278,20 +3042,6 @@ document.addEventListener('click',async e=>{
   const coverRep=e.target.closest('[data-project-cover-replace]');if(coverRep){$('#coverProject').value=coverRep.dataset.projectCoverReplace;$('#projectCoverFile').click();return;}
   const coverDel=e.target.closest('[data-project-cover-delete]');if(coverDel){const row=adminAssets.get(coverDel.dataset.projectCoverDelete);if(row){if(!assertAssetUnused(row.id))return;try{await removeAssetRows([row]);await loadAssets();const p=projectBySlug($('#projectSlug')?.dataset.originalSlug||$('#projectSlug')?.value);if(p)renderProjectMediaManager(p);}catch(err){setAdminStatus('#coverUploadStatus','err',formatAssetUploadError(err));}}return;}
 });
-let draggedBlock=null;
-document.addEventListener('dragstart',e=>{
-  const block=e.target.closest('[data-block-index]');if(!block)return;
-  draggedBlock=block;block.classList.add('is-dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',block.dataset.blockIndex);
-});
-document.addEventListener('dragend',e=>{const block=e.target.closest('[data-block-index]');block?.classList.remove('is-dragging');draggedBlock=null;});
-document.addEventListener('dragover',e=>{const target=e.target.closest('[data-block-index]');if(target&&draggedBlock&&target!==draggedBlock){e.preventDefault;e.preventDefault();e.dataTransfer.dropEffect='move';}});
-document.addEventListener('drop',e=>{
-  const target=e.target.closest('[data-block-index]');if(!target||!draggedBlock||target===draggedBlock)return;
-  const row=target.closest('.admin-section-row');if(!row||row!==draggedBlock.closest('.admin-section-row'))return;
-  e.preventDefault();const doc=sectionBlocksFromRow(row),from=Number(draggedBlock.dataset.blockIndex),to=Number(target.dataset.blockIndex);if(!Number.isInteger(from)||!Number.isInteger(to)||from===to)return;
-  const [moved]=doc.items.splice(from,1);doc.items.splice(to,0,moved);replaceSectionBlocks(row,doc.items);draggedBlock=null;
-});
-
 document.addEventListener('click',async e=>{
   const close=e.target.closest('[data-media-close]');if(close){closeMediaLibrary();return}
   const card=e.target.closest('[data-media-id]');
@@ -3322,24 +3072,32 @@ document.addEventListener('click',async e=>{
   if(galleryManage){editorialPickAsset(galleryManage,{mode:'multi',accept:'image',title:t('admin.manageGallery')});return}
   const galleryMove=e.target.closest('[data-gallery-up],[data-gallery-down]');
   if(galleryMove){
-    const ctx=editorialSpecialContext(galleryMove);if(!ctx)return;
+    const ctx=editorialBlockContext(galleryMove);if(!ctx)return;
     const j=Number(galleryMove.closest('[data-gallery-index]')?.dataset.galleryIndex),dir=galleryMove.hasAttribute('data-gallery-up')?-1:1;
-    editorialMutateSpecial(ctx.row,ctx.blockId,b=>{const ids=[...(b.settings.asset_ids||[])],k=j+dir;if(!Number.isInteger(j)||j<0||j>=ids.length||k<0||k>=ids.length)return false;[ids[j],ids[k]]=[ids[k],ids[j]];b.settings.asset_ids=ids});
+    editorialMutateBlock(ctx.row,ctx.blockId,b=>{const ids=[...(b.settings.asset_ids||[])],k=j+dir;if(!Number.isInteger(j)||j<0||j>=ids.length||k<0||k>=ids.length)return false;[ids[j],ids[k]]=[ids[k],ids[j]];b.settings.asset_ids=ids});
     return;
   }
   const galleryRemove=e.target.closest('[data-gallery-remove]');
   if(galleryRemove){
-    const ctx=editorialSpecialContext(galleryRemove);if(!ctx)return;
+    const ctx=editorialBlockContext(galleryRemove);if(!ctx)return;
     const j=Number(galleryRemove.closest('[data-gallery-index]')?.dataset.galleryIndex);
-    editorialMutateSpecial(ctx.row,ctx.blockId,b=>{const ids=[...(b.settings.asset_ids||[])];if(!Number.isInteger(j)||j<0||j>=ids.length)return false;ids.splice(j,1);b.settings.asset_ids=ids});
+    editorialMutateBlock(ctx.row,ctx.blockId,b=>{const ids=[...(b.settings.asset_ids||[])];if(!Number.isInteger(j)||j<0||j>=ids.length)return false;ids.splice(j,1);b.settings.asset_ids=ids});
     return;
   }
   const proofChoose=e.target.closest('[data-proof-choose]');
   if(proofChoose){editorialPickAsset(proofChoose,{mode:'single',accept:'proof',title:t('admin.proofChoose')});return}
+  const videoChoose=e.target.closest('[data-video-choose]');
+  if(videoChoose){editorialPickAsset(videoChoose,{mode:'single',accept:'video',title:t('admin.chooseMedia'),clearUrl:true});return}
+  const videoRemove=e.target.closest('[data-video-remove]');
+  if(videoRemove){
+    const ctx=editorialBlockContext(videoRemove);if(!ctx)return;
+    editorialMutateBlock(ctx.row,ctx.blockId,b=>{b.settings.asset_id=''});
+    return;
+  }
   const proofRemove=e.target.closest('[data-proof-remove]');
   if(proofRemove){
-    const ctx=editorialSpecialContext(proofRemove);if(!ctx)return;
-    editorialMutateSpecial(ctx.row,ctx.blockId,b=>{b.settings.asset_id=''});
+    const ctx=editorialBlockContext(proofRemove);if(!ctx)return;
+    editorialMutateBlock(ctx.row,ctx.blockId,b=>{b.settings.asset_id=''});
     return;
   }
 });
@@ -3351,9 +3109,7 @@ document.addEventListener('click',e=>{
   const cmd=e.target.closest('[data-richtext-command]');
   if(!cmd)return;
   const wrap=cmd.closest('[data-richtext-wrap]');
-  const row=cmd.closest('.admin-section-row');
-  const lang=editorialLangOf(row);
-  const editor=(row&&editorialEditor(row,lang))||wrap?.querySelector('[data-richtext-editor]');
+  const editor=wrap?.querySelector('[data-richtext-editor]');
   if(!editor)return;
   const sel=window.getSelection();
   let saved=null;
@@ -3414,13 +3170,16 @@ function editorialSyncFromEvent(e){
   const field=e.target&&e.target.closest?e.target.closest('[data-block-content],[data-block-setting],[data-block-items],[data-block-setting-list],[data-richtext-editor]'):null;
   if(!field)return;
   const row=field.closest('.admin-section-row');
-  if(row)readSectionBlockEditors(row);
+  if(!row)return;
+  const doc=readSectionBlockEditors(row);
+  const card=field.closest('article[data-block-id]');
+  if(!card)return;
+  if(field.matches('textarea'))editorialAutosize(card);
+  const block=doc.items.find(b=>b.id===card.dataset.blockId);
+  if(block){clearTimeout(card.__pv);card.__pv=setTimeout(()=>{if(card.isConnected)updateSectionBlockPreview(card,block,editorialLangOf(row))},220)}
 }
 document.addEventListener('input',e=>{if(e.isComposing)return;editorialSyncFromEvent(e)});
 document.addEventListener('compositionend',editorialSyncFromEvent);
-document.addEventListener('focusin',e=>{
-  if(e.target.closest&&e.target.closest('[data-editorial-surface]')){try{document.execCommand('defaultParagraphSeparator',false,'p')}catch(_){}}
-});
 
 document.addEventListener('click',e=>{const download=e.target.closest('[data-download-asset]');if(download){downloadAdminAsset(download.dataset.downloadAsset);return}const del=e.target.closest('[data-delete-asset]');if(del){deleteAsset(del.dataset.deleteAsset);return}const rep=e.target.closest('[data-replace-asset]');if(rep){replaceProofAsset(rep.dataset.replaceAsset);return}const open=e.target.closest('[data-open-asset]');if(open){openAdminAsset(open.dataset.openAsset,open.dataset.action||'open')}});
 
