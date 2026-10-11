@@ -380,6 +380,7 @@ body.page-hidden .ambient,body.page-hidden .ticker,body.page-hidden .avatar-shel
 @media(max-width:760px){.admin-grid{grid-template-columns:1fr}.admin-row{grid-template-columns:1fr}.admin-dialog{width:100vw;height:100dvh;max-height:none;border-radius:0;border-left:0;border-right:0}.admin-scroll{padding:18px 15px 28px}}
 
 
+.admin-status.warn{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.42);color:#fbbf24}
 /* Phase 3 Final — shared media library */
 .media-library-dialog{width:min(1120px,96vw);max-width:none;height:min(88dvh,900px);max-height:min(88dvh,900px);padding:0;border:1px solid rgba(255,255,255,.1);border-radius:22px;background:#0d1117;color:#fff;overflow:hidden}
 .media-library-dialog::backdrop{background:rgba(0,0,0,.68);backdrop-filter:blur(6px)}
@@ -1211,9 +1212,11 @@ const I18N={
 
 
 Object.assign(I18N.vi,{
+  'admin.cleanupWarning':'Metadata đã được xử lý nhưng dọn file thất bại. Xem console.',
   'admin.globalContent':'GLOBAL CONTENT','admin.globalContentCopy':'Chỉnh sửa Home, Approach, Skills, Experience, Contact và Footer mà không thay đổi hệ thống layout.','admin.globalHome':'Home','admin.globalApproach':'Approach','admin.globalSkills':'Skills','admin.globalExperience':'Experience','admin.globalContact':'Contact','admin.globalFooter':'Footer','admin.saveDraft':'Lưu bản nháp','admin.previewDraft':'Xem trước bản nháp','admin.publish':'Publish','admin.unpublish':'Bỏ publish','admin.draftPreviewLabel':'DRAFT PREVIEW','admin.globalSaved':'Đã lưu bản nháp Global Content.','admin.globalPublished':'Global Content đã publish.','admin.globalUnpublished':'Global Content đã unpublish.','admin.globalPreviewOpened':'Đã mở Draft Preview.','admin.projectDraftSaved':'Đã lưu bản nháp Project.','admin.projectPublished':'Project đã publish.','admin.projectUnpublished':'Project đã unpublish.','admin.publishBlocked':'Publish bị chặn','admin.noDraft':'Chưa có bản nháp đã lưu.','admin.invalidGlobal':'Global Content không hợp lệ.','admin.draftAvailable':'Có bản nháp chưa publish','admin.livePublished':'PUBLISHED · đang live','admin.draftOnly':'DRAFT · chưa có bản live'
 });
 Object.assign(I18N.en,{
+  'admin.cleanupWarning':'Metadata was processed, but file cleanup failed. See the console.',
   'admin.globalContent':'GLOBAL CONTENT','admin.globalContentCopy':'Edit Home, Approach, Skills, Experience, Contact and Footer without changing the layout system.','admin.globalHome':'Home','admin.globalApproach':'Approach','admin.globalSkills':'Skills','admin.globalExperience':'Experience','admin.globalContact':'Contact','admin.globalFooter':'Footer','admin.saveDraft':'Save Draft','admin.previewDraft':'Preview Draft','admin.publish':'Publish','admin.unpublish':'Unpublish','admin.draftPreviewLabel':'DRAFT PREVIEW','admin.globalSaved':'Global Content draft saved.','admin.globalPublished':'Global Content published.','admin.globalUnpublished':'Global Content unpublished.','admin.globalPreviewOpened':'Draft Preview opened.','admin.projectDraftSaved':'Project draft saved.','admin.projectPublished':'Project published.','admin.projectUnpublished':'Project unpublished.','admin.publishBlocked':'Publish blocked','admin.noDraft':'No saved draft exists.','admin.invalidGlobal':'Global Content is invalid.','admin.draftAvailable':'Saved draft exists','admin.livePublished':'PUBLISHED · live','admin.draftOnly':'DRAFT · not yet live'
 });
 
@@ -1754,7 +1757,7 @@ function projectRuntimeFromDb(row,sections){
 }
 async function fetchProjectRows({admin=false}={}){
   const filter=admin?'':'&published=eq.true';
-  const r=await sbFetch(`/rest/v1/portfolio_projects?select=id,slug,sort_order,published,title_vi,title_en,hook_vi,hook_en,intro_vi,intro_en,categories,stats,visual_type,tone_a,tone_b${filter}&order=sort_order.asc,id.asc`,{method:'GET'},adminSession?.access_token||null);
+  const r=await sbFetch(`/rest/v1/portfolio_projects?select=id,slug,sort_order,published,title_vi,title_en,hook_vi,hook_en,intro_vi,intro_en,categories,stats,visual_type,tone_a,tone_b${filter}&order=sort_order.asc,id.asc`,{method:'GET'},adminSession?undefined:null);
   return r.json();
 }
 async function fetchProjectSections({admin=false,projectIds=[]}={}){
@@ -1763,7 +1766,7 @@ async function fetchProjectSections({admin=false,projectIds=[]}={}){
     if(!projectIds.length)return [];
     params.set('project_id',`in.(${projectIds.map(id=>encodeURIComponent(id)).join(',')})`);
   }
-  const r=await sbFetch(`/rest/v1/portfolio_project_sections?${params.toString()}`,{method:'GET'},adminSession?.access_token||null);
+  const r=await sbFetch(`/rest/v1/portfolio_project_sections?${params.toString()}`,{method:'GET'},adminSession?undefined:null);
   return r.json();
 }
 async function loadProjects({admin=false}={}){
@@ -1885,11 +1888,12 @@ let activeProject=null;
 function proofTitle(x){return currentLang==='en'?(x.titleEn||x.titleVi||x.title): (x.titleVi||x.titleEn||x.title)}
 function proofVerb(type){return t(`proof.${type}`)}
 function validProof(x){return !!(x&&(x.url||x.file||(Array.isArray(x.files)&&x.files.length)))}
+function proofDownloadUrl(url,name){const separator=url.includes('?')?'&':'?';return `${url}${separator}download=${encodeURIComponent(name||'proof')}`}
 function caseProofHtml(p){
   return (p.proof||[]).map((x,i)=>{
     if(!validProof(x))return '';
     if(x.type==='link'||x.type==='download')return `<a class="proof-btn" href="${esc(x.url||x.file)}" target="_blank" rel="noopener">${esc(proofTitle(x)||proofVerb(x.type))} ↗</a>`;
-    if(['pdf','image','gallery','json'].includes(x.type))return `<a class="proof-btn" href="#/${p.id}/${i}">${esc(x.type==='json'?(currentLang==='en'?'Open JSON':'Mở JSON'):proofVerb(x.type))}${proofTitle(x)?` · ${esc(proofTitle(x))}`:''} →</a>`;
+    if(['pdf','image','gallery','json'].includes(x.type)){const name=(x.original_name||proofTitle(x)||'proof').replace(/[\\/:*?"<>|]+/g,'_');const url=proofDownloadUrl(x.url||x.file,name);return `<span class="proof-download-actions"><a class="proof-btn" href="${esc(url)}" download="${esc(name)}">${esc(currentLang==='en'?'Download':'Tải')}${proofTitle(x)?` · ${esc(proofTitle(x))}`:''} ↓</a><a class="proof-btn proof-download-fallback" href="${esc(url)}" target="_blank" rel="noopener">${esc(currentLang==='en'?'Open file':'Mở file')} ↗</a></span>`}
     return `<a class="proof-btn" href="${esc(x.url||x.file||'#')}" target="_blank" rel="noopener">${esc(proofTitle(x)||proofVerb(x.type)||'Open proof')} ↗</a>`;
   }).join('');
 }
@@ -1983,7 +1987,7 @@ function caseHtml(p){
 }
 
 async function downloadProofUrl(url,name){
-  const safe=safeLinkHref(url);
+  const safe=safeLinkHref(proofDownloadUrl(url,name));
   if(!safe)throw new Error('unsafe_url');
   const response=await fetch(safe,{method:'GET',credentials:'omit'});
   if(!response.ok)throw new Error(`download_http_${response.status}`);
@@ -1996,7 +2000,8 @@ function viewerHtml(it){
   const files=Array.isArray(it.files)&&it.files.length?it.files:[it.file||it.url];const first=files[0];
   const firstUrl=first?.url||first||'';
   const downloadName=(it.original_name||proofTitle(it)||'proof').replace(/[\\/:*?"<>|]+/g,'_');
-  viewerHead.innerHTML=`<strong>${esc(proofTitle(it)||t('modal.evidence'))}</strong><div class="viewer-actions"><a class="viewer-btn" href="${esc(firstUrl)}" target="_blank" rel="noopener">${esc(t('modal.openTab'))} ↗</a><button class="viewer-btn" type="button" data-proof-download="${esc(firstUrl)}" data-proof-download-name="${esc(downloadName)}">${esc(t('modal.download'))} ↓</button><button class="viewer-btn" type="button" data-close="viewer">${esc(t('modal.close'))}</button></div>`;
+  const downloadUrl=proofDownloadUrl(firstUrl,downloadName);
+  viewerHead.innerHTML=`<strong>${esc(proofTitle(it)||t('modal.evidence'))}</strong><div class="viewer-actions"><a class="viewer-btn" href="${esc(downloadUrl)}" download="${esc(downloadName)}" data-proof-download="${esc(firstUrl)}" data-proof-download-name="${esc(downloadName)}">${esc(t('modal.download'))} ↓</a><a class="viewer-btn proof-download-fallback" href="${esc(downloadUrl)}" target="_blank" rel="noopener">${esc(currentLang==='en'?'Open file':'Mở file')} ↗</a><button class="viewer-btn" type="button" data-close="viewer">${esc(t('modal.close'))}</button></div>`;
   viewerBody.innerHTML=it.type==='pdf'?`<iframe src="${esc(firstUrl)}#view=FitH" title="${esc(proofTitle(it)||'PDF')}"></iframe>`:it.type==='json'?`<iframe src="${esc(firstUrl)}" title="${esc(proofTitle(it)||'JSON')}"></iframe>`:`<div class="gallery">${files.map(src=>`<img src="${esc(src.url||src)}" alt="${esc(proofTitle(it)||'Proof')}" loading="lazy">`).join('')}</div>`;
 }
 function parseHash(){
@@ -2030,8 +2035,48 @@ document.addEventListener('click',e=>{
 /* Supabase REST integration — one asset system, no SDK dependency, anon key only. */
 function sbReady(){return !!(CONFIG.supabase.url&&CONFIG.supabase.anonKey)}
 function sbHeaders(token){return {'apikey':CONFIG.supabase.anonKey,'Authorization':`Bearer ${token||CONFIG.supabase.anonKey}`,'Content-Type':'application/json'}}
-async function sbFetch(path,opts={},tokenOverride){
+function saveAdminSession(session){adminSession=session;safeStorageSet(window.sessionStorage,'hqv-admin-session',JSON.stringify(session))}
+function sessionExpiredMessage(){return currentLang==='en'?'Session expired, please log in again':'Phiên đăng nhập hết hạn, vui lòng đăng nhập lại'}
+function clearExpiredSession(){adminSession=null;safeStorageRemove(window.sessionStorage,'hqv-admin-session');if(typeof renderAdmin==='function')renderAdmin();if(typeof setAdminStatus==='function')setAdminStatus('#adminLoginStatus','err',sessionExpiredMessage())}
+function jwtExpired(token){try{const payload=JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));return Number(payload.exp||0)*1000<=Date.now()+5000}catch(_){return true}}
+let adminRefreshPromise=null;
+function refreshAdminSession(){
+  if(adminRefreshPromise)return adminRefreshPromise;
+  adminRefreshPromise=(async()=>{
+    const refreshToken=adminSession?.refresh_token;
+    if(!refreshToken){clearExpiredSession();throw new Error('session_expired')}
+    const response=await fetch(CONFIG.supabase.url.replace(/\/$/,'')+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:sbHeaders(CONFIG.supabase.anonKey),body:JSON.stringify({refresh_token:refreshToken})});
+    if(!response.ok){let detail='';try{detail=await response.text()}catch(_){}console.error('[HQV auth refresh]',{status:response.status,detail});clearExpiredSession();throw new Error('session_expired')}
+    const refreshed=await response.json();
+    if(!refreshed?.access_token){clearExpiredSession();throw new Error('session_expired')}
+    saveAdminSession({...adminSession,...refreshed,refresh_token:refreshed.refresh_token||refreshToken});
+    return adminSession;
+  })().finally(()=>{adminRefreshPromise=null});
+  return adminRefreshPromise;
+}
+function jwtExpiredResponse(status,detail){return status===401||status===400&&/jwt|token|expired|invalid.*session/i.test(detail||'')}
+function databaseJwtExpiredResponse(status,detail){return status===401&&/jwt|token|expired|invalid.*session/i.test(detail||'')||status===400&&/jwt|token|expired|invalid.*session/i.test(detail||'')}
+function storageBucketUrl(){return CONFIG.supabase.url.replace(/\/$/,'')+`/storage/v1/object/${encodeURIComponent(CONFIG.supabase.bucket)}`}
+function storageObjectUrl(path){return `${storageBucketUrl()}/${String(path).split('/').map(encodeURIComponent).join('/')}`}
+async function storageRequest(url,options,objectPath,attempt=0){
+  if(!adminSession?.access_token||jwtExpired(adminSession.access_token)){if(attempt){clearExpiredSession();throw new Error('session_expired')}await refreshAdminSession()}
+  const request={...options,headers:{...options.headers,apikey:CONFIG.supabase.anonKey,Authorization:`Bearer ${adminSession.access_token}`}};
+  let response;
+  try{response=await fetch(url,request)}catch(cause){const error=new Error('supabase_network_error');error.cause=cause;throw error}
+  if(!response.ok){
+    const detail=await response.text();
+    console.error('[HQV storage]',{status:response.status,body:detail,method:request.method||'GET',objectPath});
+    if(!attempt&&jwtExpiredResponse(response.status,detail)){await refreshAdminSession();return storageRequest(url,options,objectPath,1)}
+    const error=new Error(`storage_${String(request.method||'GET').toLowerCase()}_failed`);error.status=response.status;error.detail=detail;
+    if(jwtExpiredResponse(response.status,detail)){clearExpiredSession();error.message='session_expired'}
+    throw error;
+  }
+  return response;
+}
+async function sbFetch(path,opts={},tokenOverride,attempt=0){
   if(!sbReady())throw new Error('supabase_not_configured');
+  const usesAdminSession=tokenOverride===undefined&&!!adminSession;
+  if(usesAdminSession&&jwtExpired(adminSession.access_token)){if(attempt)throw new Error('session_expired');await refreshAdminSession()}
   const token=tokenOverride===undefined?adminSession?.access_token:tokenOverride;
   const headers={...sbHeaders(token),...(opts.headers||{})};
   let r;
@@ -2043,6 +2088,7 @@ async function sbFetch(path,opts={},tokenOverride){
   if(!r.ok){
     let detail='';
     try{detail=await r.text()}catch(_){}
+    if(usesAdminSession&&databaseJwtExpiredResponse(r.status,detail)){if(!attempt){await refreshAdminSession();return sbFetch(path,opts,undefined,1)}clearExpiredSession();throw new Error('session_expired')}
     const err=new Error(`supabase_${r.status}`);
     err.status=r.status;
     err.detail=detail;
@@ -2173,7 +2219,7 @@ async function refreshAdminList(){
   }catch(err){list.innerHTML=`<div class="admin-empty">${esc(t('admin.uploadFailed'))}`}
 }
 
-async function replaceProofAsset(id){if(!adminSession){setAdminStatus('#adminUploadStatus','err',t('admin.loginRequired'));return}const row=adminAssets.get(id);if(!row)return;const input=document.createElement('input');input.type='file';input.multiple=row.asset_type==='gallery';input.accept=row.asset_type==='gallery'?'image/*':'application/pdf,image/*,application/json,.json';input.hidden=true;document.body.appendChild(input);input.addEventListener('change',async()=>{const files=[...input.files];input.remove();if(!files.length)return;const projectId=row.owner_id||row.project_id;setAdminStatus('#adminUploadStatus','ok',t('admin.uploading'));try{const rows=await uploadAssetBatch({assetType:'proof',ownerType:'project',ownerId:projectId,projectId,titleVi:row.title_vi||row.original_name,titleEn:row.title_en||row.original_name,files});await replaceSingleAsset(row.asset_type==='gallery'?'gallery':'proof','project',projectId,rows,row.asset_type==='gallery'?row.gallery_id:null,row.asset_type==='proof'?row.id:null);await loadAssets();refreshAdminList();$('#adminProject').value=projectId;setAdminStatus('#adminUploadStatus','ok',t('admin.uploaded'))}catch(err){logAssetFailure(err,{operation:'proof.replace',assetId:id,assetType:row.asset_type,ownerType:row.owner_type,ownerId:projectId,bucket:CONFIG.supabase.bucket});setAdminStatus('#adminUploadStatus','err',formatAssetUploadError(err))}},{once:true});input.click()}
+async function replaceProofAsset(id){if(!adminSession){setAdminStatus('#adminUploadStatus','err',t('admin.loginRequired'));return}const row=adminAssets.get(id);if(!row)return;const input=document.createElement('input');input.type='file';input.multiple=row.asset_type==='gallery';input.accept=row.asset_type==='gallery'?'image/*':'application/pdf,image/*,application/json,.json';input.hidden=true;document.body.appendChild(input);input.addEventListener('change',async()=>{const files=[...input.files];input.remove();if(!files.length)return;const projectId=row.owner_id||row.project_id;setAdminStatus('#adminUploadStatus','ok',t('admin.uploading'));try{const rows=await uploadAssetBatch({assetType:'proof',ownerType:'project',ownerId:projectId,projectId,titleVi:row.title_vi||row.original_name,titleEn:row.title_en||row.original_name,files});const cleanup=await replaceSingleAsset(row.asset_type==='gallery'?'gallery':'proof','project',projectId,rows,row.asset_type==='gallery'?row.gallery_id:null,row.asset_type==='proof'?row.id:null);await loadAssets();refreshAdminList();$('#adminProject').value=projectId;setAdminStatus('#adminUploadStatus',cleanupStatusType(cleanup),cleanupSuccessMessage(cleanup,'admin.uploaded'))}catch(err){logAssetFailure(err,{operation:'proof.replace',assetId:id,assetType:row.asset_type,ownerType:row.owner_type,ownerId:projectId,bucket:CONFIG.supabase.bucket});setAdminStatus('#adminUploadStatus','err',formatAssetUploadError(err))}},{once:true});input.click()}
 async function downloadAdminAsset(id){
   const row=adminAssets.get(id);if(!row)return;
   const url=publicUrl(row.storage_path),name=row.original_name||row.file_name||'download';
@@ -2589,6 +2635,7 @@ async function unpublishProject(){
 }
 function projectErrorText(err){
   const kind=classifySupabaseError(err);
+  if(err?.message==='session_expired')return sessionExpiredMessage();
   if(kind==='permission'||kind==='auth'||err?.status===403||err?.status===401)return kind==='auth'?t('admin.authError'):t('admin.permissionError');
   if(err?.message==='invalid_slug')return currentLang==='en'?'Slug must use lowercase letters, numbers and hyphens.':'Slug chỉ dùng chữ thường, số và dấu gạch ngang.';
   if(err?.message==='project_title_required')return currentLang==='en'?'Both project titles are required.':'Cần nhập đủ tiêu đề Project VI và EN.';
@@ -2609,7 +2656,7 @@ async function deleteProject(project){
   const btn=document.querySelector(`[data-delete-project="${CSS.escape(project.id)}"]`);if(btn)btn.disabled=true;
   setProjectStatus('ok',t('admin.uploading'));
   const projectId=project.dbId,slug=project.id;
-  let projectRow=null,sections=[],assetRows=[],sectionsDeleted=false,projectDeleted=false,assetsDeleted=false;
+  let projectRow=null,sections=[],assetRows=[],sectionsDeleted=false,projectDeleted=false,assetsDeleted=false,storageCleanupFailed=false;
   try{
     const projectR=await sbFetch(`/rest/v1/portfolio_projects?select=id,slug,sort_order,published,title_vi,title_en,hook_vi,hook_en,intro_vi,intro_en,categories,stats,visual_type,tone_a,tone_b&id=eq.${encodeURIComponent(projectId)}`.replace('?select=','?select='),{method:'GET'});
     const projectRows=await projectR.json();projectRow=Array.isArray(projectRows)?projectRows[0]:null;
@@ -2640,7 +2687,7 @@ async function deleteProject(project){
     // Snapshot exact asset bytes before destructive operations.
     const snapshots=[];for(const row of assetRows)snapshots.push(await snapshotStorageRow(row));
     try{
-      if(assetRows.length){await deleteStorage(assetRows.map(r=>r.storage_path));assetsDeleted=true;await deleteMetadataRows(assetRows)}
+      if(assetRows.length){await deleteMetadataRows(assetRows);assetsDeleted=true;try{await deleteStorage(assetRows.map(r=>r.storage_path))}catch(err){storageCleanupFailed=true;console.error('[HQV orphaned storage paths]',{paths:assetRows.map(r=>r.storage_path),error:err?.message,status:err?.status,detail:err?.detail})}}
       if(Array.isArray(sections)&&sections.length){
         const ids=sections.map(s=>encodeURIComponent(s.id)).join(',');
         await sbFetch(`/rest/v1/portfolio_project_sections?id=in.(${ids})`,{method:'DELETE',headers:{Prefer:'return=minimal'}});
@@ -2664,7 +2711,7 @@ async function deleteProject(project){
     }
     // DB deletion succeeded. A later client refresh failure must not be reported as a deletion failure.
     try{await loadProjects({admin:true});await loadAssets()}catch(_){}
-    resetProjectEditor();refreshAdminProjectList();setProjectStatus('ok',t('admin.projectDeleted'));
+    resetProjectEditor();refreshAdminProjectList();setProjectStatus(storageCleanupFailed?'warn':'ok',storageCleanupFailed?t('admin.cleanupWarning'):t('admin.projectDeleted'));
   }catch(err){
     setProjectStatus('err',projectErrorText(err));
   }finally{
@@ -2703,7 +2750,7 @@ async function adminLogin(email,password){
   if(!r.ok){const e=new Error('login_failed');try{e.detail=await r.text()}catch(_){}throw e}
   const session=await r.json();
   if(CONFIG.supabase.adminEmails.length&&!CONFIG.supabase.adminEmails.includes(session.user?.email)){throw new Error('not_admin')}
-  adminSession=session;safeStorageSet(getWebStorage('sessionStorage'),'hqv-admin-session',JSON.stringify(session));return session;
+  saveAdminSession(session);return session;
 }
 async function restoreSession(){
   if(!sbReady())return;
@@ -2725,14 +2772,17 @@ function renderAdmin(){
 }
 
 async function uploadStorage(file,path){
-  const r=await fetch(CONFIG.supabase.url.replace(/\/$/,'')+`/storage/v1/object/${encodeURIComponent(CONFIG.supabase.bucket)}/${path.split('/').map(encodeURIComponent).join('/')}`,{method:'POST',headers:{'apikey':CONFIG.supabase.anonKey,'Authorization':`Bearer ${adminSession.access_token}`,'Content-Type':file.type,'x-upsert':'false'},body:file});
-  if(!r.ok){const e=new Error('storage_upload_failed');try{e.detail=await r.text()}catch(_){}throw e}
+  try{await storageRequest(storageObjectUrl(path),{method:'POST',headers:{'Content-Type':file.type,'x-upsert':'false'},body:file},path)}catch(error){if(error.status&&error.message!=='session_expired')error.message=`storage_upload_failed (${error.status})`;throw error}
   return path;
 }
 async function deleteStorage(paths){
   if(!paths.length)return;
-  const r=await fetch(CONFIG.supabase.url.replace(/\/$/,'')+`/storage/v1/object/${encodeURIComponent(CONFIG.supabase.bucket)}/remove`,{method:'POST',headers:{'apikey':CONFIG.supabase.anonKey,'Authorization':`Bearer ${adminSession.access_token}`,'Content-Type':'application/json'},body:JSON.stringify({prefixes:paths})});
-  if(!r.ok)throw new Error('storage_delete_failed');
+  let response;
+  try{response=await storageRequest(storageBucketUrl(),{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({prefixes:paths})},paths.join(', '))}catch(error){if(error.status&&error.message!=='session_expired')error.message=`storage_delete_failed (${error.status})`;throw error}
+  const detail=await response.text();
+  let removed;try{removed=JSON.parse(detail)}catch(_){removed=null}
+  if(!Array.isArray(removed)||!removed.length){const error=new Error('storage_nothing_deleted');error.status=200;error.detail=detail;throw error}
+  return removed;
 }
 async function insertAssetRows(rows){
   const r=await sbFetch(`/rest/v1/${encodeURIComponent(CONFIG.supabase.assetTable)}`,{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(rows)});
@@ -2767,27 +2817,17 @@ async function findMetadataRowsByStoragePaths(paths){
   return [...new Map(found.map(row=>[row.id,row])).values()];
 }
 async function snapshotStorageRow(row){
-  const url=CONFIG.supabase.url.replace(/\/$/,'')+`/storage/v1/object/${encodeURIComponent(CONFIG.supabase.bucket)}/${row.storage_path.split('/').map(encodeURIComponent).join('/')}`;
-  const r=await fetch(url,{method:'GET',headers:{'apikey':CONFIG.supabase.anonKey,'Authorization':`Bearer ${adminSession.access_token}`}});
-  if(!r.ok)throw new Error('storage_snapshot_failed');
-  const blob=await r.blob();
+  const response=await storageRequest(storageObjectUrl(row.storage_path),{method:'GET'},row.storage_path);
+  const blob=await response.blob();
   return {row,blob};
 }
 async function restoreStorageSnapshot(snapshot){
   const {row,blob}=snapshot;
-  const url=CONFIG.supabase.url.replace(/\/$/,'')+`/storage/v1/object/${encodeURIComponent(CONFIG.supabase.bucket)}/${row.storage_path.split('/').map(encodeURIComponent).join('/')}`;
-  const r=await fetch(url,{method:'POST',headers:{'apikey':CONFIG.supabase.anonKey,'Authorization':`Bearer ${adminSession.access_token}`,'Content-Type':row.mime_type||blob.type||'application/octet-stream','x-upsert':'true'},body:blob});
-  if(!r.ok)throw new Error('storage_restore_failed');
+  await storageRequest(storageObjectUrl(row.storage_path),{method:'POST',headers:{'Content-Type':row.mime_type||blob.type||'application/octet-stream','x-upsert':'true'},body:blob},row.storage_path);
 }
 async function removeAssetRow(row){
-  const snapshot=await snapshotStorageRow(row);
-  await deleteStorage([row.storage_path]);
-  try{
-    await deleteMetadataRow(row);
-  }catch(err){
-    try{await restoreStorageSnapshot(snapshot)}catch(_){}
-    throw err;
-  }
+  await deleteMetadataRow(row);
+  try{await deleteStorage([row.storage_path])}catch(err){console.error('[HQV orphaned storage path]',{path:row.storage_path,error:err?.message,status:err?.status,detail:err?.detail})}
 }
 async function rollbackUploadedAssets(paths,insertedRows){
   const known=[...(insertedRows||[])];
@@ -2848,41 +2888,15 @@ async function replaceSingleAsset(assetType,ownerType,ownerId,newRows,targetGall
   }else{
     oldRows=[...adminAssets.values()].filter(row=>row.asset_type===assetType&&row.owner_type===ownerType&&row.owner_id===ownerId&&row.id&&!newRows.some(n=>n.id===row.id));
   }
-  if(!oldRows.length)return;
-  const snapshots=[];
-  try{
-    for(const row of oldRows)snapshots.push(await snapshotStorageRow(row));
-    await deleteStorage(oldRows.map(row=>row.storage_path));
-    try{
-      await deleteMetadataRows(oldRows);
-    }catch(err){
-      for(const snapshot of snapshots){try{await restoreStorageSnapshot(snapshot)}catch(_){} }
-      for(const row of oldRows){try{await restoreMetadataRow(row)}catch(_){} }
-      throw err;
-    }
-  }catch(err){
-    const rollback=await rollbackUploadedAssets(newRows.map(row=>row.storage_path),newRows);
-    if(!rollback.ok)err.rollbackError=rollback.error;
-    throw err;
-  }
+  if(!oldRows.length)return {storageCleanupFailed:false};
+  await deleteMetadataRows(oldRows);
+  try{await deleteStorage(oldRows.map(row=>row.storage_path));return {storageCleanupFailed:false}}catch(err){console.error('[HQV orphaned storage paths]',{paths:oldRows.map(row=>row.storage_path),error:err?.message,status:err?.status,detail:err?.detail});return {storageCleanupFailed:true}}
 }
 async function removeAssetRows(rows){
   const unique=[...new Map(rows.filter(Boolean).map(row=>[row.id,row])).values()];
-  if(!unique.length)return;
-  const snapshots=[];
-  try{
-    for(const row of unique)snapshots.push(await snapshotStorageRow(row));
-    await deleteStorage(unique.map(row=>row.storage_path));
-    try{
-      await deleteMetadataRows(unique);
-    }catch(err){
-      for(const snapshot of snapshots){try{await restoreStorageSnapshot(snapshot)}catch(_){}}
-      for(const row of unique){try{await restoreMetadataRow(row)}catch(_){}}
-      throw err;
-    }
-  }catch(err){
-    throw err;
-  }
+  if(!unique.length)return {storageCleanupFailed:false};
+  await deleteMetadataRows(unique);
+  try{await deleteStorage(unique.map(row=>row.storage_path));return {storageCleanupFailed:false}}catch(err){console.error('[HQV orphaned storage paths]',{paths:unique.map(row=>row.storage_path),error:err?.message,status:err?.status,detail:err?.detail});return {storageCleanupFailed:true}}
 }
 
 
@@ -2891,6 +2905,8 @@ function logAssetFailure(err,context={}){
 }
 function formatAssetUploadError(err){
   if(err?.message==='asset_too_large')return t('admin.assetTooLarge');
+  if(err?.message==='session_expired')return currentLang==='en'?'Session expired, please log in again':'Phiên đăng nhập hết hạn, vui lòng đăng nhập lại';
+  if(err?.message==='storage_nothing_deleted')return currentLang==='en'?'Nothing was deleted from storage.':'Không có file nào được xóa khỏi storage.';
   if(err?.rollbackError)return currentLang==='en'?'Operation failed and rollback could not be fully verified.':'Thao tác thất bại và không thể xác minh rollback hoàn toàn.';
   const kind=classifySupabaseError(err);
   if(kind==='not_configured')return t('admin.notConfigured');
@@ -2900,14 +2916,16 @@ function formatAssetUploadError(err){
   if(kind==='schema_missing')return t('admin.schemaMissing');
   return err?.message||t('admin.uploadFailed');
 }
+function cleanupSuccessMessage(result,successKey){return result?.storageCleanupFailed?t('admin.cleanupWarning'):t(successKey)}
+function cleanupStatusType(result){return result?.storageCleanupFailed?'warn':'ok'}
 
 async function doAvatarUpload(e){
   e.preventDefault();const files=[...$('#avatarFile').files],btn=$('#avatarUploadBtn');if(!files.length){setAdminStatus('#avatarUploadStatus','err',t('admin.assetRequired'));return}if(!adminSession){setAdminStatus('#avatarUploadStatus','err',t('admin.loginRequired'));return}btn.disabled=true;setAdminStatus('#avatarUploadStatus','ok',t('admin.uploading'));
-  try{const rows=await uploadAssetBatch({assetType:'avatar',ownerType:'profile',ownerId:'hqv',titleVi:'Ảnh đại diện Hoàng Quốc Việt',titleEn:'Hoàng Quốc Việt profile avatar',files});await replaceSingleAsset('avatar','profile','hqv',rows);await loadAssets();$('#avatarUploadForm').reset();setAdminStatus('#avatarUploadStatus','ok',t('admin.avatarUploaded'))}catch(err){setAdminStatus('#avatarUploadStatus','err',formatAssetUploadError(err))}finally{btn.disabled=false}
+  try{const rows=await uploadAssetBatch({assetType:'avatar',ownerType:'profile',ownerId:'hqv',titleVi:'Ảnh đại diện Hoàng Quốc Việt',titleEn:'Hoàng Quốc Việt profile avatar',files});const cleanup=await replaceSingleAsset('avatar','profile','hqv',rows);await loadAssets();$('#avatarUploadForm').reset();setAdminStatus('#avatarUploadStatus',cleanupStatusType(cleanup),cleanupSuccessMessage(cleanup,'admin.avatarUploaded'))}catch(err){setAdminStatus('#avatarUploadStatus','err',formatAssetUploadError(err))}finally{btn.disabled=false}
 }
 async function doCoverUpload(e){
   e.preventDefault();const files=[...$('#projectCoverFile').files],projectId=$('#coverProject').value,btn=$('#coverUploadBtn');if(!files.length){setAdminStatus('#coverUploadStatus','err',t('admin.assetRequired'));return}if(!adminSession){setAdminStatus('#coverUploadStatus','err',t('admin.loginRequired'));return}const p=PROJECTS.find(x=>x.id===projectId);if(!p){setAdminStatus('#coverUploadStatus','err',t('admin.projectMissing'));return}btn.disabled=true;setAdminStatus('#coverUploadStatus','ok',t('admin.uploading'));
-  try{const rows=await uploadAssetBatch({assetType:'project_cover',ownerType:'project',ownerId:projectId,projectId,titleVi:p.content.vi.title,titleEn:p.content.en.title,files});await replaceSingleAsset('project_cover','project',projectId,rows);await loadAssets();$('#coverUploadForm').reset();$('#coverProject').value=projectId;const editingSlug=$('#projectSlug')?.dataset.originalSlug;const editing=editingSlug?projectBySlug(editingSlug):null;if(editing)renderProjectMediaManager(editing);setAdminStatus('#coverUploadStatus','ok',t('admin.coverUploaded'))}catch(err){setAdminStatus('#coverUploadStatus','err',formatAssetUploadError(err))}finally{btn.disabled=false}
+  try{const rows=await uploadAssetBatch({assetType:'project_cover',ownerType:'project',ownerId:projectId,projectId,titleVi:p.content.vi.title,titleEn:p.content.en.title,files});const cleanup=await replaceSingleAsset('project_cover','project',projectId,rows);await loadAssets();$('#coverUploadForm').reset();$('#coverProject').value=projectId;const editingSlug=$('#projectSlug')?.dataset.originalSlug;const editing=editingSlug?projectBySlug(editingSlug):null;if(editing)renderProjectMediaManager(editing);setAdminStatus('#coverUploadStatus',cleanupStatusType(cleanup),cleanupSuccessMessage(cleanup,'admin.coverUploaded'))}catch(err){setAdminStatus('#coverUploadStatus','err',formatAssetUploadError(err))}finally{btn.disabled=false}
 }
 let mediaLibraryUploadActive=false;
 async function uploadMediaLibraryFiles(files){
@@ -2948,10 +2966,10 @@ async function deleteAsset(id){
   const rows=row.asset_type==='gallery'&&row.gallery_id?[...adminAssets.values()].filter(item=>item.asset_type==='gallery'&&item.gallery_id===row.gallery_id):[row];
   setAdminStatus('#adminUploadStatus','ok',t('admin.uploading'));
   try{
-    await removeAssetRows(rows);
+    const cleanup=await removeAssetRows(rows);
     await loadAssets();
     refreshAdminList();
-    setAdminStatus('#adminUploadStatus','ok',t('admin.deleted'));
+    setAdminStatus('#adminUploadStatus',cleanupStatusType(cleanup),cleanupSuccessMessage(cleanup,'admin.deleted'));
   }catch(err){
     logAssetFailure(err,{operation:row.asset_type==='gallery'?'gallery.delete':'proof.delete',assetId:id,assetType:row.asset_type,ownerType:row.owner_type,ownerId:row.owner_id,bucket:CONFIG.supabase.bucket});
     setAdminStatus('#adminUploadStatus','err',formatAssetUploadError(err));
@@ -2960,7 +2978,7 @@ async function deleteAsset(id){
   }
 }
 
-$('#adminLoginForm').addEventListener('submit',async e=>{e.preventDefault();const b=e.currentTarget.querySelector('button');b.disabled=true;try{await adminLogin($('#adminEmail').value.trim(),$('#adminPassword').value);setAdminStatus('#adminLoginStatus','ok',t('admin.loggedIn'));renderAdmin();await loadAssets()}catch(err){setAdminStatus('#adminLoginStatus','err',err.message==='not_admin'?(currentLang==='en'?'This account is not allowed to administer the portfolio.':'Tài khoản này không có quyền quản trị portfolio.'):err.message==='supabase_not_configured'?t('admin.notConfigured'):t('admin.loginFailed'))}finally{b.disabled=false}});
+$('#adminLoginForm').addEventListener('submit',async e=>{e.preventDefault();const b=e.currentTarget.querySelector('button');b.disabled=true;try{await adminLogin($('#adminEmail').value.trim(),$('#adminPassword').value);setAdminStatus('#adminLoginStatus','ok',t('admin.loggedIn'));renderAdmin();await loadAssets()}catch(err){setAdminStatus('#adminLoginStatus','err',err.message==='not_admin'?(currentLang==='en'?'This account is not allowed to administer the portfolio.':'Tài khoản này không có quyền quản trị portfolio.'):err.message==='supabase_not_configured'?t('admin.notConfigured'):err.message==='session_expired'?(currentLang==='en'?'Session expired, please log in again':'Phiên đăng nhập hết hạn, vui lòng đăng nhập lại'):t('admin.loginFailed'))}finally{b.disabled=false}});
 $('#proofUploadForm').addEventListener('submit',doProofUpload);
 $('#avatarUploadForm').addEventListener('submit',doAvatarUpload);
 $('#coverUploadForm').addEventListener('submit',doCoverUpload);
@@ -3040,7 +3058,7 @@ document.addEventListener('click',async e=>{
   const del=e.target.closest('[data-project-media-delete]');if(del){await deleteAsset(del.dataset.projectMediaDelete);const p=projectBySlug($('#projectSlug')?.dataset.originalSlug||$('#projectSlug')?.value);if(p)renderProjectMediaManager(p);return;}
   const coverOpen=e.target.closest('[data-project-cover-open]');if(coverOpen){const row=adminAssets.get(coverOpen.dataset.projectCoverOpen);if(row)window.open(publicUrl(row.storage_path),'_blank','noopener');return;}
   const coverRep=e.target.closest('[data-project-cover-replace]');if(coverRep){$('#coverProject').value=coverRep.dataset.projectCoverReplace;$('#projectCoverFile').click();return;}
-  const coverDel=e.target.closest('[data-project-cover-delete]');if(coverDel){const row=adminAssets.get(coverDel.dataset.projectCoverDelete);if(row){if(!assertAssetUnused(row.id))return;try{await removeAssetRows([row]);await loadAssets();const p=projectBySlug($('#projectSlug')?.dataset.originalSlug||$('#projectSlug')?.value);if(p)renderProjectMediaManager(p);}catch(err){setAdminStatus('#coverUploadStatus','err',formatAssetUploadError(err));}}return;}
+  const coverDel=e.target.closest('[data-project-cover-delete]');if(coverDel){const row=adminAssets.get(coverDel.dataset.projectCoverDelete);if(row){if(!assertAssetUnused(row.id))return;try{const cleanup=await removeAssetRows([row]);await loadAssets();const p=projectBySlug($('#projectSlug')?.dataset.originalSlug||$('#projectSlug')?.value);if(p)renderProjectMediaManager(p);setAdminStatus('#coverUploadStatus',cleanupStatusType(cleanup),cleanupSuccessMessage(cleanup,'admin.deleted'));}catch(err){setAdminStatus('#coverUploadStatus','err',formatAssetUploadError(err));}}return;}
 });
 document.addEventListener('click',async e=>{
   const close=e.target.closest('[data-media-close]');if(close){closeMediaLibrary();return}
