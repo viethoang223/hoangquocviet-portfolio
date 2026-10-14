@@ -1789,7 +1789,7 @@ async function inspectUploadFile(file){
 }
 function certSlug(group,text){return 'cert-'+group+'-'+String(text||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/đ/gi,'d').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,80)}
 function certItemList(v){return Array.isArray(v)?v:typeof v==='string'?v.split(/\n+/).map(x=>x.trim()).filter(Boolean):[]}
-function certAssetList(id){return certAssets.get(id)||[]}
+function certAssetList(id){return [...(certAssets.get(id)||[])].sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0)||String(a.created_at||'').localeCompare(String(b.created_at||'')))}
 function assetKindOf(row){const m=String(row?.mime_type||'').toLowerCase(),t0=String(row?.type||'').toLowerCase();if(m.startsWith('image/'))return 'image';if(m.startsWith('video/')||t0==='video')return 'video';if(m.startsWith('audio/')||t0==='audio')return 'audio';if(m==='application/pdf'||t0==='pdf')return 'pdf';if(m==='application/json'||t0==='json')return 'json';return 'file'}
 function certBadgesHtml(group,list,viList,lang){
   const lab=lang==='en'?'documented profile':'hồ sơ đã ghi nhận';
@@ -2386,7 +2386,7 @@ async function loadAssets(){
   assetLoadPromise=(async()=>{
     try{
       const table=encodeURIComponent(CONFIG.supabase.assetTable);
-      const q=`/rest/v1/${table}?select=id,project_id,asset_type,owner_type,owner_id,type,title_vi,title_en,storage_path,original_name,mime_type,file_size,gallery_id,created_at&order=created_at.desc`;
+      const q=`/rest/v1/${table}?select=id,project_id,asset_type,owner_type,owner_id,type,title_vi,title_en,storage_path,original_name,mime_type,file_size,gallery_id,sort_order,created_at&order=created_at.desc`;
       const r=await sbFetch(q,{method:'GET'},null);
       const rows=await r.json();
       assetSchemaReady=true;assetLoadState='ready';
