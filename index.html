@@ -1834,6 +1834,25 @@ async function reorderCertificateAssets(id,index,direction){
 document.addEventListener('click',async e=>{
   const move=e.target.closest('[data-cert-move]');
   if(move){const [id,index,direction]=move.dataset.certMove.split('|');await reorderCertificateAssets(id,Number(index),direction);return}
+  const choose=e.target.closest('[data-cert-choose]');
+  if(choose){
+    openMediaLibrary({mode:'single',accept:'all',title:currentLang==='en'?'Choose certificate evidence':'Chọn minh chứng chứng chỉ',onConfirm:async assetId=>{
+      const usage=mediaUsage(assetId);
+      if(!usage.known||usage.count>0){
+        setAdminStatus('#globalContentStatus','err',currentLang==='en'?'This asset is already referenced and cannot be reassigned. Existing case-study references were preserved.':'Asset này đang được tham chiếu hoặc chưa thể xác minh an toàn, không thể gán lại. Các tham chiếu case study được giữ nguyên.');
+        return;
+      }
+      try{
+        const sortOrder=certAssetList(choose.dataset.certChoose).length;
+        await sbFetch(`/rest/v1/${encodeURIComponent(CONFIG.supabase.assetTable)}?id=eq.${encodeURIComponent(assetId)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({project_id:null,owner_type:'certificate',owner_id:choose.dataset.certChoose,sort_order:sortOrder})});
+        await loadAssets();
+        mergeEditorInputs();
+        renderGlobalEditor();
+        renderGlobalContent(currentLang);
+      }catch(err){setAdminStatus('#globalContentStatus','err',formatAssetUploadError(err))}
+    }});
+    return;
+  }
   const o=e.target.closest('[data-cert-open]');if(o){e.preventDefault();openCertViewer(o.dataset.certOpen,0);return}
   const v=e.target.closest('[data-cert-view]');if(v){const [id,i]=v.dataset.certView.split('|');openCertViewer(id,Number(i)||0);return}
   const pv=e.target.closest('[data-cert-preview]');if(pv){const [id,aid]=pv.dataset.certPreview.split('|');openCertViewer(id,Math.max(0,certAssetList(id).findIndex(x=>x.id===aid)));return}
