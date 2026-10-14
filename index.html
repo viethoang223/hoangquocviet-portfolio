@@ -1896,6 +1896,7 @@ function mediaUsage(assetId){
       doc.items.forEach((block,index)=>{
         const s=block.settings||{};
         if(s.asset_id===assetId)refs.push(`${project.id} — Section ${Number(section.sort_order||0)+1} · ${block.type} #${index+1}`);
+        if(s.poster_asset_id===assetId)refs.push(`${project.id} — Section ${Number(section.sort_order||0)+1} · video poster #${index+1}`);
         if(Array.isArray(s.asset_ids))s.asset_ids.forEach((id,j)=>{if(id===assetId)refs.push(`${project.id} — Section ${Number(section.sort_order||0)+1} · Gallery #${index+1} · ${j+1}`)});
       });
     }
@@ -1994,7 +1995,7 @@ function renderBlock(block,lang,context={}){
     case 'divider': return `<hr class="case-block-divider">`;
     case 'image': { const a=assetForBlock(s.asset_id); if(!a)return `<div class="article-media-placeholder">${esc(title|| (lang==='en'?'Image placeholder':'Vị trí hình ảnh'))}</div>`; const alt=String(c[`alt_${lang}`]||c.alt||a.original_name||''); const caption=esc(String(c[`caption_${lang}`]??c[`caption_${lang==='en'?'vi':'en'}`]??'')); return `<figure class="article-media"><img src="${esc(a.url)}" alt="${esc(alt)}" loading="lazy" style="width:auto;height:auto;max-width:100%;object-fit:contain"><figcaption>${caption}</figcaption></figure>`; }
     case 'gallery': { const ids=Array.isArray(s.asset_ids)?s.asset_ids:[]; const assets=ids.map(assetForBlock).filter(Boolean); return assets.length?`<figure class="article-media"><div class="gallery">${assets.map(a=>`<img src="${esc(a.url)}" alt="${esc(a.original_name||'')}" loading="lazy">`).join('')}</div><figcaption>${title}</figcaption></figure>`:`<div class="article-media-placeholder">${esc(title||(lang==='en'?'Gallery placeholder':'Vị trí gallery'))}</div>`; }
-    case 'video': { const url=safeEmbedUrl(s.url||c.url||''); if(url)return `<figure class="article-media"><div class="case-video"><iframe src="${esc(url)}" title="${esc(title||'Video')}" loading="lazy" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div><figcaption>${title}</figcaption></figure>`; const va=assetForBlock(s.asset_id); if(va&&String(va.mime_type||'').toLowerCase().startsWith('video/'))return `<figure class="article-media"><video src="${esc(va.url)}" controls playsinline preload="metadata"></video><figcaption>${title}</figcaption></figure>`; return ''; }
+    case 'video': { const url=safeEmbedUrl(s.url||c.url||''); if(url)return `<figure class="article-media"><div class="case-video"><iframe src="${esc(url)}" title="${esc(title||'Video')}" loading="lazy" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div><figcaption>${title}</figcaption></figure>`; const va=assetForBlock(s.asset_id),poster=assetForBlock(s.poster_asset_id); if(va&&String(va.mime_type||'').toLowerCase().startsWith('video/'))return `<figure class="article-media"><video src="${esc(va.url)}"${poster&&String(poster.mime_type||'').toLowerCase().startsWith('image/')?` poster="${esc(poster.url)}"`:''} controls playsinline preload="metadata"></video><figcaption>${title}</figcaption></figure>`; return ''; }
     case 'workflow': { const items=Array.isArray(c[`items_${lang}`])?c[`items_${lang}`]:Array.isArray(c.items)?c.items:[]; return items.length?`<figure class="article-media"><div class="case-flow">${items.map((x,i)=>`<div class="case-flow-step"><span>${String(i+1).padStart(2,'0')}</span><strong>${esc(String(x))}</strong></div>`).join('')}</div><figcaption>${title}</figcaption></figure>`:''; }
     case 'proof': { const a=assetForBlock(s.asset_id); return a?`<div class="proof-actions"><button class="admin-btn" type="button" data-open-asset="${esc(a.id)}" data-action="open">${esc(lang==='en'?'Open evidence':'Mở bằng chứng')}</button></div>`:''; }
     case 'cta': return `<div class="case-cta">${esc(String(c[`text_${lang}`]??c.text??c[`title_${lang}`]??c.title??''))}</div>`;
@@ -2587,7 +2588,7 @@ function newBlock(type='paragraph'){
   if(type==='list'||type==='workflow'){content.items_vi=[];content.items_en=[]}
   if(type==='image'){content.caption_vi='';content.caption_en='';content.alt_vi='';content.alt_en='';settings.asset_id=''}
   if(type==='gallery'){content.caption_vi='';content.caption_en='';settings.asset_ids=[]}
-  if(type==='video'){content.caption_vi='';content.caption_en='';settings.url=''}
+  if(type==='video'){content.caption_vi='';content.caption_en='';settings.url='';settings.poster_asset_id=''}
   if(type==='proof'){settings.asset_id=''}
   if(type==='heading'||type==='paragraph'||type==='richtext'||type==='quote'||type==='cta'){content.text_vi='';content.text_en=''}
   return {id,type,content,settings};
@@ -2625,10 +2626,11 @@ function blockEditorFields(block,lang){
   }else if(block.type==='gallery'){
     inner=`<div class="admin-block-field full"><span>${esc(t('admin.manageGallery'))}</span><div class="admin-actions"><button class="admin-btn" type="button" data-gallery-manage>${esc(t('admin.manageGallery'))}</button></div>${galleryItemsHtml(s.asset_ids)}</div>`+field(cap,input(`caption_${lang}`,c[`caption_${lang}`]),'full');
   }else if(block.type==='video'){
-    const a=s.asset_id?getAsset(s.asset_id):null;
+    const a=s.asset_id?getAsset(s.asset_id):null,poster=s.poster_asset_id?getAsset(s.poster_asset_id):null;
     const meta=a?`<div class="admin-image-meta"><div><strong>${esc(a.original_name||a.id)}</strong><small>${esc(mediaTypeLabel(a))} · ${esc(a.mime_type||'')}</small><small>${esc(a.id)}</small></div></div>`:`<div class="admin-image-empty">${esc(t('admin.mediaNoSelection'))}</div>`;
     inner=field(t('admin.videoUrl'),`<input class="admin-block-input" data-block-setting="url" value="${esc(s.url||'')}" placeholder="https://...">`,'full')
       +`<div class="admin-block-field full"><span>${esc(vi?'Hoặc chọn video có sẵn trong Media Library':'Or pick an existing video from the Media Library')}</span><div class="admin-image-picker" data-video-picker>${meta}<div class="admin-actions"><button class="admin-btn" type="button" data-video-choose>${esc(t('admin.chooseMedia'))}</button>${a?`<button class="admin-btn danger" type="button" data-video-remove>${esc(vi?'Bỏ chọn':'Remove')}</button>`:''}</div></div></div>`
+      +`<div class="admin-block-field full"><span>${esc(vi?'Poster hình ảnh (tùy chọn)':'Image poster (optional)')}</span><div class="admin-image-picker" data-video-poster-picker>${poster?`<div class="admin-image-meta"><img class="admin-image-thumb" src="${esc(getAssetUrl(poster))}" alt=""><div><strong>${esc(poster.original_name||poster.id)}</strong><small>${esc(mediaTypeLabel(poster))} · ${esc(poster.id)}</small></div></div>`:`<div class="admin-image-empty">${esc(t('admin.noImageAssets'))}</div>`}<div class="admin-actions"><button class="admin-btn" type="button" data-video-poster-choose>${esc(t('admin.chooseMedia'))}</button>${poster?`<button class="admin-btn danger" type="button" data-video-poster-remove>${esc(vi?'Bỏ poster':'Remove poster')}</button>`:''}</div></div></div>`
       +field(cap,input(`caption_${lang}`,c[`caption_${lang}`]),'full');
   }else if(block.type==='proof'){
     const a=s.asset_id?getAsset(s.asset_id):null;
@@ -2798,6 +2800,12 @@ function editorialPickAsset(trigger,{mode,accept,title,clearUrl=false}){
     selectedIds:mode==='multi'?(block.settings?.asset_ids||[]):[],
     onConfirm:value=>{editorialMutateBlock(row,blockId,b=>{b.settings[key]=value;if(clearUrl)b.settings.url=''},{focusId:blockId})}
   });
+}
+function editorialPickSettingAsset(trigger,setting,{accept,title}={}){
+  const ctx=editorialBlockContext(trigger);if(!ctx)return;
+  const {row,blockId}=ctx;
+  const doc=readSectionBlockEditors(row),block=doc.items.find(x=>x.id===blockId);if(!block)return;
+  openMediaLibrary({mode:'single',accept,projectId:window.__blockEditorProjectId||'',title,selectedId:block.settings?.[setting]||null,onConfirm:value=>editorialMutateBlock(row,blockId,b=>{b.settings[setting]=value},{focusId:blockId})});
 }
 function legacyBodyFromBlocks(doc,lang){
   return doc.items.filter(b=>b.type==='paragraph'||b.type==='richtext').map(b=>b.type==='richtext'?richTextToPlainText(b.content?.[`text_${lang}`]):String(b.content?.[`text_${lang}`]||'').trim()).filter(Boolean).join('\n\n');
@@ -3392,6 +3400,10 @@ document.addEventListener('click',async e=>{
   if(proofChoose){editorialPickAsset(proofChoose,{mode:'single',accept:'proof',title:t('admin.proofChoose')});return}
   const videoChoose=e.target.closest('[data-video-choose]');
   if(videoChoose){editorialPickAsset(videoChoose,{mode:'single',accept:'video',title:t('admin.chooseMedia'),clearUrl:true});return}
+  const videoPosterChoose=e.target.closest('[data-video-poster-choose]');
+  if(videoPosterChoose){editorialPickSettingAsset(videoPosterChoose,'poster_asset_id',{accept:'image',title:currentLang==='en'?'Choose video poster':'Chọn poster video'});return}
+  const videoPosterRemove=e.target.closest('[data-video-poster-remove]');
+  if(videoPosterRemove){const ctx=editorialBlockContext(videoPosterRemove);if(!ctx)return;editorialMutateBlock(ctx.row,ctx.blockId,b=>{b.settings.poster_asset_id=''});return}
   const videoRemove=e.target.closest('[data-video-remove]');
   if(videoRemove){
     const ctx=editorialBlockContext(videoRemove);if(!ctx)return;
