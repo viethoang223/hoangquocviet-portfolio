@@ -1816,17 +1816,31 @@ function viewerExtraBody(it){
 function certAdminPanelHtml(){
   const cg=globalAdminContent?.experience?.certGroups||{},en=currentLang==='en';
   const rows=['anthropic','marketing','english'].map(g=>certItemList(cg[g]?.items?.vi).map((name,i)=>{const id=certSlug(g,name),en_=certItemList(cg[g]?.items?.en)[i]||name,list=certAssetList(id);
-    return `<div class="cert-admin-row"><strong>${esc(name)}</strong><div class="cert-admin-files">${list.map(a=>`<span>${esc(a.original_name||a.id)} · ${esc(mediaTypeLabel(a))}</span><button class="admin-btn" type="button" data-cert-preview="${esc(id)}|${esc(a.id)}">${en?'View':'Xem'}</button><button class="admin-btn danger" type="button" data-cert-remove="${esc(a.id)}">×</button>`).join('')||`<span>${en?'No file yet':'Chưa có minh chứng'}</span>`}</div><div class="admin-actions"><button class="admin-btn" type="button" data-cert-upload="${esc(id)}" data-cert-vi="${esc(name)}" data-cert-en="${esc(en_)}">+ Upload</button></div></div>`}).join('')).join('');
+    return `<div class="cert-admin-row"><strong>${esc(name)}</strong><div class="cert-admin-files">${list.map((a,j)=>`<span>${esc(a.original_name||a.id)} · ${esc(mediaTypeLabel(a))}</span><button class="admin-btn" type="button" data-cert-move="${esc(id)}|${j}|up"${j===0?' disabled':''} aria-label="${en?'Move up':'Đưa lên'}">↑</button><button class="admin-btn" type="button" data-cert-move="${esc(id)}|${j}|down"${j===list.length-1?' disabled':''} aria-label="${en?'Move down':'Đưa xuống'}">↓</button><button class="admin-btn" type="button" data-cert-preview="${esc(id)}|${esc(a.id)}">${en?'View':'Xem'}</button><button class="admin-btn danger" type="button" data-cert-remove="${esc(a.id)}">×</button>`).join('')||`<span>${en?'No file yet':'Chưa có minh chứng'}</span>`}</div><div class="admin-actions"><button class="admin-btn" type="button" data-cert-upload="${esc(id)}" data-cert-vi="${esc(name)}" data-cert-en="${esc(en_)}">+ Upload</button><button class="admin-btn" type="button" data-cert-choose="${esc(id)}" data-cert-vi="${esc(name)}" data-cert-en="${esc(en_)}">${en?'Choose from Media Library':'Chọn từ Media Library'}</button></div></div>`}).join('')).join('');
   return `<p class="admin-note">${en?'Evidence is linked by the Vietnamese certificate name. Renaming a certificate detaches its files.':'Minh chứng được gắn theo tên chứng chỉ (VI). Đổi tên chứng chỉ sẽ làm mất liên kết file.'}</p>${rows}`;
 }
+async function reorderCertificateAssets(id,index,direction){
+  const list=certAssetList(id),next=index+(direction==='up'?-1:1);
+  if(index<0||next<0||next>=list.length)return;
+  [list[index],list[next]]=[list[next],list[index]];
+  try{
+    await Promise.all(list.map((row,sort_order)=>sbFetch(`/rest/v1/${encodeURIComponent(CONFIG.supabase.assetTable)}?id=eq.${encodeURIComponent(row.id)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({sort_order})})));
+    await loadAssets();
+    mergeEditorInputs();
+    renderGlobalEditor();
+    renderGlobalContent(currentLang);
+  }catch(err){setAdminStatus('#globalContentStatus','err',formatAssetUploadError(err))}
+}
 document.addEventListener('click',async e=>{
+  const move=e.target.closest('[data-cert-move]');
+  if(move){const [id,index,direction]=move.dataset.certMove.split('|');await reorderCertificateAssets(id,Number(index),direction);return}
   const o=e.target.closest('[data-cert-open]');if(o){e.preventDefault();openCertViewer(o.dataset.certOpen,0);return}
   const v=e.target.closest('[data-cert-view]');if(v){const [id,i]=v.dataset.certView.split('|');openCertViewer(id,Number(i)||0);return}
   const pv=e.target.closest('[data-cert-preview]');if(pv){const [id,aid]=pv.dataset.certPreview.split('|');openCertViewer(id,Math.max(0,certAssetList(id).findIndex(x=>x.id===aid)));return}
   const up=e.target.closest('[data-cert-upload]');
   if(up){const input=document.createElement('input');input.type='file';input.multiple=true;input.accept=ACCEPTED_ASSET_INPUT;input.hidden=true;document.body.appendChild(input);
     input.addEventListener('change',async()=>{const files=[...input.files];input.remove();if(!files.length)return;
-      try{setAdminStatus('#globalContentStatus','ok',t('admin.uploading'));await uploadAssetBatch({assetType:'proof',ownerType:'certificate',ownerId:up.dataset.certUpload,projectId:null,titleVi:up.dataset.certVi,titleEn:up.dataset.certEn,files});await loadAssets();mergeEditorInputs();renderGlobalEditor();renderGlobalContent(currentLang);setAdminStatus('#globalContentStatus','ok',t('admin.uploaded'))}
+      try{setAdminStatus('#globalContentStatus','ok',t('admin.uploading'));await uploadAssetBatch({assetType:'proof',ownerType:'certificate',ownerId:up.dataset.certUpload,projectId:null,titleVi:up.dataset.certVi,titleEn:up.dataset.certEn,sortOrderStart:certAssetList(up.dataset.certUpload).length,files});await loadAssets();mergeEditorInputs();renderGlobalEditor();renderGlobalContent(currentLang);setAdminStatus('#globalContentStatus','ok',t('admin.uploaded'))}
       catch(err){setAdminStatus('#globalContentStatus','err',formatAssetUploadError(err))}},{once:true});input.click();return}
   const rm=e.target.closest('[data-cert-remove]');
   if(rm){const row=adminAssets.get(rm.dataset.certRemove);if(!row)return;try{await removeAssetRows([row]);await loadAssets();mergeEditorInputs();renderGlobalEditor();renderGlobalContent(currentLang);setAdminStatus('#globalContentStatus','ok',t('admin.deleted'))}catch(err){setAdminStatus('#globalContentStatus','err',formatAssetUploadError(err))}}
@@ -3097,7 +3111,7 @@ function assertAssetSchema(){
   if(assetLoadState!=='ready')throw new Error('asset_schema_unavailable');
 }
 function makeStoragePath(assetType,ownerId,file){const id=newId();const name=safeFileName(file.name);if(assetType==='avatar')return `profile/avatar-${id}-${name}`;if(assetType==='project_cover')return `projects/${ownerId}/cover-${id}-${name}`;return `projects/${ownerId}/proof/${Date.now()}-${id}-${name}`}
-async function uploadAssetBatch({assetType,ownerType,ownerId,projectId,titleVi,titleEn,files}){
+async function uploadAssetBatch({assetType,ownerType,ownerId,projectId,titleVi,titleEn,sortOrderStart=0,files}){
   assertAssetSchema();
   const galleryId=assetType==='proof'&&ownerType!=='certificate'&&files.length>1&&files.every(f=>f.type.startsWith('image/'))?newId():null;
   if(assetType==='avatar'&&files.length!==1)throw new Error('asset_required');
@@ -3114,7 +3128,7 @@ async function uploadAssetBatch({assetType,ownerType,ownerId,projectId,titleVi,t
       const path=makeStoragePath(assetType,ownerId,file);
       await uploadStorage(file,path,infos.get(file).mime);
       uploadedPaths.push(path);
-      rows.push({project_id:projectId||null,asset_type:galleryId?'gallery':assetType,owner_type:ownerType,owner_id:ownerId,type:galleryId?'gallery':infos.get(file).kind,title_vi:titleVi||file.name,title_en:titleEn||file.name,storage_path:path,original_name:file.name,mime_type:infos.get(file).mime,file_size:file.size,gallery_id:galleryId});
+      rows.push({project_id:projectId||null,asset_type:galleryId?'gallery':assetType,owner_type:ownerType,owner_id:ownerId,type:galleryId?'gallery':infos.get(file).kind,title_vi:titleVi||file.name,title_en:titleEn||file.name,storage_path:path,original_name:file.name,mime_type:infos.get(file).mime,file_size:file.size,gallery_id:galleryId,sort_order:sortOrderStart+rows.length});
     }
     insertedRows=await insertAssetRows(rows);
     if(insertedRows.length!==rows.length)throw new Error('metadata_failed');
