@@ -3055,7 +3055,8 @@ async function restoreSession(){
   if(!sbReady())return;
   try{const raw=safeStorageGet(getWebStorage('sessionStorage'),'hqv-admin-session');if(!raw)return;adminSession=JSON.parse(raw);const r=await sbFetch('/auth/v1/user',{method:'GET'});const user=await r.json();if(!user?.id)throw new Error('invalid');adminSession.user=user;safeStorageSet(getWebStorage('sessionStorage'),'hqv-admin-session',JSON.stringify(adminSession))}catch(_){adminSession=null;safeStorageRemove(getWebStorage('sessionStorage'),'hqv-admin-session')}
 }
-function setAdminStatus(id,type,msg){const el=$(id);el.className=`admin-status show ${type}`;el.textContent=msg}
+function setAdminStatus(id,type,msg){const el=$(id);if(!el)return;el.className=`admin-status show ${type}`;el.textContent=msg}
+function setUploadProgress(percent){const value=Math.max(0,Math.min(100,Math.round(Number(percent)||0)));const label=currentLang==='en'?`Uploading… ${value}%`:`Đang upload… ${value}%`;setAdminStatus('#adminUploadStatus','ok',label);setAdminStatus('#globalContentStatus','ok',label)}
 function populateAdminProjects(){const html=PROJECTS.map(p=>`<option value="${esc(p.id)}">${esc(p.content[currentLang].title)}</option>`).join('');$('#adminProject').innerHTML=html;$('#coverProject').innerHTML=html;refreshAdminProjectList()}
 function renderAdmin(){
   populateAdminProjects();
@@ -3070,8 +3071,32 @@ function renderAdmin(){
   if(adminSession){refreshAdminProjectList();refreshAdminList();loadGlobalContent({admin:true});loadProjectDrafts();}
 }
 
-async function uploadStorage(file,path,mime){
-  try{await storageRequest(storageObjectUrl(path),{method:'POST',headers:{'Content-Type':mime||file.type||'application/octet-stream','cache-control':'max-age=31536000','x-upsert':'false'},body:file},path)}catch(error){if(error.status&&error.message!=='session_expired')error.message=`storage_upload_failed (${error.status})`;throw error}
+async function uploadStorage(file,path,mime,attempt=0){
+  if(!adminSession?.access_token||jwtExpired(adminSession.access_token)){if(attempt){clearExpiredSession();throw new Error('session_expired')}await refreshAdminSession()}
+  const url=storageObjectUrl(path),contentType=mime||file.type||'application/octet-stream';
+  try{
+    await new Promise((resolve,reject)=>{
+      const xhr=new XMLHttpRequest();
+      xhr.open('POST',url,true);
+      xhr.setRequestHeader('apikey',CONFIG.supabase.anonKey);
+      xhr.setRequestHeader('Authorization',`Bearer ${adminSession.access_token}`);
+      xhr.setRequestHeader('Content-Type',contentType);
+      xhr.setRequestHeader('cache-control','max-age=31536000');
+      xhr.setRequestHeader('x-upsert','false');
+      xhr.upload.onprogress=e=>{if(e.lengthComputable)setUploadProgress(e.loaded/e.total*100)};
+      xhr.onload=()=>{if(xhr.status>=200&&xhr.status<300){setUploadProgress(100);resolve();return}const error=new Error(`storage_upload_failed (${xhr.status})`);error.status=xhr.status;error.detail=xhr.responseText;reject(error)};
+      xhr.onerror=()=>{const error=new Error('supabase_network_error');error.status=0;reject(error)};
+      xhr.ontimeout=()=>{const error=new Error('supabase_network_error');error.status=0;reject(error)};
+      xhr.send(file);
+    });
+  }catch(error){
+    const detail=error.detail||'';
+    console.error('[HQV storage]',{status:error.status,body:detail,method:'POST',objectPath:path});
+    if(!attempt&&jwtExpiredResponse(error.status,detail)){await refreshAdminSession();return uploadStorage(file,path,mime,1)}
+    if(error.status&&error.message!=='session_expired')error.message=`storage_upload_failed (${error.status})`;
+    if(jwtExpiredResponse(error.status,detail)){clearExpiredSession();error.message='session_expired'}
+    throw error;
+  }
   return path;
 }
 async function deleteStorage(paths){
@@ -3206,7 +3231,7 @@ function logAssetFailure(err,context={}){
 function formatAssetUploadError(err){
   if(err?.message==='unsafe_svg')return currentLang==='en'?'SVG blocked: it contains scripts or unsafe tags.':'Đã chặn SVG chứa script hoặc thẻ không an toàn.';
   if(err?.message==='asset_required')return currentLang==='en'?'Unsupported or mismatched file type.':'Định dạng file không được hỗ trợ hoặc nội dung không khớp đuôi file.';
-  if(err?.message==='asset_too_large')return t('admin.assetTooLarge');
+  if(err?.message==='asset_too_large')return currentLang==='en'?'File exceeds the 50 MB limit. For larger files, use TUS or a higher Supabase plan.':'File vượt quá giới hạn 50 MB. Với file lớn hơn, hãy dùng TUS hoặc gói Supabase cao hơn.';
   if(err?.message==='session_expired')return currentLang==='en'?'Session expired, please log in again':'Phiên đăng nhập hết hạn, vui lòng đăng nhập lại';
   if(err?.message==='storage_nothing_deleted')return currentLang==='en'?'Nothing was deleted from storage.':'Không có file nào được xóa khỏi storage.';
   if(err?.rollbackError)return currentLang==='en'?'Operation failed and rollback could not be fully verified.':'Thao tác thất bại và không thể xác minh rollback hoàn toàn.';
