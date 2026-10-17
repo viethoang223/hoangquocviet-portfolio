@@ -34,6 +34,71 @@ const INSIGHTS=[
 const certAssets=new Map();
 
 const CERTS={anthropic:['Claude 101','Claude Code 101','Claude Code in Action','Introduction to Model Context Protocol','Model Context Protocol: Advanced Topics'],marketing:['Google Analytics / GA4 Certification','HubSpot Inbound Certification'],english:['TOEIC Speaking & Writing — 260 (Speaking 110 · Writing 150)']};
+Object.assign(I18N.vi,{'cert.issuer':'Đơn vị cấp','cert.date':'Ngày cấp','cert.verify':'Xác minh chứng chỉ','cert.description':'Mô tả','cert.evidence':'Minh chứng','cert.noEvidence':'Chưa có minh chứng','cert.openEvidence':'Mở minh chứng'});
+Object.assign(I18N.en,{'cert.issuer':'Issuer','cert.date':'Issue date','cert.verify':'Verify credential','cert.description':'Description','cert.evidence':'Evidence','cert.noEvidence':'No evidence uploaded','cert.openEvidence':'Open evidence'});
+
+const CERT_GROUP_DEFAULTS=[
+  {id:'communications',title:{vi:'Vai trò Truyền thông',en:'Communications role'},legacyKeys:['communications','experience'],items:[{id:'exp-vice-head-comms',title:{vi:'Phó chủ nhiệm truyền thông',en:'Vice Head of Communications'},issuer:'UMC — UTT MC & Events Club',date:'',credentialUrl:'',description:{vi:'Điều phối nội dung, thiết kế, video, phân tích xu hướng và triển khai truyền thông đa kênh.',en:'Coordinated content, design, video, trend analysis, and multi-channel communications execution.'},legacyTitles:['Phó chủ nhiệm truyền thông','Vice Head of Communications']}]},
+  {id:'anthropic',title:{vi:'Anthropic',en:'Anthropic'},legacyKeys:['anthropic'],items:[
+    {id:'anthropic-claude-101',title:{vi:'Claude 101',en:'Claude 101'},issuer:'Anthropic',date:'',credentialUrl:'',description:{vi:'',en:''},legacyTitles:['Claude 101']},
+    {id:'anthropic-claude-code-101',title:{vi:'Claude Code 101',en:'Claude Code 101'},issuer:'Anthropic',date:'',credentialUrl:'',description:{vi:'',en:''},legacyTitles:['Claude Code 101']},
+    {id:'anthropic-claude-code-in-action',title:{vi:'Claude Code in Action',en:'Claude Code in Action'},issuer:'Anthropic',date:'',credentialUrl:'',description:{vi:'',en:''},legacyTitles:['Claude Code in Action']},
+    {id:'anthropic-mcp-intro',title:{vi:'Introduction to Model Context Protocol',en:'Introduction to Model Context Protocol'},issuer:'Anthropic',date:'',credentialUrl:'',description:{vi:'',en:''},legacyTitles:['Introduction to Model Context Protocol']},
+    {id:'anthropic-mcp-advanced',title:{vi:'Model Context Protocol: Advanced Topics',en:'Model Context Protocol: Advanced Topics'},issuer:'Anthropic',date:'',credentialUrl:'',description:{vi:'',en:''},legacyTitles:['Model Context Protocol: Advanced Topics']}
+  ]},
+  {id:'marketing-analytics',title:{vi:'Marketing & Analytics',en:'Marketing & Analytics'},legacyKeys:['marketing','marketing-analytics'],items:[
+    {id:'google-ga4',title:{vi:'Google Analytics / GA4 Certification',en:'Google Analytics / GA4 Certification'},issuer:'Google',date:'',credentialUrl:'',description:{vi:'',en:''},legacyTitles:['Google Analytics / GA4 Certification']},
+    {id:'hubspot-inbound',title:{vi:'HubSpot Inbound Certification',en:'HubSpot Inbound Certification'},issuer:'HubSpot',date:'',credentialUrl:'',description:{vi:'',en:''},legacyTitles:['HubSpot Inbound Certification']}
+  ]},
+  {id:'english',title:{vi:'Tiếng Anh',en:'English'},legacyKeys:['english'],items:[{id:'toeic-sw-260',title:{vi:'TOEIC Speaking & Writing — 260 (Speaking 110 · Writing 150)',en:'TOEIC Speaking & Writing — 260 (Speaking 110 · Writing 150)'},issuer:'ETS',date:'',credentialUrl:'',description:{vi:'',en:''},legacyTitles:['TOEIC Speaking & Writing — 260 (Speaking 110 · Writing 150)']}]}
+];
+
+function certMatchText(value){return String(value||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/đ/gi,'d').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()}
+function certLocalized(value,fallback={vi:'',en:''}){
+  if(value&&typeof value==='object'&&!Array.isArray(value))return {vi:String(value.vi??fallback.vi??''),en:String(value.en??fallback.en??'')};
+  if(typeof value==='string')return {vi:value,en:value};
+  return {vi:String(fallback.vi||''),en:String(fallback.en||'')};
+}
+function normalizeCertGroups(raw){
+  const legacy=raw&&typeof raw==='object'&&!Array.isArray(raw)?raw:{};
+  const groups=Array.isArray(raw)?raw:[];
+  const sourceFor=definition=>groups.find(group=>group?.id===definition.id)||definition.legacyKeys.map(key=>legacy[key]).find(Boolean)||null;
+  const itemsFor=group=>{
+    if(Array.isArray(group?.items))return group.items;
+    const items=group?.items&&typeof group.items==='object'?group.items:{};
+    const vi=certItemList(items.vi),en=certItemList(items.en),length=Math.max(vi.length,en.length);
+    return Array.from({length},(_,index)=>({title:{vi:vi[index]||en[index]||'',en:en[index]||vi[index]||''}}));
+  };
+  return CERT_GROUP_DEFAULTS.map(definition=>{
+    const source=sourceFor(definition),sourceItems=itemsFor(source),groupTitle=certLocalized(source?.title||source?.label,definition.title);
+    const items=definition.items.map(defaultItem=>{
+      const match=sourceItems.find(candidate=>{
+        if(candidate?.id===defaultItem.id)return true;
+        const title=candidate?.title||{vi:candidate?.title_vi||candidate?.vi||candidate,en:candidate?.title_en||candidate?.en||candidate};
+        const candidates=[title.vi,title.en,...defaultItem.legacyTitles];
+        return candidates.some(value=>defaultItem.legacyTitles.some(known=>certMatchText(value)===certMatchText(known)));
+      });
+      if(!match)return {...defaultItem,title:{...defaultItem.title},description:{...defaultItem.description}};
+      const title=match.title||{vi:match.title_vi||match.vi||'',en:match.title_en||match.en||''};
+      const description=match.description||{vi:match.description_vi||'',en:match.description_en||''};
+      return {...defaultItem,title:certLocalized(title,defaultItem.title),issuer:String(match.issuer??defaultItem.issuer),date:String(match.date??defaultItem.date),credentialUrl:String(match.credentialUrl??match.credential_url??defaultItem.credentialUrl),description:certLocalized(description,defaultItem.description)};
+    });
+    return {id:definition.id,title:groupTitle,items};
+  });
+}
+
+function certificateItemById(id,groups=normalizeCertGroups(getGlobalContent().experience.certGroups)){
+  for(const group of groups)for(const item of group.items)if(item.id===id)return item;
+  return null;
+}
+
+function certificateOwnerType(id){return id==='exp-vice-head-comms'?'experience':'certificate'}
+
+function certificateAssets(id){return [...(certAssets.get(id)||[])].sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0)||String(a.created_at||'').localeCompare(String(b.created_at||'')))}
+
+function certCoverAsset(id){return certificateAssets(id).find(asset=>asset.asset_type==='cert_cover')||null}
+
+function certAssetList(id){return certificateAssets(id).filter(asset=>asset.asset_type==='proof'||asset.asset_type==='gallery')}
 
 const GLOBAL_SECTION_KEYS=['home','approach','projects','skills','experience','contact','footer'];
 
@@ -41,13 +106,15 @@ let globalPublishedContent=null;
 
 let globalDbState='fallback';
 
-let globalPreviewContent=null;
 
-let isGlobalPreview=location.hash==='#global-preview';
+
+
 
 function deepClone(v){return JSON.parse(JSON.stringify(v));}
 
-function globalFallbackContent(){
+function composeGlobalContent(...layers){const isObject=value=>value&&typeof value==='object'&&!Array.isArray(value);const merge=(target,source)=>{if(Array.isArray(source))return deepClone(source);if(!isObject(source))return source;const out=isObject(target)?{...target}:{};for(const [key,value] of Object.entries(source))out[key]=isObject(value)?merge(out[key],value):Array.isArray(value)?deepClone(value):value;return out};return layers.filter(layer=>layer!=null).reduce((result,layer)=>merge(result,layer),{})}
+
+function legacyGlobalFallbackContent(){
   const mk=(vi,en)=>({vi,en});
   return {
     home:{name:mk('Hoàng Quốc Việt','Hoàng Quốc Việt'),role:mk('Marketing Operations · MarTech · AI-enabled Marketing','Marketing Operations · MarTech · AI-enabled Marketing'),description:mk('Xin chàooooo và chào mừng tất cả các bạn đã đến với trang web đầu tiên của mình :) Anyway, mình up portfolio, CV và hầu hết mọi thứ mà mình có lên đây. Định hướng của mình là trở thành một Marketing Operator, tức là giải quyết các bài toán kỹ thuật đằng sau marketing: từ tích hợp hệ thống, quản trị dữ liệu khách hàng cho đến tự động hóa toàn bộ những khâu lặp đi lặp lại mà con người không nên làm bằng tay ^^.','I optimize Marketing funnels and operations through data thinking, AI, workflow automation and hands-on execution.'),status:mk(I18N.vi.status,I18N.en.status),ctaProjects:mk(I18N.vi['hero.projects'],I18N.en['hero.projects']),ctaContact:mk(I18N.vi['hero.contact'],I18N.en['hero.contact']),ctaProjectsTarget:mk('#projects','#projects'),ctaContactTarget:mk('#contact','#contact'),nav:{projects:mk(I18N.vi['nav.projects'],I18N.en['nav.projects']),insights:mk(I18N.vi['nav.insights'],I18N.en['nav.insights']),skills:mk(I18N.vi['nav.skills'],I18N.en['nav.skills']),experience:mk(I18N.vi['nav.experience'],I18N.en['nav.experience']),contact:mk(I18N.vi['nav.contact'],I18N.en['nav.contact']),cta:mk(I18N.vi['nav.cta'],I18N.en['nav.cta'])}},
@@ -60,6 +127,12 @@ function globalFallbackContent(){
   };
 }
 
+function globalFallbackContent(){
+  const content=legacyGlobalFallbackContent();
+  content.experience.certGroups=normalizeCertGroups(content.experience.certGroups);
+  return content;
+}
+
 function getLocalizedContent(value,lang=currentLang){
   const source=value&&typeof value==='object'&&!Array.isArray(value)?value:{};const requested=source[lang];const fallback=source[lang==='en'?'vi':'en'];
   const usable=v=>{if(v===undefined||v===null)return false;if(typeof v==='string')return v.trim()!=='';if(Array.isArray(v))return v.length>0;return typeof v!=='object';};
@@ -68,21 +141,29 @@ function getLocalizedContent(value,lang=currentLang){
   return '';
 }
 
-function getGlobalContent(lang=currentLang){
-  const base=deepClone(globalFallbackContent()),published=globalPublishedContent||{};
-  const merge=(target,source)=>{
-    if(!source||typeof source!=='object')return;
-    Object.keys(source).forEach(k=>{if(source[k]&&typeof source[k]==='object'&&!Array.isArray(source[k])&&target[k]&&typeof target[k]==='object'&&!Array.isArray(target[k]))merge(target[k],source[k]);else target[k]=source[k]});
-  };
-  merge(base,published);
-  return base;
-}
+function getGlobalContent(){const content=composeGlobalContent(globalFallbackContent(),globalPublishedContent||{});content.experience.certGroups=normalizeCertGroups(content.experience.certGroups);return content}
 
 function getProfileContent(lang=currentLang){return getGlobalContent(lang).home||{};}
 
 function parseContentJSON(value,fallback){try{const v=JSON.parse(String(value||''));return v&&typeof v==='object'?v:deepClone(fallback)}catch(_){return deepClone(fallback)}}
 
 function isLocalizedLeafShape(shape){return !!(shape&&typeof shape==='object'&&!Array.isArray(shape)&&Object.prototype.hasOwnProperty.call(shape,'vi')&&Object.prototype.hasOwnProperty.call(shape,'en'));}
+
+function legacyCertGroupsFromStored(viValue,enValue){
+  const viSource=viValue&&typeof viValue==='object'&&!Array.isArray(viValue)?viValue:{};
+  const enSource=enValue&&typeof enValue==='object'&&!Array.isArray(enValue)?enValue:{};
+  const legacy={};
+  CERT_GROUP_DEFAULTS.forEach(definition=>{
+    const key=definition.legacyKeys.find(candidate=>viSource[candidate]||enSource[candidate]);
+    if(!key)return;
+    const viGroup=viSource[key]&&typeof viSource[key]==='object'?viSource[key]:{};
+    const enGroup=enSource[key]&&typeof enSource[key]==='object'?enSource[key]:{};
+    const viItems=viGroup.items&&typeof viGroup.items==='object'?certItemList(viGroup.items.vi):certItemList(viGroup.items);
+    const enItems=enGroup.items&&typeof enGroup.items==='object'?certItemList(enGroup.items.en):certItemList(enGroup.items);
+    legacy[key]={label:{vi:String(viGroup.label||definition.title.vi),en:String(enGroup.label||viGroup.label||definition.title.en)},items:{vi:viItems,en:enItems}};
+  });
+  return normalizeCertGroups(legacy);
+}
 
 function globalContentForStorage(node,lang,shape){
   if(isLocalizedLeafShape(shape)){
@@ -109,6 +190,7 @@ function globalCanonicalFromStored(viValue,enValue,shape){
     return {vi:vi===undefined||vi===null?'':vi,en:en===undefined||en===null?(legacyEn??legacyVi??''):en};
   }
   if(Array.isArray(shape)){
+    if(shape[0]?.id==='communications'&&(!Array.isArray(viValue)||!Array.isArray(enValue)))return legacyCertGroupsFromStored(viValue,enValue);
     const va=Array.isArray(viValue)?viValue:[];const ea=Array.isArray(enValue)?enValue:[];
     return shape.map((item,i)=>globalCanonicalFromStored(va[i],ea[i],item));
   }
@@ -123,34 +205,21 @@ function globalPublicRowsPath(){return '/rest/v1/portfolio_content?select=conten
 
 async function fetchGlobalContentRows(){if(!sbReady())return [];const response=await sbFetch(globalPublicRowsPath(),{method:'GET'},null);const rows=await response.json();return Array.isArray(rows)?rows:[]}
 
-function buildGlobalFromRows(rows,prefix){
-  const fallback=globalFallbackContent(),out={};(rows||[]).filter(r=>String(r.content_key||'').startsWith(prefix)).forEach(r=>{const key=String(r.content_key).slice(prefix.length);out[key]=globalCanonicalFromStored(parseContentJSON(r.value_vi,null),parseContentJSON(r.value_en,null),fallback[key]||{})});return out;
-}
+function mergeStoredGlobalValue(fallback,value){if(Array.isArray(value))return deepClone(value);if(!value||typeof value!=='object')return value===undefined||value===null?deepClone(fallback):value;const out=fallback&&typeof fallback==='object'&&!Array.isArray(fallback)?deepClone(fallback):{};Object.keys(value).forEach(key=>{out[key]=mergeStoredGlobalValue(out[key],value[key])});return out}
+
+function buildGlobalFromRows(rows,prefix){const fallback=globalFallbackContent(),out={};(rows||[]).filter(row=>String(row.content_key||'').startsWith(prefix)).forEach(row=>{const key=String(row.content_key).slice(prefix.length),sectionFallback=fallback[key]||{},fallbackVi=globalContentForStorage(sectionFallback,'vi',sectionFallback),fallbackEn=globalContentForStorage(sectionFallback,'en',sectionFallback),storedVi=mergeStoredGlobalValue(fallbackVi,parseContentJSON(row.value_vi,fallbackVi)),storedEn=mergeStoredGlobalValue(fallbackEn,parseContentJSON(row.value_en,fallbackEn)),canonical=globalCanonicalFromStored(storedVi,storedEn,sectionFallback);if(key==='skills'&&Array.isArray(canonical.cards))canonical.cards.forEach((card,index)=>{for(const field of ['num','accent']){const value=storedVi.cards?.[index]?.[field]??storedEn.cards?.[index]?.[field];if(value!==undefined)card[field]=value}});out[key]=canonical});return out}
 
 function globalRowsToContent(rows,prefix){return buildGlobalFromRows(rows,prefix);}
 
-async function loadGlobalContent(){const fallback=globalFallbackContent();try{const rows=await fetchGlobalContentRows();const publishedRows=rows.filter(row=>String(row.content_key||'').startsWith('global.published.'));const makeMap=list=>Object.fromEntries(list.map(row=>{const key=String(row.content_key).slice('global.published.'.length);return [key,globalCanonicalFromStored(parseContentJSON(row.value_vi,null),parseContentJSON(row.value_en,null),fallback[key]||{})]}));globalPublishedContent=publishedRows.length?makeMap(publishedRows):null;globalDbState=publishedRows.length?'ready':'empty';renderGlobalContent(currentLang);HQVShared.emit('global');return true}catch(error){globalDbState=classifySupabaseError(error);globalPublishedContent=null;renderGlobalContent(currentLang);return false}}
+async function loadGlobalPublished(){if(!sbReady()){globalPublishedContent=null;globalDbState='failed';HQVShared.emit('global');return false}try{const rows=await fetchGlobalContentRows(),publishedRows=rows.filter(row=>String(row.content_key||'').startsWith('global.published.')),fallback=globalFallbackContent();globalPublishedContent=publishedRows.length?buildGlobalFromRows(publishedRows,'global.published.'):null;globalDbState=publishedRows.length?'ready':'empty';HQVShared.emit('global');return true}catch(error){globalPublishedContent=null;globalDbState='failed';HQVShared.emit('global');return false}}
 
 function getPath(obj,path){return path.split('.').reduce((cur,k)=>cur==null?undefined:cur[k],obj)}
 
-function applyGlobalContentToDOM(content,lang=currentLang){
-  const get=p=>getLocalizedContent(getPath(content,p),lang);const home=content.home,approach=content.approach,projects=content.projects,skills=content.skills,experience=content.experience,contact=content.contact,footer=content.footer;
-  $('#hero-title').textContent=get('home.name');
-  const role=String(get('home.role')||'');$('.hero-role').innerHTML=role.split('·').map((x,i)=>`<span class="${i===0?'warm':i===1?'cyan':''}">${esc(x.trim())}</span>`).join(' · ');
-  $('#heroSub').textContent=get('home.description');$('#statusText').textContent=get('home.status');$('.navlinks a[href="#projects"]').textContent=get('home.nav.projects');$('.navlinks a[href="#skills"]').textContent=get('home.nav.skills');$('.navlinks a[href="#experience"]').textContent=get('home.nav.experience');$('.navlinks a[href="#contact"]').textContent=get('home.nav.contact');$('.nav-cta [data-i18n="nav.cta"]').textContent=get('home.nav.cta');const heroProjects=$('.hero-actions a[href="#projects"]');const heroContact=$('.hero-actions a[href="#contact"]');if(heroProjects){heroProjects.href=safeLinkHref(get('home.ctaProjectsTarget'))||'#projects';heroProjects.querySelector('[data-i18n="hero.projects"]').textContent=get('home.ctaProjects')}if(heroContact){heroContact.href=safeLinkHref(get('home.ctaContactTarget'))||'#contact';heroContact.querySelector('[data-i18n="hero.contact"]').textContent=get('home.ctaContact')}
-  const ap=$('#approach');if(ap){ap.querySelector('[data-i18n="approach.eyebrow"]').textContent=get('approach.eyebrow');ap.querySelector('[data-i18n="approach.resultTitle"]').textContent=get('approach.resultTitle');$('#approachLead').textContent=get('approach.lead');const fr=ap.querySelectorAll('.formula-row');approach.formula.forEach((f,i)=>{if(!fr[i])return;fr[i].querySelector('.label').textContent=get(`approach.formula.${i}.label`);fr[i].querySelector('.micro').textContent=get(`approach.formula.${i}.micro`)});ap.querySelector('[data-i18n="formula.result"]').textContent=get('approach.result');ap.querySelector('[data-i18n="process.kicker"]').textContent=get('approach.processKicker');ap.querySelectorAll('.process-item span').forEach((el,i)=>{el.textContent=get(`approach.process.${i}`)})}
-  $('#projects .eyebrow').textContent=get('projects.eyebrow');$('#projects-title [data-i18n="projects.heading"]').textContent=get('projects.heading');$('#projects-title [data-i18n="projects.headingAccent"]').textContent=get('projects.headingAccent');$('#projects .lead').textContent=get('projects.lead');
-  $('#skills .eyebrow').textContent=get('skills.eyebrow');$('#skills-title [data-i18n="skills.heading"]').textContent=get('skills.heading');$('#skills-title [data-i18n="skills.headingAccent"]').textContent=get('skills.headingAccent');$('#skills .lead').textContent=get('skills.lead');renderSkillsFromGlobal(content,lang);
-  $('#experience .eyebrow').textContent=get('experience.eyebrow');$('#experience-title [data-i18n="experience.heading"]').textContent=get('experience.heading');$('#experience-title [data-i18n="experience.headingAccent"]').textContent=get('experience.headingAccent');$('#experienceLead').textContent=get('experience.lead');const exp=document.querySelector('.exp-panel');if(exp){exp.querySelector('.exp-code').textContent=get('experience.title');exp.querySelector('.exp-title').textContent=get('experience.role');exp.querySelector('p[data-i18n="experience.copy"]').textContent=get('experience.description');exp.querySelector('.exp-tags').innerHTML=(experience.tags?.[lang]||[]).map(x=>`<span class="exp-tag">${esc(x)}</span>`).join('')}
-  const certLabel=currentLang==='en'?'documented profile':'hồ sơ đã ghi nhận';const cg=experience.certGroups||{};if($('#anthropicCerts'))$('#anthropicCerts').innerHTML=certBadgesHtml('anthropic',cg.anthropic?.items?.[lang]||[],cg.anthropic?.items?.vi||[],lang);if($('#marketingCerts'))$('#marketingCerts').innerHTML=certBadgesHtml('marketing',cg.marketing?.items?.[lang]||[],cg.marketing?.items?.vi||[],lang);if($('#englishCerts'))$('#englishCerts').innerHTML=certBadgesHtml('english',cg.english?.items?.[lang]||[],cg.english?.items?.vi||[],lang);const extra=document.querySelector('.extra-row');if(extra){extra.querySelector('.mini-panel:nth-child(1) h4').textContent=get('experience.creative.label');extra.querySelector('.mini-panel:nth-child(1) p').textContent=get('experience.creative.text');extra.querySelector('.mini-panel:nth-child(2) h4').textContent=get('experience.direction.label');extra.querySelector('.mini-panel:nth-child(2) p').textContent=get('experience.direction.text')}
-  $('#contact .eyebrow').textContent=get('contact.eyebrow');$('#contact-title [data-i18n="contact.heading"]').textContent=get('contact.heading');$('#contact-title [data-i18n="contact.headingAccent"]').textContent=get('contact.headingAccent');$('#contactIntro').textContent=get('contact.intro');document.querySelector('.contact-point[data-i18n="contact.flow"]').textContent=get('contact.flow');document.querySelector('[data-i18n="form.name"]').textContent=get('contact.nameLabel');document.querySelector('[data-i18n="form.email"]').textContent=get('contact.emailLabel');document.querySelector('[data-i18n="form.message"]').textContent=get('contact.messageLabel');document.querySelector('[data-i18n="form.submit"]').textContent=get('contact.submit');$('input[name="name"]').placeholder=get('contact.namePlaceholder');$('textarea[name="message"]').placeholder=get('contact.messagePlaceholder');$('#contactSubject').value=get('contact.subject');
-  const footerEl=document.querySelector('footer span');if(footerEl)footerEl.innerHTML=`${esc(get('footer.copyright'))} · ${esc(get('footer.supporting'))}`;
-  if($('#globalPreviewBanner'))$('#globalPreviewBanner').hidden=!isGlobalPreview;
-}
 
-function renderSkillsFromGlobal(content,lang){const cards=content.skills.cards||[];$('#skillsGrid').innerHTML=cards.map(s=>`<article class="skill-card reveal visible" style="--skill-accent:${esc(s.accent||'#22d3ee')}"><div class="skill-num">${esc(s.num||'')}</div><div class="skill-orbit"></div><h3 class="skill-title">${esc(getLocalizedContent(s.title,lang))}</h3><p class="skill-copy">${esc(getLocalizedContent(s.copy,lang))}</p><div class="skill-items">${String(getLocalizedContent(s.items,lang)||'').split(/\n+/).map(x=>x.trim()).filter(Boolean).map(x=>`<span class="skill-item"><strong>•</strong> ${esc(x)}</span>`).join('')}</div></article>`).join('')}
 
-function renderGlobalContent(lang=currentLang){applyGlobalContentToDOM(globalPreviewContent||getGlobalContent(lang),lang)}
+
+
+
 
 function getWebStorage(name){try{return window[name]}catch(_){return null}}
 
@@ -342,40 +411,34 @@ function imageAssetsForProject(projectId){return getAssets({projectId}).filter(r
 
 function imageAssetOptionLabel(row){return `${row.original_name||row.file_name||row.id} · ${row.asset_type||row.type||'image'}`;}
 
-function certSlug(group,text){return 'cert-'+group+'-'+String(text||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/đ/gi,'d').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,80)}
-
 function certItemList(v){return Array.isArray(v)?v:typeof v==='string'?v.split(/\n+/).map(x=>x.trim()).filter(Boolean):[]}
-
-function certAssetList(id){return [...(certAssets.get(id)||[])].sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0)||String(a.created_at||'').localeCompare(String(b.created_at||'')))}
 
 function assetKindOf(row){const m=String(row?.mime_type||'').toLowerCase(),t0=String(row?.type||'').toLowerCase();if(m.startsWith('image/'))return 'image';if(m.startsWith('video/')||t0==='video')return 'video';if(m.startsWith('audio/')||t0==='audio')return 'audio';if(m==='application/pdf'||t0==='pdf')return 'pdf';if(m==='application/json'||t0==='json')return 'json';return 'file'}
 
-function certBadgesHtml(group,list,viList,lang){
-  const lab=lang==='en'?'documented profile':'hồ sơ đã ghi nhận';
-  const L=certItemList(list),V=certItemList(viList);return L.map((x,i)=>{const id=certSlug(group,V[i]||x),a=certAssetList(id);
-    if(!a.length)return `<div class="cert-badge" data-cert-id="${esc(id)}"><strong>${esc(x)}</strong></div>`;
-    const aria=lang==='en'?`${x} — view ${a.length} file(s)`:`${x} — xem ${a.length} minh chứng`;
-    return `<button type="button" class="cert-badge" data-cert-open="${esc(id)}" aria-label="${esc(aria)}"><strong>${esc(x)}</strong><span>${esc(lab)}${a.length>1?' · '+a.length:''} ↗</span></button>`}).join('');
+function certBadgeHtml(item,lang){
+  const title=getLocalizedContent(item.title,lang),issuer=String(item.issuer||''),cover=certCoverAsset(item.id);
+  return `<button type="button" class="cert-badge" data-cert-open="${esc(item.id)}" aria-label="${esc(title)}${issuer?` · ${esc(issuer)}`:''}">${cover?`<img class="cert-badge-cover" src="${esc(getAssetUrl(cover))}" alt="${esc(title)}" loading="lazy">`:''}<strong>${esc(title)}</strong>${issuer?`<span>${esc(issuer)}</span>`:''}</button>`;
 }
+
+
 
 const EXPERIENCE_PROOF_ID='experience-communications';
+function certBadgesHtml(group){const groupId=group==='anthropic'?'anthropic':group==='marketing'?'marketing-analytics':group==='english'?'english':'communications';const data=normalizeCertGroups(getGlobalContent().experience.certGroups).find(item=>item.id===groupId);return data?data.items.map(item=>certBadgeHtml(item,currentLang)).join(''):''}
 
-function openCertViewer(id,idx=0){
-  const rows=certAssetList(id);if(!rows.length)return;idx=Math.max(0,Math.min(idx,rows.length-1));const r=rows[idx],url=getAssetUrl(r);
-  viewerHtml({type:assetKindOf(r)==='image'?'image':assetKindOf(r),url,file:url,original_name:r.original_name,titleVi:r.title_vi||r.original_name,titleEn:r.title_en||r.title_vi||r.original_name,mime_type:r.mime_type,file_size:r.file_size});
-  if(rows.length>1)viewerHead.insertAdjacentHTML('beforeend',`<div class="viewer-actions" style="width:100%">${rows.map((x,i)=>`<button type="button" class="viewer-btn" data-cert-view="${esc(id)}|${i}"${i===idx?' style="border-color:var(--cyan)"':''}>${i+1}. ${esc(x.original_name||mediaTypeLabel(x))}</button>`).join('')}</div>`);
-  if(!viewerDialog.open)openModalDialog(viewerDialog);
+function certDetailHtml(item,lang=currentLang){
+  if(!item)return '';
+  const title=getLocalizedContent(item.title,lang),description=getLocalizedContent(item.description,lang),cover=certCoverAsset(item.id),proofs=certAssetList(item.id),safeCredential=safeLinkHref(item.credentialUrl);
+  const grouped=[],seen=new Set();
+  proofs.forEach((row,index)=>{if(row.asset_type==='gallery'&&row.gallery_id){if(seen.has(row.gallery_id))return;seen.add(row.gallery_id);const files=proofs.filter(asset=>asset.asset_type==='gallery'&&asset.gallery_id===row.gallery_id);grouped.push({row,index,files})}else grouped.push({row,index,files:[row]})});
+  const evidence=grouped.map(({row,index,files})=>{const gallery=row.asset_type==='gallery',image=String(row.mime_type||'').toLowerCase().startsWith('image/');const preview=gallery?`<div class="cert-evidence-thumbs">${files.slice(0,3).map(file=>`<img src="${esc(getAssetUrl(file))}" alt="${esc(file.original_name||title)}" loading="lazy">`).join('')}</div>`:image?`<img class="cert-evidence-thumb" src="${esc(getAssetUrl(row))}" alt="${esc(row.original_name||title)}" loading="lazy">`:'';const name=gallery?(currentLang==='en'?'Image gallery':'Bộ ảnh minh chứng'):(row.original_name||title);const type=gallery?(currentLang==='en'?'Gallery':'Bộ ảnh'):mediaTypeLabel(row);return `<button class="cert-evidence-item" type="button" data-cert-view="${esc(item.id)}|${index}">${preview}<span class="cert-evidence-copy"><strong>${esc(name)}</strong><small>${esc(type)}${files.length>1?` · ${files.length}`:''}</small></span><span aria-hidden="true">↗</span></button>`}).join('');
+  return `<article class="case-article cert-detail"><header class="case-article-header"><button class="modal-close" type="button" data-close="case" aria-label="${esc(t('modal.close'))}">✕</button><div class="case-hero-meta"><span>${esc(getLocalizedContent(normalizedCertGroupTitle(item.id),lang))}</span><span>${esc(String(item.issuer||''))}</span></div><h1 class="case-hero-title">${esc(title)}</h1>${cover?`<figure class="cert-detail-cover"><img src="${esc(getAssetUrl(cover))}" alt="${esc(title)}" loading="eager"></figure>`:''}${description?`<p class="case-hero-lead">${esc(description)}</p>`:''}<div class="cert-detail-meta">${item.issuer?`<div><span>${esc(t('cert.issuer'))}</span><strong>${esc(item.issuer)}</strong></div>`:''}${item.date?`<div><span>${esc(t('cert.date'))}</span><strong>${esc(item.date)}</strong></div>`:''}${safeCredential?`<a href="${esc(safeCredential)}" target="_blank" rel="noopener noreferrer">${esc(t('cert.verify'))} ↗</a>`:''}</div></header><section class="case-article-body cert-detail-evidence"><h2>${esc(t('cert.evidence'))}</h2>${evidence||`<p class="case-copy">${esc(t('cert.noEvidence'))}</p>`}</section></article>`;
 }
 
-function viewerExtraBody(it){
-  const f=Array.isArray(it.files)&&it.files.length?it.files[0]:(it.file||it.url),url=(f&&f.url)||f||'';
-  const name=it.original_name||proofTitle(it)||'file',dl=proofDownloadUrl(url,String(name).replace(/[\\/:*?"<>|]+/g,'_'));
-  const meta=`${esc(mediaTypeLabel(it))}${it.file_size?' · '+esc(formatMediaBytes(it.file_size)):''}`;
-  if(it.type==='video')return `<video src="${esc(url)}" controls playsinline preload="metadata"></video>`;
-  if(it.type==='audio')return `<div class="viewer-file-card"><strong>${esc(name)}</strong><span>${meta}</span><audio src="${esc(url)}" controls preload="metadata"></audio></div>`;
-  if(it.type==='file')return `<div class="viewer-file-card"><strong>${esc(name)}</strong><span>${meta}</span><a class="viewer-btn" href="${esc(dl)}" download="${esc(name)}" data-proof-download="${esc(url)}" data-proof-download-name="${esc(name)}">${esc(t('modal.download'))} ↓</a></div>`;
-  return null;
-}
+function normalizedCertGroupTitle(id){return normalizeCertGroups(getGlobalContent().experience.certGroups).find(group=>group.items.some(item=>item.id===id))?.title||{vi:'Chứng chỉ & Thành tựu',en:'Certificates & Achievements'}}
+
+
+
+
 
 function mediaTypeLabel(row){
   const mime=String(row?.mime_type||'').toLowerCase(),type=String(row?.asset_type||row?.type||'').toLowerCase();
@@ -454,7 +517,7 @@ async function fetchProjectRows(){const response=await sbFetch('/rest/v1/portfol
 
 async function fetchProjectSections({projectIds=[]}={}){if(!projectIds.length)return [];const url=new URL('/rest/v1/portfolio_project_sections',location.origin);url.searchParams.set('select','id,project_id,sort_order,title_vi,body_vi,title_en,body_en,blocks');url.searchParams.set('order','sort_order.asc,id.asc');url.searchParams.set('project_id',`in.(${projectIds.map(id=>encodeURIComponent(id)).join(',')})`);const response=await sbFetch(url.pathname+url.search,{method:'GET'},null);return response.json()}
 
-async function loadProjects(){if(!sbReady())return false;if(projectLoadPromise)return projectLoadPromise;const work=(async()=>{try{const rows=await fetchProjectRows();if(!Array.isArray(rows))throw new Error('project_rows_invalid');if(rows.length===0){projectDbState='empty';PROJECTS.splice(0,PROJECTS.length);activeProject=null;closeNative(caseDialog);renderProjects();return true}const sections=await fetchProjectSections({projectIds:rows.map(row=>row.id)});const byProject=new Map();(Array.isArray(sections)?sections:[]).forEach(section=>{if(!byProject.has(section.project_id))byProject.set(section.project_id,[]);byProject.get(section.project_id).push(section)});PROJECTS.splice(0,PROJECTS.length,...rows.map(row=>projectRuntimeFromDb(row,byProject.get(row.id)||[])));projectDbState='ready';renderProjects();if(activeProject){const fresh=PROJECTS.find(project=>project.id===activeProject.id);if(fresh){activeProject=fresh;caseContent.innerHTML=caseHtml(fresh)}}HQVShared.emit('projects');return true}catch(error){projectDbState=classifySupabaseError(error);PROJECTS.splice(0,PROJECTS.length,...PROJECT_FALLBACK);renderProjects();HQVShared.emit('projects');return false}finally{projectLoadPromise=null}})();projectLoadPromise=work;return work}
+async function loadProjects(){if(!sbReady()){projectDbState='not_configured';HQVShared.emit('projects');return false}if(projectLoadPromise)return projectLoadPromise;const work=(async()=>{try{const rows=await fetchProjectRows();if(!Array.isArray(rows))throw new Error('project_rows_invalid');if(rows.length===0){projectDbState='empty';PROJECTS.splice(0,PROJECTS.length);HQVShared.emit('projects');return true}const sections=await fetchProjectSections({projectIds:rows.map(row=>row.id)});const byProject=new Map();(Array.isArray(sections)?sections:[]).forEach(section=>{if(!byProject.has(section.project_id))byProject.set(section.project_id,[]);byProject.get(section.project_id).push(section)});PROJECTS.splice(0,PROJECTS.length,...rows.map(row=>projectRuntimeFromDb(row,byProject.get(row.id)||[])));projectDbState='ready';HQVShared.emit('projects');return true}catch(error){projectDbState=classifySupabaseError(error);PROJECTS.splice(0,PROJECTS.length,...PROJECT_FALLBACK);HQVShared.emit('projects');return false}finally{projectLoadPromise=null}})();projectLoadPromise=work;return work}
 
 function projectBySlug(slug){return PROJECTS.find(p=>p.id===slug)||PROJECT_FALLBACK.find(p=>p.id===slug)||null}
 
@@ -478,69 +541,28 @@ function visualH(p){
   return shell(`<div class="arch"><div class="primary">Marketing Problem</div><div>Claude Code</div><div class="blue">MCP</div><div>API</div><div>Git / GitHub</div><div class="blue">Prototype</div><div>Structured Output</div></div>`);
 }
 
-function renderProjects(){
-  const visible=PROJECTS.filter(p=>p.published!==false);
-  $('#projectList').innerHTML=visible.map(p=>{const c=contentFor(p);return `<article class="project-card reveal visible" style="--card-a:${esc(safeCssColor(p.tone[0]))};--card-b:${esc(safeCssColor(p.tone[1],'#5b7cfa'))}"><div class="project-copy"><span class="project-index">CASE ${esc(p.index)}</span><div class="project-tags">${c.category.map(tag).join('')}</div><h3 class="project-title">${esc(c.title)}</h3><p class="project-hook">${esc(c.hook)}</p>${statsH(c.stats)}<div class="project-foot"><a class="case-btn" href="#/${p.id}">${esc(t('project.open'))} <span>↗</span></a><span class="muted" style="font-size:10px">Marketing × Technology</span></div></div><div class="project-visual">${visualH(p)}</div></div></article>`}).join('');
-}
 
-function renderInsights(){
-  const host=$('#insightsList');if(!host)return;
-  host.innerHTML=INSIGHTS.map((item,index)=>`<article class="project-card reveal visible" style="--card-a:${esc(item.tone[0])};--card-b:${esc(item.tone[1])}"><div class="project-copy"><span class="project-index">INSIGHT ${String(index+1).padStart(2,'0')}</span><div class="project-tags">${item.category.map(tag).join('')}</div><h3 class="project-title">${esc(item.title)}</h3><p class="project-hook">${esc(item.hook)}</p><div class="project-foot"><a class="case-btn" href="#insight/${esc(item.id)}">${esc(currentLang==='en'?'Read deep dive':'Đọc bài phân tích')} <span>↗</span></a><span class="muted" style="font-size:10px">MarTech × AI</span></div></div><div class="project-visual">${visualH({...item,id:item.id,index:String(index+1).padStart(2,'0'),visual:'web',content:{vi:item,en:item}})}</div></article>`).join('');
-}
 
-function renderSkills(){
-  $('#skillsGrid').innerHTML=SKILLS.map(s=>{const c=s.content[currentLang];return `<article class="skill-card reveal visible" style="--skill-accent:${s.accent}"><div class="skill-num">${s.num}</div><div class="skill-orbit"></div><h3 class="skill-title">${esc(c.title)}</h3><p class="skill-copy">${esc(c.copy)}</p><div class="skill-items">${c.items.map(x=>`<span class="skill-item"><strong>•</strong> ${esc(x)}</span>`).join('')}</div></article>`}).join('');
-}
 
-function renderCerts(){
-  const label=currentLang==='en'?'documented profile':'hồ sơ đã ghi nhận';
-  const certH=(arr,g)=>certBadgesHtml(g,arr,arr,currentLang);
-  $('#experienceProofs').innerHTML=certH([currentLang==='en'?'Vice Head of Communications':'Phó chủ nhiệm truyền thông'],EXPERIENCE_PROOF_ID);
-  $('#anthropicCerts').innerHTML=certH(CERTS.anthropic,'anthropic');$('#marketingCerts').innerHTML=certH(CERTS.marketing,'marketing');$('#englishCerts').innerHTML=certH(CERTS.english,'english');
-}
 
-function setLang(next){
-  if(next!=='vi'&&next!=='en')return;
-  if(currentLang===next){
-    applyStatic();
-    route();
-    return;
-  }
-  currentLang=next;
-  safeStorageSet(getWebStorage('localStorage'),'hqv-lang',currentLang);
-  applyStatic();
-  route();
-}
 
-function applyStatic(){
-  document.documentElement.lang=currentLang;
-  $('.nav').setAttribute('aria-label',currentLang==='en'?'Main navigation':'Điều hướng chính');
-  $('.lang-switch').setAttribute('aria-label',currentLang==='en'?'Language switcher':'Chuyển ngôn ngữ');
-  $('.avatar-shell').setAttribute('aria-label',currentLang==='en'?'Hoàng Quốc Việt avatar frame':'Khung avatar Hoàng Quốc Việt');
-  caseDialog.setAttribute('aria-label',currentLang==='en'?'Project case study':'Chi tiết case study');
-  viewerDialog.setAttribute('aria-label',currentLang==='en'?'Proof viewer':'Xem bằng chứng');
-  document.title=currentLang==='en'?'Hoàng Quốc Việt | Marketing Operations · MarTech · AI-enabled Marketing':'Hoàng Quốc Việt | Marketing Operations · MarTech · AI-enabled Marketing';
-  $$('[data-i18n]').forEach(el=>{const key=el.dataset.i18n;if(I18N[currentLang][key])el.textContent=I18N[currentLang][key]});
-  $$('[data-lang]').forEach(btn=>btn.classList.toggle('active',btn.dataset.lang===currentLang));
-  $('#statusText').textContent=t('status');
-  renderAvatar();
-  $('textarea[name="message"]').placeholder=t('form.messagePlaceholder');$('input[name="name"]').placeholder=t('form.namePlaceholder');$('#contactSubject').value=t('form.subject');
-  renderProjects();renderInsights();renderGlobalContent(currentLang);
-  const state=parseHash();
-  if(state?.project){activeProject=state.project;caseContent.innerHTML=caseHtml(state.project);if(state.index!=null){const proof=state.project.proof[state.index];if(proof)viewerHtml(proof)}}
-}
 
-const caseDialog=$('#caseDialog');
 
-const viewerDialog=$('#viewerDialog');
 
-const caseContent=$('#caseContent');
 
-const viewerHead=$('#viewerHead');
 
-const viewerBody=$('#viewerBody');
 
-let activeProject=null;
+
+
+
+
+
+
+
+
+
+
+
 
 function proofTitle(x){return currentLang==='en'?(x.titleEn||x.titleVi||x.title): (x.titleVi||x.titleEn||x.title)}
 
@@ -651,37 +673,21 @@ function caseHtml(p){
     </article>`;
 }
 
-async function downloadProofUrl(url,name){
-  const safe=safeLinkHref(proofDownloadUrl(url,name));
-  if(!safe)throw new Error('unsafe_url');
-  const response=await fetch(safe,{method:'GET',credentials:'omit'});
-  if(!response.ok)throw new Error(`download_http_${response.status}`);
-  const blob=await response.blob();
-  const objectUrl=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=objectUrl;a.download=name||'proof';a.rel='noopener';document.body.appendChild(a);a.click();a.remove();
-  setTimeout(()=>URL.revokeObjectURL(objectUrl),1000);
-}
 
-function viewerHtml(it){viewerBody.querySelectorAll('video,audio').forEach(m=>{try{m.pause()}catch(_){}});const __r=viewerHtml0(it);const __x=viewerExtraBody(it);if(__x!==null)viewerBody.innerHTML=__x;return __r}
 
-function viewerHtml0(it){
-  const files=Array.isArray(it.files)&&it.files.length?it.files:[it.file||it.url];const first=files[0];
-  const firstUrl=first?.url||first||'';
-  const downloadName=(it.original_name||proofTitle(it)||'proof').replace(/[\\/:*?"<>|]+/g,'_');
-  const downloadUrl=proofDownloadUrl(firstUrl,downloadName);
-  viewerHead.innerHTML=`<strong>${esc(proofTitle(it)||t('modal.evidence'))}</strong><div class="viewer-actions"><a class="viewer-btn" href="${esc(downloadUrl)}" download="${esc(downloadName)}" data-proof-download="${esc(firstUrl)}" data-proof-download-name="${esc(downloadName)}">${esc(t('modal.download'))} ↓</a><a class="viewer-btn proof-download-fallback" href="${esc(downloadUrl)}" target="_blank" rel="noopener">${esc(currentLang==='en'?'Open file':'Mở file')} ↗</a><button class="viewer-btn" type="button" data-close="viewer">${esc(t('modal.close'))}</button></div>`;
-  viewerBody.innerHTML=it.type==='pdf'?`<iframe src="${esc(firstUrl)}#view=FitH" title="${esc(proofTitle(it)||'PDF')}"></iframe>`:it.type==='json'?`<iframe src="${esc(firstUrl)}" title="${esc(proofTitle(it)||'JSON')}"></iframe>`:`<div class="gallery">${files.map(src=>`<img src="${esc(src.url||src)}" alt="${esc(proofTitle(it)||'Proof')}" loading="lazy">`).join('')}</div>`;
-}
 
-function parseHash(){const insightMatch=location.hash.match(/^#\/insight\/([a-z0-9-]+)$/i);if(insightMatch){const insight=INSIGHTS.find(item=>item.id===insightMatch[1]);return insight?{project:insight,index:null,insight:true}:null}const match=location.hash.match(/^#\/([a-z0-9-]+)(?:\/(\d+))?$/i);if(!match)return null;const project=PROJECTS.find(item=>item.id===match[1]);return project&&project.published!==false?{project,index:match[2]==null?null:Number(match[2])}:null}
 
-function closeNative(d){try{closeModalDialog(d)}catch(_){}}
 
-async function route(){const state=parseHash();if(!state){activeProject=null;closeNative(viewerDialog);closeNative(caseDialog);return}if(activeProject!==state.project){activeProject=state.project;caseContent.innerHTML=caseHtml(state.project);openModalDialog(caseDialog);caseContent.scrollTop=0}else if(!caseDialog.open)openModalDialog(caseDialog);const proof=state.index!=null?state.project.proof[state.index]:null;if(proof&&validProof(proof)&&['pdf','image','gallery','video','audio','file','json'].includes(proof.type)){viewerHtml(proof);if(!viewerDialog.open)openModalDialog(viewerDialog)}else closeNative(viewerDialog);loadProofsForProject(state.project).then(()=>{if(activeProject===state.project&&parseHash()?.index==null)caseContent.innerHTML=caseHtml(state.project)}).catch(()=>{})}
 
-function navigateHash(h){history.pushState({hqv:true},'',h);route()}
 
-function exitModal(){if(viewerDialog.open&&parseHash()?.index==null){closeNative(viewerDialog);return}if(viewerDialog.open){history.state?.hqv?history.back():(history.replaceState(null,'',activeProject?'#/'+activeProject.id:'#projects'),route());return}if(caseDialog.open){history.state?.hqv?history.back():(history.replaceState(null,'','#projects'),route())}}
+
+
+
+
+
+
+
+
 
 function sbReady(){return !!(CONFIG.supabase.url&&CONFIG.supabase.anonKey)}
 
@@ -691,7 +697,9 @@ function jwtExpired(token){try{const payload=JSON.parse(atob(token.split('.')[1]
 
 function databaseJwtExpiredResponse(status,detail){return status===401&&/jwt|token|expired|invalid.*session/i.test(detail||'')||status===400&&/jwt|token|expired|invalid.*session/i.test(detail||'')}
 
-async function sbFetch(path,opts={},tokenOverride,attempt=0){if(!sbReady())throw new Error('supabase_not_configured');const auth=HQVShared.auth;let token=tokenOverride===undefined?(auth?.getToken?.()||null):tokenOverride;const headers={...sbHeaders(token),...(opts.headers||{})};let response;try{response=await fetch(CONFIG.supabase.url.replace(/\/$/,'')+path,{...opts,headers})}catch(error){const wrapped=new Error('supabase_network_error');wrapped.cause=error;throw wrapped}if(response.status===401&&tokenOverride===undefined&&auth&&!attempt){try{await auth.refresh();return sbFetch(path,opts,undefined,1)}catch(error){auth.onExpired?.();throw error}}if(!response.ok){let detail='';try{detail=await response.text()}catch(_){}const error=new Error('supabase_'+response.status);error.status=response.status;error.detail=detail;throw error}return response}
+async function sbFetch(path,opts={},tokenOverride,attempt=0){if(!sbReady())throw new Error('supabase_not_configured');const auth=HQVShared.auth;const useAuthenticatedToken=tokenOverride===undefined&&auth?.isAuthed?.();const token=tokenOverride===undefined?(useAuthenticatedToken?await auth.ensureFresh():null):tokenOverride;const headers={...sbHeaders(token),...(opts.headers||{})};let response;try{response=await fetch(CONFIG.supabase.url.replace(/\/$/,'')+path,{...opts,headers})}catch(error){const wrapped=new Error('supabase_network_error');wrapped.cause=error;throw wrapped}if(response.status===401&&useAuthenticatedToken&&!attempt){try{await auth.refresh();return sbFetch(path,opts,undefined,1)}catch(error){auth.onExpired?.();throw error}}if(!response.ok){let detail='';try{detail=await response.text()}catch(_){}const error=new Error('supabase_'+response.status);error.status=response.status;error.detail=detail;throw error}return response}
+
+async function authToken(){const auth=HQVShared.auth;if(!auth?.isAuthed?.())throw new Error('supabase_auth_error');return auth.ensureFresh()}
 
 function classifySupabaseError(err){
   if(!sbReady())return 'not_configured';
@@ -735,45 +743,7 @@ async function loadLegacyProofsForProject(project){
   const r=await sbFetch(q,{method:'GET'},null);const rows=await r.json();project.proof=buildProofs(rows);return project.proof;
 }
 
-async function loadAssets(){
-  if(!sbReady()){assetLoadState='not_configured';assetSchemaReady=null;return;}
-  if(assetLoadPromise)return assetLoadPromise;
-  assetLoadPromise=(async()=>{
-    try{
-      const table=encodeURIComponent(CONFIG.supabase.assetTable);
-      const q=`/rest/v1/${table}?select=id,project_id,asset_type,owner_type,owner_id,type,title_vi,title_en,storage_path,original_name,mime_type,file_size,gallery_id,sort_order,created_at&order=created_at.desc`;
-      const r=await sbFetch(q,{method:'GET'},null);
-      const rows=await r.json();
-      assetSchemaReady=true;assetLoadState='ready';
-      assetRegistry.clear();rows.forEach(row=>assetRegistry.set(row.id,row));
-      certAssets.clear();rows.filter(r=>(r.owner_type==='certificate'||r.owner_type==='experience')&&r.owner_id).sort((a,b)=>String(a.created_at||'').localeCompare(String(b.created_at||''))).forEach(r=>{if(!certAssets.has(r.owner_id))certAssets.set(r.owner_id,[]);certAssets.get(r.owner_id).push(r)});
-      const avatarRow=rows.find(row=>row.asset_type==='avatar'&&row.owner_type==='profile'&&row.owner_id==='hqv');
-      profileAvatar=avatarRow?{...avatarRow,url:publicUrl(avatarRow.storage_path)}:null;
-      projectCovers.clear();
-      for(const project of PROJECTS){
-        const cover=rows.find(row=>row.asset_type==='project_cover'&&row.owner_type==='project'&&row.owner_id===project.id);
-        if(cover)projectCovers.set(project.id,{...cover,url:publicUrl(cover.storage_path)});
-        const proofRows=assetRowsForProof(rows,project);project.proof=buildProofs(proofRows);
-      }
-      for(const insight of INSIGHTS){insight.proof=buildProofs(rows.filter(row=>row.owner_type==='insight'&&row.owner_id===insight.id&&(row.asset_type==='proof'||row.asset_type==='gallery')))}
-      HQVShared.emit('assets')
-      if(activeProject){const state=parseHash();if(state?.project===activeProject){caseContent.innerHTML=caseHtml(activeProject);if(state.index!=null){const proof=activeProject.proof[state.index];if(proof)viewerHtml(proof)}}}
-      
-    }catch(err){
-      const kind=classifySupabaseError(err);
-      assetLoadState=kind;
-      assetSchemaReady=kind==='schema_missing'?false:null;
-      if(kind==='schema_missing'){
-        await Promise.all(PROJECTS.map(p=>loadLegacyProofsForProject(p).catch(()=>[])));
-        renderAvatar();renderProjects();
-      }
-      
-    } finally {
-      assetLoadPromise=null;
-    }
-  })();
-  return assetLoadPromise;
-}
+async function loadAssets(){if(!sbReady()){assetLoadState='not_configured';assetSchemaReady=null;HQVShared.emit('assets');return}if(assetLoadPromise)return assetLoadPromise;assetLoadPromise=(async()=>{try{const table=encodeURIComponent(CONFIG.supabase.assetTable);const q='/rest/v1/'+table+'?select=id,project_id,asset_type,owner_type,owner_id,type,title_vi,title_en,storage_path,original_name,mime_type,file_size,gallery_id,sort_order,created_at&order=created_at.desc';const response=await sbFetch(q,{method:'GET'},null);const rows=await response.json();assetSchemaReady=true;assetLoadState='ready';assetRegistry.clear();rows.forEach(row=>assetRegistry.set(row.id,row));certAssets.clear();rows.filter(row=>(row.owner_type==='certificate'||row.owner_type==='experience')&&row.owner_id).sort((a,b)=>String(a.created_at||'').localeCompare(String(b.created_at||''))).forEach(row=>{if(!certAssets.has(row.owner_id))certAssets.set(row.owner_id,[]);certAssets.get(row.owner_id).push(row)});const avatar=rows.find(row=>row.asset_type==='avatar'&&row.owner_type==='profile'&&row.owner_id==='hqv');profileAvatar=avatar?{...avatar,url:publicUrl(avatar.storage_path)}:null;projectCovers.clear();for(const project of PROJECTS){const cover=rows.find(row=>row.asset_type==='project_cover'&&row.owner_type==='project'&&row.owner_id===project.id);if(cover)projectCovers.set(project.id,{...cover,url:publicUrl(cover.storage_path)});project.proof=buildProofs(assetRowsForProof(rows,project))}for(const insight of INSIGHTS)insight.proof=buildProofs(rows.filter(row=>row.owner_type==='insight'&&row.owner_id===insight.id&&(row.asset_type==='proof'||row.asset_type==='gallery')))}catch(error){const kind=classifySupabaseError(error);assetLoadState=kind;assetSchemaReady=kind==='schema_missing'?false:null;if(kind==='schema_missing')await Promise.all(PROJECTS.map(project=>loadLegacyProofsForProject(project).catch(()=>[])))}finally{assetLoadPromise=null;HQVShared.emit('assets')}})();return assetLoadPromise}
 
 async function loadProofsForProject(project){
   if(!sbReady())return project.proof||[];
@@ -785,14 +755,12 @@ async function loadProofsForProject(project){
 
 async function loadAllProofs(){if(!sbReady())return;await loadAssets()}
 
-function renderAvatar(){
-  const image=$('#avatarImage'),initials=$('#avatarInitials');if(!image||!initials)return;
-  if(profileAvatar){image.src=profileAvatar.url;image.hidden=false;initials.hidden=true;image.alt=currentLang==='en'?'Hoàng Quốc Việt profile avatar':'Ảnh đại diện Hoàng Quốc Việt'}else{image.removeAttribute('src');image.hidden=true;initials.hidden=false}
-}
+
 
 function formatAssetSize(size){const n=Number(size);if(!Number.isFinite(n)||n<0)return '';if(n<1024)return `${n} B`;if(n<1048576)return `${(n/1024).toFixed(1)} KB`;if(n<1073741824)return `${(n/1048576).toFixed(1)} MB`;return `${(n/1073741824).toFixed(1)} GB`}
 
-function observeMotion(){if(!('IntersectionObserver' in window))return;const io=new IntersectionObserver(entries=>entries.forEach(e=>e.target.classList.toggle('motion-off',!e.isIntersecting)),{threshold:.03});$$('.section,.hero').forEach(el=>io.observe(el));$$('.reveal').forEach(el=>el.classList.add('visible'))}
-Object.assign(HQVShared,{CONFIG,I18N,PROJECTS,PROJECT_FALLBACK,SKILLS,INSIGHTS,CERTS,certAssets,currentLang,lang:currentLang,normalizeBlockDocument,renderBlock,sanitizeRichText,safeLinkHref,sbReady,sbHeaders,publicUrl,esc,$,$$,loadProjects,loadAssets,loadAllProofs,loadGlobalContent,renderProjects,renderGlobalContent,route,caseHtml,globalFallbackContent,getGlobalContent,projectBySlug,mediaTypeLabel,formatAssetSize});
-Object.defineProperty(HQVShared,'lang',{get:()=>currentLang,set:value=>{currentLang=value}});
+
+Object.assign(HQVShared,{CONFIG,I18N,PROJECTS,PROJECT_FALLBACK,SKILLS,INSIGHTS,CERTS,certAssets,currentLang,lang:currentLang,normalizeBlockDocument,renderBlock,sanitizeRichText,safeLinkHref,sbReady,sbHeaders,sbFetch,authToken,publicUrl,esc,$,$$,loadProjects,loadAssets,loadAllProofs,loadGlobalPublished,composeGlobalContent,caseHtml,globalFallbackContent,getGlobalContent,projectBySlug,mediaTypeLabel,formatAssetSize});
+HQVShared.setLang=next=>{if(next!=='vi'&&next!=='en')return;currentLang=next;safeStorageSet(getWebStorage('localStorage'),'hqv-lang',currentLang);HQVShared.emit('lang')};
+Object.defineProperty(HQVShared,'lang',{get:()=>currentLang,set:value=>HQVShared.setLang(value)});
 window.HQVShared=HQVShared;

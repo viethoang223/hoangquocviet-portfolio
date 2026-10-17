@@ -61,4 +61,15 @@ on conflict do nothing;
 - Test that an account absent from `portfolio_admins` cannot write through RLS. Client-side membership checks are only for UX.
 - `.vercelignore` excludes `legacy/` and `supabase/` from Vercel deployments. GitHub Pages root deployments need a separate build/deploy workflow to keep these folders out of the published artifact.
 
-Phase 3 (certificate-management changes) and Phase 4 (Insights migration) are not included in this phase.
+## Phase 3 — Stabilization and Layer Split
+
+- Split the runtime into `shared.js` (data, pure helpers, Supabase REST and block engine), `site.js` (public DOM, rendering and routes), `admin.js` (CMS), and `admin.html` (login gate, auth provider and admin styles). `index.html` loads `shared.js` before `site.js`; the image lightbox remains inline.
+- Loaders now update data state and emit `projects`, `assets`, and `global`; language changes use `HQVShared.setLang()` and emit `lang`. Public rendering is subscribed from `site.js`.
+- Centralized admin session ownership in `HQVShared.auth`: proactive fresh-token checks, single-flight refresh, one retry after 401, remote best-effort logout, and an async fresh-token helper for Storage requests.
+- Fixed B1–B2 by removing public DOM rendering from Global lifecycle writes and composing fallback, published, and draft content before editing.
+- Fixed B3 by awaiting asset-reference guards and sending block messages to the owning status region; fixed B4 by removing the duplicate admin.js session and refresh provider.
+- Fixed B5 by moving public rendering, routes, viewers, and listeners into `site.js`; the admin evidence preview now uses its own asset opener. Fixed B6 by assigning Global CMS/admin styles to `admin.html`.
+- Fixed B7 by moving VI/EN controls into the mounted CMS and preserving editor text and select values; fixed B8 with best-effort remote sign-out and a silent return to login.
+- Fixed B9 by rejecting reserved project slugs (`cert`, `insight`, `admin`) with localized errors.
+- Deferred known issues: Insight links still read `p.content`; certificate badges still use the legacy `#cert/<id>` route; certificate metadata still does not round-trip through storage; certificate cover upload/remove controls still have no handler. These remain later-phase work.
+- The brief identifies Phase 4 certificate work and Phase 5 Insights work. It does not define the other two phases in the five-phase remaining roadmap, so they are intentionally not inferred here.

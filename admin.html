@@ -393,9 +393,16 @@
 .admin-ins-menu[hidden]{display:none}
 .admin-ins-menu .admin-btn{min-height:30px;padding:0 11px;font-size:9px}
 .admin-block-stream-list .admin-richtext-wrap{margin:0}
-.admin-block-preview-content .case-video{border-radius:8px;max-width:420px}
 .cert-admin-row{display:grid;gap:6px;padding:10px;border:1px solid rgba(255,255,255,.08);border-radius:12px;margin-top:8px}
 .cert-admin-files{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:11px}</style>
+<style>
+:root{--muted:rgba(255,255,255,.58)}
+.global-tabs{display:flex;gap:7px;flex-wrap:wrap;margin:16px 0 12px}
+.global-pane{display:grid;gap:14px}
+.global-inline-tags{font-size:10px;color:rgba(255,255,255,.42)}
+.admin-proof-group{display:grid;gap:8px;margin-top:16px}
+.admin-proof-group>h4{margin:0 0 2px;color:rgba(255,255,255,.72);font-size:10px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+</style>
 </head>
 <body>
 <main id="adminRoot">
@@ -424,6 +431,7 @@
   const config = HQVShared.CONFIG.supabase;
   let currentLang = localStorage.getItem('hqv-lang') === 'en' ? 'en' : 'vi';
   let session = null;
+  let refreshPromise = null;
   let loadPromise = null;
   let busy = false;
   const copyText = {
@@ -450,23 +458,27 @@
     if (session) sessionStorage.setItem('hqv-admin-session', JSON.stringify(session));
     else sessionStorage.removeItem('hqv-admin-session');
   }
-  function expired(token) {
+  function expired(token, withinSeconds = 5) {
     try {
       const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-      return Number(payload.exp || 0) * 1000 <= Date.now() + 5000;
+      return Number(payload.exp || 0) * 1000 <= Date.now() + withinSeconds * 1000;
     } catch (_) { return true; }
   }
   async function refresh() {
-    if (!session?.refresh_token) throw new Error('session_expired');
-    const response = await fetch(`${config.url.replace(/\/$/, '')}/auth/v1/token?grant_type=refresh_token`, {
-      method: 'POST', headers: HQVShared.sbHeaders(), body: JSON.stringify({ refresh_token: session.refresh_token })
-    });
-    if (!response.ok) throw new Error('session_expired');
-    const refreshed = await response.json();
-    session = { ...session, ...refreshed, refresh_token: refreshed.refresh_token || session.refresh_token };
-    persist();
-    if (HQVShared.auth) HQVShared.auth.session = session;
-    return session;
+    if (refreshPromise) return refreshPromise;
+    refreshPromise = (async () => {
+      if (!session?.refresh_token) throw new Error('session_expired');
+      const response = await fetch(`${config.url.replace(/\/$/, '')}/auth/v1/token?grant_type=refresh_token`, {
+        method: 'POST', headers: HQVShared.sbHeaders(), body: JSON.stringify({ refresh_token: session.refresh_token })
+      });
+      if (!response.ok) throw new Error('session_expired');
+      const refreshed = await response.json();
+      if (!refreshed?.access_token) throw new Error('session_expired');
+      session = { ...session, ...refreshed, refresh_token: refreshed.refresh_token || session.refresh_token };
+      persist();
+      return session;
+    })().finally(() => { refreshPromise = null; });
+    return refreshPromise;
   }
   async function signOutRemote(value) {
     if (!value?.access_token) return;
@@ -484,17 +496,25 @@
   }
   function authProvider() {
     return {
-      session,
+      isAuthed() { return !!session?.access_token; },
       getToken() { return session?.access_token || null; },
-      async refresh() { await refresh(); return session; },
-      setSession(value) { session = value; this.session = value; persist(); },
+      async ensureFresh() {
+        if (!session?.access_token) throw new Error('session_expired');
+        if (expired(session.access_token, 30)) {
+          try { await refresh(); }
+          catch (error) { this.onExpired(); throw error; }
+        }
+        return session.access_token;
+      },
+      refresh,
+      async signOut() { await signOutRemote(session); returnToLogin(''); },
       onExpired() { returnToLogin(currentLang === 'en' ? 'Session expired. Please sign in again.' : 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.'); }
     };
   }
   async function authorize(candidate) {
     session = candidate;
     if (!session?.access_token) throw new Error('invalid_session');
-    if (expired(session.access_token)) await refresh();
+    if (expired(session.access_token, 30)) await refresh();
     const response = await fetch(`${config.url.replace(/\/$/, '')}/rest/v1/portfolio_admins?select=user_id,email&limit=1`, {
       method: 'GET', headers: HQVShared.sbHeaders(session.access_token)
     });

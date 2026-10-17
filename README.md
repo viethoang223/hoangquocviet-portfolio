@@ -4,8 +4,9 @@ Single-developer, static portfolio for Hoàng Quốc Việt — Marketing Operat
 
 ## Structure
 
-- `index.html` — public portfolio markup, styles, and public page bootstrap.
-- `shared.js` — classic-script public data readers, renderers, helpers, Supabase anon configuration, and block engine.
+- `index.html` — public portfolio markup and styles; loads the shared layer before the public site layer.
+- `shared.js` — data, pure helpers, Supabase REST access, asset loaders, and block engine; safe to load without page markup.
+- `site.js` — public DOM rendering, language repainting, modal/viewer UI, routes, and public event subscriptions.
 - `admin.html` — noindex admin login and membership gate.
 - `admin.js` — CMS loaded only after the gate confirms membership in `portfolio_admins`.
 - `assets/` — repository-managed static assets only.
@@ -14,7 +15,7 @@ Single-developer, static portfolio for Hoàng Quốc Việt — Marketing Operat
 
 ## How it runs
 
-This is a framework-free static site using classic scripts and Supabase REST; it does not use the Supabase SDK. Deploy the repository to a static host.
+This is a framework-free static site using classic scripts and Supabase REST; it does not use the Supabase SDK. `index.html` loads `shared.js` followed by `site.js`; `admin.html` loads only `shared.js` before its login gate. Deploy the repository to a static host.
 
 For local development, use a static HTTP server rather than opening files with `file://`.
 

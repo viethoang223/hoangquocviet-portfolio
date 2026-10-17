@@ -6,10 +6,12 @@ let globalPreviewWindow=null;
 let globalPreviewSnapshot=null;
 const ADMIN_MARKUP="<dialog id=\"mediaLibraryDialog\" class=\"media-library-dialog\" aria-modal=\"true\" aria-label=\"Shared Media Library\">\r\n  <div class=\"media-library-shell\">\r\n    <div class=\"media-library-head\">\r\n      <div><div class=\"admin-kicker\">HQV · MEDIA</div><h3 data-media-title>Media Library</h3><p data-media-copy></p></div>\r\n      <button class=\"admin-close\" type=\"button\" data-media-close aria-label=\"Close\">✕</button>\r\n    </div>\r\n    <div class=\"media-library-toolbar\">\r\n      <input class=\"admin-input\" type=\"search\" data-media-query>\r\n      <select class=\"admin-select\" data-media-filter>\r\n        <option value=\"all\">All</option><option value=\"image\">Image</option><option value=\"video\">Video</option><option value=\"audio\">Audio</option><option value=\"pdf\">PDF</option><option value=\"file\">File / Other</option>\r\n      </select>\r\n      <select class=\"admin-select\" data-media-project><option value=\"\">All Projects</option></select>\r\n      <button class=\"admin-btn\" type=\"button\" data-media-upload>Upload media</button>\r\n    </div>\r\n    <div class=\"media-library-body\">\r\n      <div class=\"media-library-grid\" data-media-grid></div>\r\n      <aside class=\"media-library-detail\" data-media-detail></aside>\r\n    </div>\r\n    <div class=\"media-library-foot\">\r\n      <div class=\"admin-status\" data-media-status aria-live=\"polite\"></div>\r\n      <div class=\"media-library-actions\">\r\n        <button class=\"admin-btn\" type=\"button\" data-media-close>Cancel</button>\r\n        <button class=\"admin-btn primary\" type=\"button\" data-media-confirm>Insert</button>\r\n      </div>\r\n    </div>\r\n  </div>\r\n</dialog>\n<dialog id=\"adminDialog\" class=\"admin-dialog\" aria-modal=\"true\" aria-label=\"Admin asset manager\">\r\n  <div class=\"admin-scroll\">\r\n    <div class=\"admin-head\"><div><div class=\"admin-kicker\">HQV · ADMIN</div><h2 class=\"admin-title\" data-i18n=\"admin.title\">Asset manager</h2><p class=\"admin-note\" data-i18n=\"admin.subtitle\">Quản lý Avatar, Project Cover và Proof bằng Supabase Storage + Database.</p></div><button class=\"admin-close\" type=\"button\" data-close=\"admin\" aria-label=\"Đóng\">✕</button></div>\n    <div id=\"adminPanel\">\r\n       <section class=\"admin-card global-cms\" id=\"globalContentManager\">\r\n         <div class=\"global-cms-head\">\r\n           <div>\r\n             <div class=\"admin-kicker\">HQV · GLOBAL CMS</div>\r\n             <h3 data-i18n=\"admin.globalContent\">GLOBAL CONTENT</h3>\r\n             <p class=\"admin-note\" data-i18n=\"admin.globalContentCopy\">Chỉnh sửa Home, Approach, Skills, Experience, Contact và Footer mà không thay đổi hệ thống layout.</p>\r\n           </div>\r\n           <span id=\"globalLifecycleBadge\" class=\"global-status-badge draft\">DRAFT</span>\r\n         </div>\r\n         <div class=\"global-tabs\" role=\"tablist\" aria-label=\"Global content sections\">\r\n           <button class=\"global-tab is-active\" role=\"tab\" aria-selected=\"true\" type=\"button\" data-global-tab=\"home\" data-i18n=\"admin.globalHome\">Home</button>\r\n           <button class=\"global-tab\" role=\"tab\" aria-selected=\"false\" type=\"button\" data-global-tab=\"approach\" data-i18n=\"admin.globalApproach\">Approach</button>\r\n           <button class=\"global-tab\" role=\"tab\" aria-selected=\"false\" type=\"button\" data-global-tab=\"skills\" data-i18n=\"admin.globalSkills\">Skills</button>\r\n           <button class=\"global-tab\" role=\"tab\" aria-selected=\"false\" type=\"button\" data-global-tab=\"experience\" data-i18n=\"admin.globalExperience\">Experience</button>\r\n           <button class=\"global-tab\" role=\"tab\" aria-selected=\"false\" type=\"button\" data-global-tab=\"contact\" data-i18n=\"admin.globalContact\">Contact</button>\r\n           <button class=\"global-tab\" role=\"tab\" aria-selected=\"false\" type=\"button\" data-global-tab=\"footer\" data-i18n=\"admin.globalFooter\">Footer</button>\r\n         </div>\r\n         <div id=\"globalContentEditor\" class=\"global-editor\"></div>\r\n         <div class=\"global-status-row\">\r\n           <div id=\"globalContentStatus\" class=\"admin-status\" aria-live=\"polite\"></div>\r\n           <div class=\"global-actions\">\r\n             <button class=\"admin-btn\" type=\"button\" id=\"globalSaveDraftBtn\" data-i18n=\"admin.saveDraft\">Save Draft</button>\r\n             <button class=\"admin-btn\" type=\"button\" id=\"globalPreviewBtn\" data-i18n=\"admin.previewDraft\">Preview Draft</button>\r\n             <button class=\"admin-btn primary\" type=\"button\" id=\"globalPublishBtn\" data-i18n=\"admin.publish\">Publish</button>\r\n             <button class=\"admin-btn danger\" type=\"button\" id=\"globalUnpublishBtn\" data-i18n=\"admin.unpublish\">Unpublish</button>\r\n           </div>\r\n         </div>\r\n       </section>\r\n\r\n      <section class=\"admin-project-management\">\r\n        <div class=\"admin-project-head\">\r\n          <div>\r\n            <h3 data-i18n=\"admin.projectManagement\">Project Management</h3>\r\n            <p class=\"admin-note\" data-i18n=\"admin.projectManagementCopy\">Quản lý Project và Case Study content. Project tách biệt hoàn toàn khỏi Proof.</p>\r\n          </div>\r\n          <button class=\"admin-btn primary\" type=\"button\" id=\"newProjectBtn\" data-i18n=\"admin.newProject\">+ New Project</button>\r\n        </div>\r\n        <div id=\"projectManagementList\" class=\"admin-project-list\"></div>\r\n        <div class=\"admin-actions\">\r\n          <button class=\"admin-btn\" type=\"button\" id=\"migrateProjectsBtn\" data-i18n=\"admin.migrateProjects\">Migrate existing Projects</button>\r\n        </div>\r\n        <p class=\"admin-note\" data-i18n=\"admin.migrateCopy\">Migrate idempotently từ hardcoded PROJECTS sang portfolio_projects và portfolio_project_sections.</p>\r\n        <div id=\"projectEditor\" class=\"admin-project-editor\" hidden>\r\n          <form class=\"admin-form\" id=\"projectForm\">\r\n            <input type=\"hidden\" id=\"projectDbId\">\r\n            <div class=\"admin-row\">\r\n              <label class=\"admin-label\"><span data-i18n=\"admin.slug\">Slug</span><input class=\"admin-input\" id=\"projectSlug\" required pattern=\"[a-z0-9]+(?:-[a-z0-9]+)*\"></label>\r\n              <label class=\"admin-label\"><span data-i18n=\"admin.sortOrder\">Sort order</span><input class=\"admin-input\" id=\"projectSortOrder\" type=\"number\" min=\"0\" step=\"1\" required></label>\r\n            </div>\r\n            <div class=\"admin-row\">\r\n              <label class=\"admin-label\"><span data-i18n=\"admin.titleVi\">Tiêu đề VI</span><input class=\"admin-input\" id=\"projectTitleVi\" required></label>\r\n              <label class=\"admin-label\"><span data-i18n=\"admin.titleEn\">Title EN</span><input class=\"admin-input\" id=\"projectTitleEn\" required></label>\r\n            </div>\r\n            <div class=\"admin-row\">\r\n              <label class=\"admin-label\"><span data-i18n=\"admin.hookVi\">Hook VI</span><textarea class=\"admin-textarea\" id=\"projectHookVi\"></textarea></label>\r\n              <label class=\"admin-label\"><span data-i18n=\"admin.hookEn\">Hook EN</span><textarea class=\"admin-textarea\" id=\"projectHookEn\"></textarea></label>\r\n            </div>\r\n            <div class=\"admin-row\">\r\n              <label class=\"admin-label\"><span data-i18n=\"admin.introVi\">Intro VI</span><textarea class=\"admin-textarea\" id=\"projectIntroVi\"></textarea></label>\r\n              <label class=\"admin-label\"><span data-i18n=\"admin.introEn\">Intro EN</span><textarea class=\"admin-textarea\" id=\"projectIntroEn\"></textarea></label>\r\n            </div>\r\n            <div class=\"admin-row\">\r\n              <label class=\"admin-label\"><span data-i18n=\"admin.categories\">Categories</span><input class=\"admin-input\" id=\"projectCategories\" placeholder=\"Marketing, AI, Automation\"></label>\r\n              <label class=\"admin-label\"><span data-i18n=\"admin.visualType\">Visual type</span><input class=\"admin-input\" id=\"projectVisualType\" value=\"web\"></label>\r\n            </div>\r\n            <div class=\"admin-row\">\r\n              <label class=\"admin-label\"><span data-i18n=\"admin.toneA\">Tone A</span><input class=\"admin-input\" id=\"projectToneA\" placeholder=\"#22d3ee\"></label>\r\n              <label class=\"admin-label\"><span data-i18n=\"admin.toneB\">Tone B</span><input class=\"admin-input\" id=\"projectToneB\" placeholder=\"#5b7cfa\"></label>\r\n            </div>\r\n            <label class=\"admin-label\"><span data-i18n=\"admin.stats\">Stats JSON</span><textarea class=\"admin-textarea admin-project-json\" id=\"projectStats\" placeholder='[[\"193\",\"valid responses\"],[\"0.849\",\"KMO\"]]'></textarea></label>\r\n            <div class=\"project-editor-lifecycle\">\r\n  <span id=\"projectLifecycleBadge\" class=\"project-lifecycle-badge draft\">DRAFT</span>\r\n  <div class=\"project-lifecycle-actions\">\r\n    <button class=\"admin-btn\" type=\"button\" id=\"saveProjectDraftBtn\" data-i18n=\"admin.saveDraft\">Save Draft</button>\r\n    <button class=\"admin-btn\" type=\"button\" id=\"previewProjectDraftBtn\" data-i18n=\"admin.previewDraft\">Preview Draft</button>\r\n    <button class=\"admin-btn primary\" type=\"button\" id=\"publishProjectBtn\" data-i18n=\"admin.publish\">Publish</button>\r\n    <button class=\"admin-btn danger\" type=\"button\" id=\"unpublishProjectBtn\" data-i18n=\"admin.unpublish\">Unpublish</button>\r\n  </div>\r\n</div>\r\n            <div>\r\n              <div class=\"admin-project-head\"><div><strong data-i18n=\"admin.sections\">Case Study sections</strong><p class=\"admin-note\" data-i18n=\"admin.sectionsCopy\">Nội dung Case Study được lưu ở portfolio_project_sections, không lấy từ Proof metadata.</p></div><button class=\"admin-btn\" type=\"button\" id=\"addProjectSectionBtn\" data-i18n=\"admin.addSection\">+ Section</button></div>\r\n              <div id=\"projectSectionsEditor\" class=\"admin-section-editor\"></div>\r\n            </div>\r\n            <div class=\"admin-project-media\" id=\"projectMediaManager\">\r\n              <div class=\"admin-project-head\"><div><strong data-i18n=\"admin.projectMedia\">Project Media</strong><p class=\"admin-note\" data-i18n=\"admin.projectMediaCopy\">Cover và article media dùng lại asset registry hiện tại. Không tạo bảng hoặc schema mới.</p></div><button class=\"admin-btn\" type=\"button\" id=\"projectAddMediaBtn\" data-i18n=\"admin.addMedia\">+ Add media</button></div>\r\n              <div id=\"projectMediaList\" class=\"admin-media-list\"></div>\r\n            </div>\r\n            <div class=\"admin-actions\">\r\n              <button class=\"admin-btn\" type=\"button\" id=\"cancelProjectBtn\" data-i18n=\"admin.cancel\">Cancel</button>\r\n            </div>\r\n            <div id=\"projectStatus\" class=\"admin-status\" aria-live=\"polite\"></div>\r\n          </form>\r\n        </div>\r\n      </section>\r\n      <div class=\"admin-asset-sections\">\r\n        <section class=\"admin-asset-card\">\r\n          <h3 data-i18n=\"admin.avatarTitle\">Profile avatar</h3><p data-i18n=\"admin.avatarCopy\">Một avatar dùng chung cho toàn bộ homepage. Ảnh mới chỉ trở thành avatar active sau khi Storage và metadata đều thành công.</p>\r\n          <form class=\"admin-form\" id=\"avatarUploadForm\"><label class=\"admin-label\"><span data-i18n=\"admin.files\">File</span><input class=\"admin-input\" id=\"avatarFile\" type=\"file\" accept=\"image/*\" required></label><div class=\"admin-actions\"><button class=\"admin-btn primary\" type=\"submit\" id=\"avatarUploadBtn\" data-i18n=\"admin.uploadAvatar\">Upload avatar</button></div><div id=\"avatarUploadStatus\" class=\"admin-status\" aria-live=\"polite\"></div></form>\r\n          <div id=\"adminAvatarState\"></div>\r\n        </section>\r\n        <section class=\"admin-asset-card\">\r\n          <h3 data-i18n=\"admin.coverTitle\">Project cover</h3><p data-i18n=\"admin.coverCopy\">Ảnh cover tùy chọn cho từng project. Nếu chưa có asset, visual hiện tại vẫn được giữ nguyên.</p>\r\n          <form class=\"admin-form\" id=\"coverUploadForm\"><label class=\"admin-label\"><span data-i18n=\"admin.project\">Project</span><select class=\"admin-select\" id=\"coverProject\" required></select></label><label class=\"admin-label\"><span data-i18n=\"admin.files\">File</span><input class=\"admin-input\" id=\"projectCoverFile\" type=\"file\" accept=\"image/*\" required></label><div class=\"admin-actions\"><button class=\"admin-btn primary\" type=\"submit\" id=\"coverUploadBtn\" data-i18n=\"admin.uploadCover\">Upload cover</button></div><div id=\"coverUploadStatus\" class=\"admin-status\" aria-live=\"polite\"></div></form>\r\n        </section>\r\n      </div>\r\n      <div class=\"admin-grid\">\r\n        <section class=\"admin-card\"><h3 data-i18n=\"admin.uploadTitle\">Upload proof</h3><p class=\"admin-note\" data-i18n=\"admin.uploadCopy\">PDF, ảnh hoặc JSON. Chọn nhiều ảnh để tạo một gallery. Metadata chỉ được ghi sau khi Storage upload thành công.</p>\r\n          <form class=\"admin-form\" id=\"proofUploadForm\">\r\n            <label class=\"admin-label\"><span data-i18n=\"admin.project\">Project</span><select class=\"admin-select\" id=\"adminProject\" required></select></label>\r\n            <div class=\"admin-row\"><label class=\"admin-label\"><span data-i18n=\"admin.titleVi\">Tiêu đề VI</span><input class=\"admin-input\" id=\"proofTitleVi\" required></label><label class=\"admin-label\"><span data-i18n=\"admin.titleEn\">Title EN</span><input class=\"admin-input\" id=\"proofTitleEn\" required></label></div>\r\n            <label class=\"admin-label\"><span data-i18n=\"admin.files\">File</span><input class=\"admin-input\" id=\"proofFiles\" type=\"file\" accept=\"image/*,application/pdf,video/*,audio/*,application/json,text/csv,text/plain,application/zip,.docx,.xlsx,.pptx,.mov,.avif,.m4a,.flac,.json\" multiple required></label>\r\n            <div class=\"admin-actions\"><button class=\"admin-btn primary\" type=\"submit\" id=\"uploadBtn\" data-i18n=\"admin.upload\">Upload proof</button><button class=\"admin-btn danger\" type=\"button\" id=\"adminLogout\" data-i18n=\"admin.logout\">Đăng xuất</button></div>\r\n            <div id=\"adminUploadStatus\" class=\"admin-status\" aria-live=\"polite\"></div>\r\n          </form>\r\n        </section>\r\n        <section class=\"admin-card\"><h3 data-i18n=\"admin.existing\">Saved assets</h3><p class=\"admin-note\" data-i18n=\"admin.existingCopy\">Chỉ hiển thị proof và gallery đã lưu trong asset registry.</p><div id=\"adminProofList\" class=\"admin-proof-list\"></div></section>\r\n      </div>\r\n    </div>\r\n  </div>\r\n</dialog>";
 let globalDraftContent=null;
+let globalContentLoadState='loading';
 
 let globalAdminTab='home';
 
 let projectDrafts=new Map();
+let projectDraftLoadState='pending';
 
 function overlayGlobalRows(base,rows,prefix){
   const clone=deepClone(base),fallback=globalFallbackContent();(rows||[]).filter(r=>String(r.content_key||'').startsWith(prefix)).forEach(r=>{const key=String(r.content_key).slice(prefix.length);if(!GLOBAL_SECTION_KEYS.includes(key))return;clone[key]=globalCanonicalFromStored(parseContentJSON(r.value_vi,null),parseContentJSON(r.value_en,null),fallback[key]||{})});return clone;
@@ -19,9 +21,14 @@ let globalAdminContent=deepClone(globalFallbackContent());
 
 function setPath(obj,path,value){const parts=path.split('.');let cur=obj;for(let i=0;i<parts.length-1;i++){if(!cur[parts[i]]||typeof cur[parts[i]]!=='object')cur[parts[i]]={};cur=cur[parts[i]]}cur[parts[parts.length-1]]=value}
 
-function globalField(path,label,vi,en,type='input',full=false){const attrs=type==='textarea'?'textarea':'input';const open=type==='textarea'?`<textarea`:`<input`;const close=type==='textarea'?`</textarea>`:'';const pair=()=>`<div class="global-lang"><div class="global-field"><span>${esc(label)} · VI</span>${open} class="admin-${type==='textarea'?'textarea':'input'}" data-global-field="${esc(path)}" data-global-lang="vi">${type==='textarea'?esc(getPath(globalAdminContent,path)?.vi||''):''}${type==='textarea'?close:` value="${esc(getPath(globalAdminContent,path)?.vi||'')}"`}</div><div class="global-field"><span>${esc(label)} · EN</span>${open} class="admin-${type==='textarea'?'textarea':'input'}" data-global-field="${esc(path)}" data-global-lang="en">${type==='textarea'?esc(getPath(globalAdminContent,path)?.en||''):''}${type==='textarea'?close:` value="${esc(getPath(globalAdminContent,path)?.en||'')}"`}</div></div>`;return `<div class="global-field${full?' full':''}">${pair()}</div>`}
+function globalField(path,label,vi,en,type='input',full=false){const textarea=type==='textarea',tag=textarea?'textarea':'input',fieldClass=`admin-${textarea?'textarea':'input'}`;const pair=lang=>{const value=getPath(globalAdminContent,path)?.[lang]||'',attrs=`class="${fieldClass}" data-global-field="${esc(path)}" data-global-lang="${lang}"`;return `<div class="global-field"><span>${esc(label)} · ${lang.toUpperCase()}</span>${textarea?`<textarea ${attrs}>${esc(value)}</textarea>`:`<input ${attrs} value="${esc(value)}">`}</div>`};return `<div class="global-field${full?' full':''}">${pair('vi')}${pair('en')}</div>`}
 
 function globalItemsField(path,label,vi,en){return `<div class="global-field"><span>${esc(label)}</span><div class="global-lang"><div class="global-field"><span>VI · one item per line</span><textarea class="admin-textarea" data-global-array="${esc(path)}" data-global-lang="vi">${esc((getPath(globalAdminContent,path)?.vi||[]).join?.('\n')||'')}</textarea></div><div class="global-field"><span>EN · one item per line</span><textarea class="admin-textarea" data-global-array="${esc(path)}" data-global-lang="en">${esc((getPath(globalAdminContent,path)?.en||[]).join?.('\n')||'')}</textarea></div></div></div>`}
+
+const globalFieldBase=globalField;
+const globalItemsFieldBase=globalItemsField;
+globalField=function(path,...args){return path.startsWith('experience.certGroups.')?'':globalFieldBase(path,...args)};
+globalItemsField=function(path,...args){return path.startsWith('experience.certGroups.')?'':globalItemsFieldBase(path,...args)};
 
 function renderGlobalEditor(){
   const host=$('#globalContentEditor');if(!host)return;const c=globalAdminContent;
@@ -42,6 +49,7 @@ function renderGlobalEditor(){
 function mergeEditorInputs(){
   $$('#globalContentEditor [data-global-field]').forEach(el=>{const path=el.dataset.globalField,lang=el.dataset.globalLang;const node=getPath(globalAdminContent,path);const pair=node&&typeof node==='object'&&'vi' in node&&'en' in node?node:{vi:'',en:''};pair[lang]=el.value;setPath(globalAdminContent,path,pair)});
   $$('#globalContentEditor [data-global-array]').forEach(el=>{const path=el.dataset.globalArray,lang=el.dataset.globalLang;const node=getPath(globalAdminContent,path)||{vi:[],en:[]};node[lang]=el.value.split(/\n+/).map(x=>x.trim()).filter(Boolean);setPath(globalAdminContent,path,node)});
+  $$('#globalContentEditor [data-cert-meta]').forEach(el=>{const [id,field]=el.dataset.certMeta.split('|'),item=findCertAdminItem(id);if(item)item[field]=el.value});
   return globalAdminContent;
 }
 
@@ -76,24 +84,14 @@ async function restoreGlobalLifecycleSnapshot(snapshot){
   await restorePrefix('global.draft.',snapshot?.draft||[]);
 }
 
-async function saveGlobalDraft(){
-  if(!session){setAdminStatus('#globalContentStatus','err',t('admin.loginRequired'));return}
-  const btn=$('#globalSaveDraftBtn');btn.disabled=true;let before=null;
-  try{
-    const snapshot=globalContentSnapshot();
-    before=await captureGlobalLifecycleSnapshot();
-    for(const key of GLOBAL_SECTION_KEYS){const value=snapshot[key];await upsertContentRow(`global.draft.${key}`,globalContentForStorage(value,'vi',globalFallbackContent()[key]),globalContentForStorage(value,'en',globalFallbackContent()[key]))}
-    globalDraftContent=deepClone(snapshot);globalAdminContent=deepClone(snapshot);
-    setAdminStatus('#globalContentStatus','ok',t('admin.globalSaved'));$('#globalLifecycleBadge').className='global-status-badge draft';$('#globalLifecycleBadge').textContent='DRAFT';
-  }catch(err){
-    let rollbackOk=true;if(before){try{await restoreGlobalLifecycleSnapshot(before)}catch(_){rollbackOk=false}}
-    setAdminStatus('#globalContentStatus','err',rollbackOk?projectErrorText(err):(currentLang==='en'?'Save Draft failed and rollback could not be verified.':'Lưu bản nháp thất bại và không thể xác minh rollback hoàn toàn.'));
-  }finally{btn.disabled=false}
-}
+function refreshGlobalBadge(){const badge=$('#globalLifecycleBadge');if(!badge)return;if(globalContentLoadState!=='ready'){badge.className='global-status-badge draft';badge.textContent=globalContentLoadState==='failed'?'LIVE UNAVAILABLE':'LOADING LIVE';return}const published=globalDbState==='ready',draft=!!globalDraftContent;badge.className=`global-status-badge ${published&&!draft?'published':'draft'}`;badge.textContent=published?(draft?'DRAFT · LIVE VERSION PRESERVED':'PUBLISHED'):(draft?'DRAFT':'UNPUBLISHED')}
+function refreshGlobalControls(){const ready=globalContentLoadState==='ready';['#globalSaveDraftBtn','#globalPublishBtn','#globalUnpublishBtn'].forEach(selector=>{const button=$(selector);if(button)button.disabled=!ready})}
+function changeAdminLanguage(next){const keyFor=(select,index)=>select.id?`id:${select.id}`:select.name?`name:${select.name}`:`index:${index}`;const selected=new Map([...adminDialog.querySelectorAll('select')].map((select,index)=>[keyFor(select,index),select.value]));mergeEditorInputs();HQVShared.setLang(next);applyAdminStatic();renderGlobalEditor();refreshAdminProjectList();refreshAdminList();[...adminDialog.querySelectorAll('select')].forEach((select,index)=>{const value=selected.get(keyFor(select,index));if(value!==undefined&&[...select.options].some(option=>option.value===value))select.value=value})}
+async function saveGlobalDraft(){if(!HQVShared.auth?.isAuthed()){setAdminStatus('#globalContentStatus','err',t('admin.loginRequired'));return}if(globalContentLoadState!=='ready'){setAdminStatus('#globalContentStatus','err',globalContentLoadState==='failed'?(currentLang==='en'?'Live content could not be loaded. Writes are blocked to prevent overwriting it.':'Không tải được bản live, chặn ghi để tránh ghi đè.'):(currentLang==='en'?'Live content is still loading.':'Đang tải nội dung live.'));return}const btn=$('#globalSaveDraftBtn');btn.disabled=true;let before=null;try{const snapshot=globalContentSnapshot();before=await captureGlobalLifecycleSnapshot();for(const key of GLOBAL_SECTION_KEYS){const value=snapshot[key];await upsertContentRow(`global.draft.${key}`,globalContentForStorage(value,'vi',globalFallbackContent()[key]),globalContentForStorage(value,'en',globalFallbackContent()[key]))}globalDraftContent=deepClone(snapshot);globalAdminContent=HQVShared.composeGlobalContent(globalFallbackContent(),globalPublishedContent||{},globalDraftContent);setAdminStatus('#globalContentStatus','ok',t('admin.globalSaved'));refreshGlobalBadge()}catch(err){let rollbackOk=true;if(before){try{await restoreGlobalLifecycleSnapshot(before)}catch(_){rollbackOk=false}}setAdminStatus('#globalContentStatus','err',rollbackOk?projectErrorText(err):(currentLang==='en'?'Save Draft failed and rollback could not be verified.':'Lưu bản nháp thất bại và không thể xác minh rollback hoàn toàn.'))}finally{refreshGlobalControls()}}
 
-async function publishGlobal(){if(!session){setAdminStatus('#globalContentStatus','err',t('admin.loginRequired'));return}const btn=$('#globalPublishBtn');btn.disabled=true;let before=null;try{const snapshot=globalContentSnapshot();validateGlobalContent(snapshot);before=await captureGlobalLifecycleSnapshot();for(const key of GLOBAL_SECTION_KEYS){const value=snapshot[key];await upsertContentRow(`global.published.${key}`,globalContentForStorage(value,'vi',globalFallbackContent()[key]),globalContentForStorage(value,'en',globalFallbackContent()[key]));await deleteContentKey(`global.draft.${key}`)}globalPublishedContent=deepClone(snapshot);globalDraftContent=null;globalAdminContent=deepClone(snapshot);setAdminStatus('#globalContentStatus','ok',t('admin.globalPublished'));$('#globalLifecycleBadge').className='global-status-badge published';$('#globalLifecycleBadge').textContent='PUBLISHED';renderGlobalContent(currentLang)}catch(err){let rollbackOk=true;if(before){try{await restoreGlobalLifecycleSnapshot(before)}catch(_){rollbackOk=false}}if(err.message==='global_publish_validation_failed'||err.message==='invalid_global_content'){setAdminStatus('#globalContentStatus','err',(err.validation?.join(' · ')||t('admin.invalidGlobal')))}else if(!rollbackOk){setAdminStatus('#globalContentStatus','err',currentLang==='en'?'Publish failed and rollback could not be fully verified.':'Publish thất bại và không thể xác minh rollback hoàn toàn.')}else setAdminStatus('#globalContentStatus','err',currentLang==='en'?'Publish failed. No partial publish was reported as success.':'Publish thất bại. Không báo thành công khi publish một phần.')}finally{btn.disabled=false}}
+async function publishGlobal(){if(!HQVShared.auth?.isAuthed()){setAdminStatus('#globalContentStatus','err',t('admin.loginRequired'));return}if(globalContentLoadState!=='ready'){setAdminStatus('#globalContentStatus','err',globalContentLoadState==='failed'?(currentLang==='en'?'Live content could not be loaded. Writes are blocked to prevent overwriting it.':'Không tải được bản live, chặn ghi để tránh ghi đè.'):(currentLang==='en'?'Live content is still loading.':'Đang tải nội dung live.'));return}const btn=$('#globalPublishBtn');btn.disabled=true;let before=null;try{const snapshot=globalContentSnapshot();validateGlobalContent(snapshot);before=await captureGlobalLifecycleSnapshot();for(const key of GLOBAL_SECTION_KEYS){const value=snapshot[key];await upsertContentRow(`global.published.${key}`,globalContentForStorage(value,'vi',globalFallbackContent()[key]),globalContentForStorage(value,'en',globalFallbackContent()[key]));await deleteContentKey(`global.draft.${key}`)}globalPublishedContent=deepClone(snapshot);globalDraftContent=null;globalAdminContent=HQVShared.composeGlobalContent(globalFallbackContent(),globalPublishedContent);globalDbState='ready';setAdminStatus('#globalContentStatus','ok',t('admin.globalPublished'));refreshGlobalBadge()}catch(err){let rollbackOk=true;if(before){try{await restoreGlobalLifecycleSnapshot(before)}catch(_){rollbackOk=false}}if(err.message==='global_publish_validation_failed'||err.message==='invalid_global_content')setAdminStatus('#globalContentStatus','err',(err.validation?.join(' · ')||t('admin.invalidGlobal')));else if(!rollbackOk)setAdminStatus('#globalContentStatus','err',currentLang==='en'?'Publish failed and rollback could not be fully verified.':'Publish thất bại và không thể xác minh rollback hoàn toàn.');else setAdminStatus('#globalContentStatus','err',currentLang==='en'?'Publish failed. No partial publish was reported as success.':'Publish thất bại. Không báo thành công khi publish một phần.')}finally{refreshGlobalControls()}}
 
-async function unpublishGlobal(){if(!session){setAdminStatus('#globalContentStatus','err',t('admin.loginRequired'));return}const btn=$('#globalUnpublishBtn');if(btn)btn.disabled=true;let before=null;try{before=await captureGlobalLifecycleSnapshot();for(const key of GLOBAL_SECTION_KEYS)await deleteContentKey(`global.published.${key}`);globalPublishedContent=null;globalAdminContent=deepClone(globalDraftContent||globalFallbackContent());setAdminStatus('#globalContentStatus','ok',t('admin.globalUnpublished'));const badge=$('#globalLifecycleBadge');if(badge){badge.className='global-status-badge draft';badge.textContent=globalDraftContent?'DRAFT':'UNPUBLISHED'}renderGlobalContent(currentLang)}catch(err){let rollbackOk=true;if(before){try{await restoreGlobalLifecycleSnapshot(before)}catch(_){rollbackOk=false}}setAdminStatus('#globalContentStatus','err',rollbackOk?(currentLang==='en'?'Unpublish failed. Previous published content was restored.':'Unpublish thất bại. Nội dung published trước đó đã được khôi phục.'):(currentLang==='en'?'Unpublish failed and rollback could not be verified.':'Unpublish thất bại và không thể xác minh rollback hoàn toàn.'))}finally{if(btn)btn.disabled=false}}
+async function unpublishGlobal(){if(!HQVShared.auth?.isAuthed()){setAdminStatus('#globalContentStatus','err',t('admin.loginRequired'));return}if(globalContentLoadState!=='ready'){setAdminStatus('#globalContentStatus','err',globalContentLoadState==='failed'?(currentLang==='en'?'Live content could not be loaded. Writes are blocked to prevent overwriting it.':'Không tải được bản live, chặn ghi để tránh ghi đè.'):(currentLang==='en'?'Live content is still loading.':'Đang tải nội dung live.'));return}const btn=$('#globalUnpublishBtn');if(btn)btn.disabled=true;let before=null;try{before=await captureGlobalLifecycleSnapshot();for(const key of GLOBAL_SECTION_KEYS)await deleteContentKey(`global.published.${key}`);globalPublishedContent=null;globalDbState='empty';globalAdminContent=HQVShared.composeGlobalContent(globalFallbackContent(),globalDraftContent||{});setAdminStatus('#globalContentStatus','ok',t('admin.globalUnpublished'));refreshGlobalBadge()}catch(err){let rollbackOk=true;if(before){try{await restoreGlobalLifecycleSnapshot(before)}catch(_){rollbackOk=false}}setAdminStatus('#globalContentStatus','err',rollbackOk?(currentLang==='en'?'Unpublish failed. Previous published content was restored.':'Unpublish thất bại. Nội dung published trước đó đã được khôi phục.'):(currentLang==='en'?'Unpublish failed and rollback could not be verified.':'Unpublish thất bại và không thể xác minh rollback hoàn toàn.'))}finally{refreshGlobalControls()}}
 
 function openGlobalPreview(){try{globalPreviewSnapshot=globalContentSnapshot();globalPreviewWindow=window.open(new URL('index.html#global-preview',location.href).href,'_blank');if(!globalPreviewWindow){setAdminStatus('#globalContentStatus','err',currentLang==='en'?'Popup blocked.':'Trình duyệt đã chặn cửa sổ preview.');return}setAdminStatus('#globalContentStatus','ok',t('admin.globalPreviewOpened'))}catch(error){setAdminStatus('#globalContentStatus','err',error.message||t('admin.invalidGlobal'))}}
 
@@ -102,7 +100,7 @@ function projectFromDraftPayload(base,payload){
   return {...(base||{}),id:d.slug||base?.id,dbId:d.id||base?.dbId||null,index:String(d.sort_order??Number(base?.index||1)).padStart(2,'0'),published:base?.published!==false,visual:d.visual_type||base?.visual||'web',tone:[d.tone_a||base?.tone?.[0]||'#22d3ee',d.tone_b||base?.tone?.[1]||'#5b7cfa'],__draftPayload:payload,content:{vi:{...vi,title:d.title_vi||vi.title,hook:d.hook_vi??vi.hook,intro:d.intro_vi??vi.intro,category:Array.isArray(d.categories)?d.categories:vi.category||[],stats:Array.isArray(d.stats)?d.stats:vi.stats||[],story:sections.map(s=>[s.title_vi||s.title_en||'',s.body_vi||s.body_en||''])},en:{...en,title:d.title_en||en.title,hook:d.hook_en??en.hook,intro:d.intro_en??en.intro,category:Array.isArray(d.categories)?d.categories:en.category||[],stats:Array.isArray(d.stats)?d.stats:en.stats||[],story:sections.map(s=>[s.title_en||s.title_vi||'',s.body_en||s.body_vi||''])}},sections};
 }
 
-async function loadProjectDrafts(){projectDrafts=new Map();if(!session||!sbReady())return;try{const r=await sbFetch('/rest/v1/portfolio_content?select=content_key,value_vi,updated_at&content_key=like.project.draft.%25&order=updated_at.desc',{method:'GET'});const rows=await r.json();(Array.isArray(rows)?rows:[]).forEach(r=>{const slug=String(r.content_key||'').slice('project.draft.'.length);const payload=parseContentJSON(r.value_vi,{});if(slug&&payload&&typeof payload==='object')projectDrafts.set(slug,payload)});}catch(_){}if(adminDialog?.open)refreshAdminProjectList()}
+async function loadProjectDrafts(){projectDrafts=new Map();projectDraftLoadState='pending';if(!HQVShared.auth?.isAuthed()||!sbReady()){projectDraftLoadState='ready';return}try{const r=await sbFetch('/rest/v1/portfolio_content?select=content_key,value_vi,updated_at&content_key=like.project.draft.%25&order=updated_at.desc',{method:'GET'});const rows=await r.json();(Array.isArray(rows)?rows:[]).forEach(r=>{const slug=String(r.content_key||'').slice('project.draft.'.length);const payload=parseContentJSON(r.value_vi,{});if(slug&&payload&&typeof payload==='object')projectDrafts.set(slug,payload)});projectDraftLoadState='ready'}catch(_){projectDraftLoadState='failed'}if(adminDialog?.open)refreshAdminProjectList()}
 
 function projectAdminSource(project){const d=projectDrafts.get(project.id);return d?projectFromDraftPayload(project,d):project}
 
@@ -110,7 +108,7 @@ function setProjectLifecycleUI(project){const live=!!project?.dbId&&project.publ
 
 function safeStorageRemove(storage,key){try{storage?.removeItem(key)}catch(_){} }
 
-let session=null;
+
 
 async function uploadAsset(input){return uploadAssetBatch(input)}
 
@@ -141,11 +139,12 @@ async function inspectUploadFile(file){
 }
 
 function certAdminPanelHtml(){
-  const cg=globalAdminContent?.experience?.certGroups||{},en=currentLang==='en';
-  const groups=[{key:'experience',label:en?'Vice Head of Communications':'Phó chủ nhiệm truyền thông',id:EXPERIENCE_PROOF_ID,vi:'Phó chủ nhiệm truyền thông',en:'Vice Head of Communications'},{key:'anthropic',label:cg.anthropic?.label?.[currentLang]||'Anthropic'},{key:'marketing',label:cg.marketing?.label?.[currentLang]||'Marketing & Analytics'},{key:'english',label:cg.english?.label?.[currentLang]||'English'}];
-  const rows=groups.map(group=>{const names=group.key==='experience'?[group.vi]:certItemList(cg[group.key]?.items?.vi);return names.map((name,i)=>{const id=group.id||certSlug(group.key,name),en_=group.en||certItemList(cg[group.key]?.items?.en)[i]||name,list=certAssetList(id);return `<div class="cert-admin-row"><strong>${esc(name)}</strong><div class="cert-admin-files">${list.map((a,j)=>`<span>${esc(a.original_name||a.id)} · ${esc(mediaTypeLabel(a))}</span><button class="admin-btn" type="button" data-cert-move="${esc(id)}|${j}|up"${j===0?' disabled':''} aria-label="${en?'Move up':'Đưa lên'}">↑</button><button class="admin-btn" type="button" data-cert-move="${esc(id)}|${j}|down"${j===list.length-1?' disabled':''} aria-label="${en?'Move down':'Đưa xuống'}">↓</button><button class="admin-btn" type="button" data-cert-preview="${esc(id)}|${esc(a.id)}">${en?'View':'Xem'}</button><button class="admin-btn danger" type="button" data-cert-remove="${esc(a.id)}">×</button>`).join('')||`<span>${en?'No file yet':'Chưa có minh chứng'}</span>`}</div><div class="admin-actions"><button class="admin-btn" type="button" data-cert-upload="${esc(id)}" data-cert-owner-type="${group.key==='experience'?'experience':'certificate'}" data-cert-vi="${esc(name)}" data-cert-en="${esc(en_)}">+ Upload</button><button class="admin-btn" type="button" data-cert-choose="${esc(id)}" data-cert-vi="${esc(name)}" data-cert-en="${esc(en_)}">${en?'Choose from Media Library':'Chọn từ Media Library'}</button></div></div>`}).join('')}).join('');
-  return `<p class="admin-note">${en?'Each certificate and role has an independent evidence owner.':'Mỗi chứng chỉ và vai trò có owner minh chứng riêng, không bị dồn vào một nhóm.'}</p>${rows}`;
+  const groups=normalizeCertGroups(globalAdminContent?.experience?.certGroups),en=currentLang==='en';
+  globalAdminContent.experience.certGroups=groups;
+  return `<div class="cert-admin-list">${groups.map((group,groupIndex)=>`<section class="cert-admin-group"><h4>${esc(getLocalizedContent(group.title,currentLang))}</h4>${group.items.map((item,itemIndex)=>{const id=item.id,cover=certCoverAsset(id),proofs=certAssetList(id),basePath=`experience.certGroups.${groupIndex}.items.${itemIndex}`;return `<article class="cert-admin-row" data-cert-id="${esc(id)}"><div class="cert-admin-row-head"><strong>${esc(getLocalizedContent(item.title,currentLang))}</strong><code>${esc(id)}</code></div><div class="admin-cert-fields">${globalFieldBase(`${basePath}.title`,en?'Title':'Tên',null,null,'input',true)}${globalFieldBase(`${basePath}.description`,en?'Description':'Mô tả',null,null,'textarea',true)}<label class="admin-label">${en?'Issuer':'Đơn vị cấp'}<input class="admin-input" data-cert-meta="${esc(id)}|issuer" value="${esc(item.issuer||'')}"></label><div class="admin-row"><label class="admin-label">${en?'Issue date':'Ngày cấp'}<input class="admin-input" data-cert-meta="${esc(id)}|date" value="${esc(item.date||'')}"></label><label class="admin-label">${en?'Credential URL':'Liên kết xác minh'}<input class="admin-input" type="url" data-cert-meta="${esc(id)}|credentialUrl" value="${esc(item.credentialUrl||'')}"></label></div></div><div class="admin-project-media"><div class="admin-project-head"><strong>${en?'Cover':'Ảnh bìa'}</strong><span>${cover?esc(cover.original_name||''):(en?'No cover':'Chưa có ảnh bìa')}</span></div>${cover?`<img class="admin-image-thumb cert-admin-cover-thumb" src="${esc(getAssetUrl(cover))}" alt="${esc(getLocalizedContent(item.title,currentLang))}">`:''}<div class="admin-actions"><button class="admin-btn" type="button" data-cert-cover-upload="${esc(id)}">${cover?(en?'Replace cover':'Thay ảnh bìa'):(en?'Upload cover':'Tải ảnh bìa')}</button>${cover?`<button class="admin-btn danger" type="button" data-cert-cover-remove="${esc(cover.id)}">${en?'Remove cover':'Xóa ảnh bìa'}</button>`:''}</div></div><div class="admin-project-media"><div class="admin-project-head"><strong>${en?'Evidence':'Minh chứng'}</strong><button class="admin-btn" type="button" data-cert-upload="${esc(id)}">${en?'Upload files':'Tải nhiều file'}</button></div><div class="cert-admin-files">${proofs.map((asset,index)=>`<div class="cert-admin-file"><span>${esc(asset.original_name||asset.id)} · ${esc(mediaTypeLabel(asset))}</span><button class="admin-btn" type="button" data-cert-move="${esc(id)}|${index}|up"${index===0?' disabled':''} aria-label="${en?'Move up':'Đưa lên'}">↑</button><button class="admin-btn" type="button" data-cert-move="${esc(id)}|${index}|down"${index===proofs.length-1?' disabled':''} aria-label="${en?'Move down':'Đưa xuống'}">↓</button><button class="admin-btn" type="button" data-cert-preview="${esc(id)}|${index}">${en?'View':'Xem'}</button><button class="admin-btn danger" type="button" data-cert-remove="${esc(asset.id)}">×</button></div>`).join('')||`<span>${en?'No evidence uploaded':'Chưa có minh chứng'}</span>`}</div><button class="admin-btn" type="button" data-cert-choose="${esc(id)}">${en?'Choose from Media Library':'Chọn từ Media Library'}</button></div></article>`}).join('')}</section>`).join('')}</div>`;
 }
+
+function findCertAdminItem(id){return globalAdminContent?.experience?.certGroups?.flatMap(group=>group.items||[]).find(item=>item.id===id)||null}
 
 async function reorderCertificateAssets(id,index,direction){
   const list=certAssetList(id),next=index+(direction==='up'?-1:1);
@@ -183,26 +182,49 @@ function mediaProjectKeys(key){const k=String(key||'');if(!k)return null;const k
 
 function mediaAssetBelongsTo(row,keys){if(!keys)return true;return [row?.project_id,row?.owner_id].some(v=>v!=null&&v!==''&&keys.has(String(v)))}
 
-function mediaUsage(assetId){
+function blockAssetReferences(sections,assetId,label){
   const refs=[];
-  const known=assetLoadState==='ready'&&PROJECTS.every(project=>Array.isArray(project.sections));
-  if(!assetId)return {count:0,refs,known};
-  if(!known)return {count:0,refs,known:false};
+  (Array.isArray(sections)?sections:[]).forEach(section=>{
+    const doc=normalizeBlockDocument(section.blocks,section.body_vi,section.body_en);
+    doc.items.forEach((block,index)=>{
+      const settings=block.settings||{},sectionName=`${label} — Section ${Number(section.sort_order||0)+1}`;
+      if(settings.asset_id===assetId)refs.push(`${sectionName} · ${block.type} #${index+1}`);
+      if(settings.poster_asset_id===assetId)refs.push(`${sectionName} · video poster #${index+1}`);
+      if(Array.isArray(settings.asset_ids))settings.asset_ids.forEach((id,fileIndex)=>{if(id===assetId)refs.push(`${sectionName} · Gallery #${index+1} · ${fileIndex+1}`)});
+    });
+  });
+  return refs;
+}
+
+function mediaUsage(assetId){
+  const refs=[],blockRefs=[];
+  const known=assetLoadState==='ready'&&projectDraftLoadState==='ready'&&PROJECTS.every(project=>Array.isArray(project.sections));
+  if(!assetId)return {count:0,refs,blockRefs,known};
+  if(!known)return {count:0,refs,blockRefs,known:false};
   for(const project of PROJECTS){
     const cover=projectCovers.get(project.id);
     if(cover?.id===assetId)refs.push(`${project.id} — Project cover`);
-    for(const section of (project.sections||[])){
-      const doc=normalizeBlockDocument(section.blocks,section.body_vi,section.body_en);
-      doc.items.forEach((block,index)=>{
-        const s=block.settings||{};
-        if(s.asset_id===assetId)refs.push(`${project.id} — Section ${Number(section.sort_order||0)+1} · ${block.type} #${index+1}`);
-        if(s.poster_asset_id===assetId)refs.push(`${project.id} — Section ${Number(section.sort_order||0)+1} · video poster #${index+1}`);
-        if(Array.isArray(s.asset_ids))s.asset_ids.forEach((id,j)=>{if(id===assetId)refs.push(`${project.id} — Section ${Number(section.sort_order||0)+1} · Gallery #${index+1} · ${j+1}`)});
-      });
-    }
+    blockRefs.push(...blockAssetReferences(project.sections,assetId,project.id));
   }
-  {const __r=assetRegistry.get(assetId);if(__r&&__r.owner_type==='certificate'&&__r.owner_id)refs.push(`Certificate — ${__r.title_vi||__r.owner_id}`)}
-  return {count:refs.length,refs,known:true};
+  for(const [slug,draft] of projectDrafts)blockRefs.push(...blockAssetReferences(draft.sections,assetId,`${slug} — Draft`));
+  refs.push(...blockRefs);
+  const owner=assetRegistry.get(assetId);
+  if(owner?.owner_type==='certificate'||owner?.owner_type==='experience')refs.push(`Certificate — ${owner.title_vi||owner.owner_id}`);
+  else if(owner?.owner_type==='profile')refs.push('Profile — HQV');
+  else if(owner?.owner_type==='insight')refs.push(`Insight — ${owner.owner_id}`);
+  return {count:refs.length,refs,blockRefs,known:true};
+}
+
+async function insightAssetReferences(assetId){
+  try{
+    const response=await sbFetch('/rest/v1/portfolio_insight_sections?select=id,insight_id,sort_order,blocks',{method:'GET'});
+    const rows=await response.json();
+    return blockAssetReferences((Array.isArray(rows)?rows:[]).map(row=>({...row,sort_order:row.sort_order||0})),assetId,'Insight');
+  }catch(error){
+    const detail=String(error?.detail||error?.message||'');
+    if((error?.status===400||error?.status===404)&&/portfolio_insight_sections|pgrst205|does not exist|schema cache/i.test(detail))return [];
+    throw error;
+  }
 }
 
 function mediaSelectionIds(){return mediaLibraryState.mode==='single'?(mediaLibraryState.selectedId?[mediaLibraryState.selectedId]:[]):[...mediaLibraryState.selectedIds]}
@@ -250,7 +272,7 @@ function renderMediaLibrary(){
 }
 
 function openMediaLibrary({mode='single',accept='image',selectedId=null,selectedIds=[],projectId='',title='',onConfirm,browseOnly=false}={}){
-  if(!session){setAdminStatus('#projectStatus','err',t('admin.loginRequired'));return}
+  if(!HQVShared.auth?.isAuthed()){setAdminStatus('#projectStatus','err',t('admin.loginRequired'));return}
   Object.assign(mediaLibraryState,{mode,accept,projectId,title,selectedId:selectedId||null,selectedIds:new Set(selectedIds||[]),query:'',filter:'all',onConfirm,browseOnly});
   const dlg=$('#mediaLibraryDialog');if(!dlg)return;
   $('[data-media-title]').textContent=title||t('admin.mediaLibrary');$('[data-media-copy]').textContent=t('admin.mediaLibraryCopy');
@@ -282,28 +304,15 @@ function imageBlockPickerHtml(block){
 
 let adminDialog=null;
 
-function saveAdminSession(value){session=value;HQVShared.auth?.setSession(value);safeStorageSet(window.sessionStorage,'hqv-admin-session',JSON.stringify(value))}
 
-function sessionExpiredMessage(){return currentLang==='en'?'Session expired, please log in again':'Phiên đăng nhập hết hạn, vui lòng đăng nhập lại'}
 
-function clearExpiredSession(){session=null;safeStorageRemove(window.sessionStorage,'hqv-admin-session');HQVShared.auth?.onExpired?.()}
 
-let refreshPromise=null;
 
-function refreshAdminSession(){
-  if(refreshPromise)return refreshPromise;
-  refreshPromise=(async()=>{
-    const refreshToken=session?.refresh_token;
-    if(!refreshToken){clearExpiredSession();throw new Error('session_expired')}
-    const response=await fetch(CONFIG.supabase.url.replace(/\/$/,'')+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:sbHeaders(CONFIG.supabase.anonKey),body:JSON.stringify({refresh_token:refreshToken})});
-    if(!response.ok){let detail='';try{detail=await response.text()}catch(_){}console.error('[HQV auth refresh]',{status:response.status,detail});clearExpiredSession();throw new Error('session_expired')}
-    const refreshed=await response.json();
-    if(!refreshed?.access_token){clearExpiredSession();throw new Error('session_expired')}
-    saveAdminSession({...session,...refreshed,refresh_token:refreshed.refresh_token||refreshToken});
-    return session;
-  })().finally(()=>{refreshPromise=null});
-  return refreshPromise;
-}
+
+
+
+
+
 
 function jwtExpiredResponse(status,detail){return status===401||status===400&&/jwt|token|expired|invalid.*session/i.test(detail||'')}
 
@@ -311,21 +320,7 @@ function storageBucketUrl(){return CONFIG.supabase.url.replace(/\/$/,'')+`/stora
 
 function storageObjectUrl(path){return `${storageBucketUrl()}/${String(path).split('/').map(encodeURIComponent).join('/')}`}
 
-async function storageRequest(url,options,objectPath,attempt=0){
-  if(!session?.access_token||jwtExpired(session.access_token)){if(attempt){clearExpiredSession();throw new Error('session_expired')}await refreshAdminSession()}
-  const request={...options,headers:{...options.headers,apikey:CONFIG.supabase.anonKey,Authorization:`Bearer ${session.access_token}`}};
-  let response;
-  try{response=await fetch(url,request)}catch(cause){const error=new Error('supabase_network_error');error.cause=cause;throw error}
-  if(!response.ok){
-    const detail=await response.text();
-    console.error('[HQV storage]',{status:response.status,body:detail,method:request.method||'GET',objectPath});
-    if(!attempt&&jwtExpiredResponse(response.status,detail)){await refreshAdminSession();return storageRequest(url,options,objectPath,1)}
-    const error=new Error(`storage_${String(request.method||'GET').toLowerCase()}_failed`);error.status=response.status;error.detail=detail;
-    if(jwtExpiredResponse(response.status,detail)){clearExpiredSession();error.message='session_expired'}
-    throw error;
-  }
-  return response;
-}
+async function storageRequest(url,options,objectPath,attempt=0){const token=await HQVShared.authToken();const request={...options,headers:{...options.headers,apikey:CONFIG.supabase.anonKey,Authorization:`Bearer ${token}`}};let response;try{response=await fetch(url,request)}catch(cause){const error=new Error('supabase_network_error');error.cause=cause;throw error}if(!response.ok){const detail=await response.text();console.error('[HQV storage]',{status:response.status,body:detail,method:request.method||'GET',objectPath});if(!attempt&&jwtExpiredResponse(response.status,detail)){try{await HQVShared.auth.refresh();return storageRequest(url,options,objectPath,1)}catch(error){HQVShared.auth?.onExpired?.();throw error}}const error=new Error(`storage_${String(request.method||'GET').toLowerCase()}_failed`);error.status=response.status;error.detail=detail;if(jwtExpiredResponse(response.status,detail)){HQVShared.auth?.onExpired?.();error.message='session_expired'}throw error}return response}
 
 function safeFileName(name){return name.normalize('NFKD').replace(/[^\w.\- ]+/g,'').trim().replace(/\s+/g,'-').replace(/-+/g,'-').slice(0,100)||'file'}
 
@@ -366,17 +361,36 @@ function adminProofRowHtml(row){
 }
 
 async function refreshAdminList(){
-  const list=$('#adminProofList');if(!session){list.innerHTML=`<div class="admin-empty">${esc(t('admin.loginRequired'))}</div>`;return}if(assetSchemaReady===null){list.innerHTML=`<div class="admin-empty">${esc(t('admin.schemaChecking'))}</div>`;return}if(!sbReady()){list.innerHTML=`<div class="admin-empty">${esc(t('admin.notConfigured'))}</div>`;return}if(assetLoadState==='schema_missing'){list.innerHTML=`<div class="admin-empty">${esc(t('admin.schemaMissing'))}</div>`;return}if(['auth','permission','network','error'].includes(assetLoadState)){const key={auth:'admin.authError',permission:'admin.permissionError',network:'admin.networkError',error:'admin.loadError'}[assetLoadState];list.innerHTML=`<div class="admin-empty">${esc(t(key))}</div>`;return}
+  const list=$('#adminProofList');if(!HQVShared.auth?.isAuthed()){list.innerHTML=`<div class="admin-empty">${esc(t('admin.loginRequired'))}</div>`;return}if(assetSchemaReady===null){list.innerHTML=`<div class="admin-empty">${esc(t('admin.schemaChecking'))}</div>`;return}if(!sbReady()){list.innerHTML=`<div class="admin-empty">${esc(t('admin.notConfigured'))}</div>`;return}if(assetLoadState==='schema_missing'){list.innerHTML=`<div class="admin-empty">${esc(t('admin.schemaMissing'))}</div>`;return}if(['auth','permission','network','error'].includes(assetLoadState)){const key={auth:'admin.authError',permission:'admin.permissionError',network:'admin.networkError',error:'admin.loadError'}[assetLoadState];list.innerHTML=`<div class="admin-empty">${esc(t(key))}</div>`;return}
   try{
-    const source=[...assetRegistry.values()].filter(row=>row.asset_type==='proof'||row.asset_type==='gallery');
+    const source=[...assetRegistry.values()].filter(row=>['proof','gallery','avatar','project_cover','cert_cover'].includes(row.asset_type));
     const gallerySeen=new Set();
     const rows=source.filter(row=>{if(row.asset_type!=='gallery')return true;if(!row.gallery_id)return true;if(gallerySeen.has(row.gallery_id))return false;gallerySeen.add(row.gallery_id);return true}).sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')));
-    if(!rows.length){list.innerHTML=`<div class="admin-empty">${esc(t('admin.noProof'))}</div>`;return}
-    list.innerHTML=rows.map(adminProofRowHtml).join('');
+    const groups=[{key:'project',label:currentLang==='en'?'Projects':'Dự án'},{key:'insight',label:'Insights'},{key:'certificate',label:currentLang==='en'?'Certificates & achievements':'Chứng chỉ & thành tựu'},{key:'profile',label:currentLang==='en'?'Profile':'Hồ sơ'}];
+    const category=row=>row.owner_type==='profile'?'profile':row.owner_type==='insight'?'insight':row.owner_type==='certificate'||row.owner_type==='experience'?'certificate':'project';
+    list.innerHTML=groups.map(group=>{const items=rows.filter(row=>category(row)===group.key);return `<section class="admin-proof-group"><h4>${esc(group.label)}</h4>${items.length?items.map(adminProofRowHtml).join(''):`<div class="admin-empty">${esc(currentLang==='en'?'No assets in this group.':'Nhóm này chưa có asset.')}</div>`}</section>`}).join('');
   }catch(err){list.innerHTML=`<div class="admin-empty">${esc(t('admin.uploadFailed'))}`}
 }
 
-async function replaceProofAsset(id){if(!session){setAdminStatus('#adminUploadStatus','err',t('admin.loginRequired'));return}const row=assetRegistry.get(id);if(!row)return;const input=document.createElement('input');input.type='file';input.multiple=row.asset_type==='gallery';input.accept=row.asset_type==='gallery'?'image/*':ACCEPTED_ASSET_INPUT;input.hidden=true;document.body.appendChild(input);input.addEventListener('change',async()=>{const files=[...input.files];input.remove();if(!files.length)return;const projectId=row.owner_id||row.project_id,rowOwner=row.owner_type||'project';setAdminStatus('#adminUploadStatus','ok',t('admin.uploading'));try{const rows=await uploadAssetBatch({assetType:'proof',ownerType:rowOwner,ownerId:projectId,projectId:rowOwner==='project'?projectId:null,titleVi:row.title_vi||row.original_name,titleEn:row.title_en||row.original_name,files});const cleanup=await replaceSingleAsset(row.asset_type==='gallery'?'gallery':'proof',rowOwner,projectId,rows,row.asset_type==='gallery'?row.gallery_id:null,row.asset_type==='proof'?row.id:null);await loadAssets();refreshAdminList();if(rowOwner==='project')$('#adminProject').value=projectId;setAdminStatus('#adminUploadStatus',cleanupStatusType(cleanup),cleanupSuccessMessage(cleanup,'admin.uploaded'))}catch(err){logAssetFailure(err,{operation:'proof.replace',assetId:id,assetType:row.asset_type,ownerType:row.owner_type,ownerId:projectId,bucket:CONFIG.supabase.bucket});setAdminStatus('#adminUploadStatus','err',formatAssetUploadError(err))}},{once:true,signal:controller.signal});input.click()}
+async function replaceProofAsset(id){
+  if(!HQVShared.auth?.isAuthed()){setAdminStatus('#adminUploadStatus','err',t('admin.loginRequired'));return}
+  const row=assetRegistry.get(id);if(!row)return;
+  if(!await assertAssetUnused(id))return;
+  const input=document.createElement('input');input.type='file';input.multiple=row.asset_type==='gallery';input.accept=['avatar','project_cover','cert_cover'].includes(row.asset_type)?'image/*':row.asset_type==='gallery'?'image/*':ACCEPTED_ASSET_INPUT;input.hidden=true;document.body.appendChild(input);
+  input.addEventListener('change',async()=>{
+    const files=[...input.files];input.remove();if(!files.length)return;
+    const ownerId=row.owner_id||row.project_id,ownerType=row.owner_type||'project',assetType=row.asset_type==='gallery'?'proof':row.asset_type,replaceType=row.asset_type==='gallery'?'gallery':row.asset_type,projectId=ownerType==='project'?(row.project_id||ownerId):null;
+    setAdminStatus('#adminUploadStatus','ok',t('admin.uploading'));
+    try{
+      const uploaded=await uploadAssetBatch({assetType,ownerType,ownerId,projectId,titleVi:row.title_vi||row.original_name,titleEn:row.title_en||row.original_name,files});
+      const cleanup=await replaceSingleAsset(replaceType,ownerType,ownerId,uploaded,row.asset_type==='gallery'?row.gallery_id:null,row.asset_type==='proof'?row.id:null);
+      await loadAssets();refreshAdminList();renderGlobalEditor();
+      if(ownerType==='project')$('#adminProject').value=ownerId;
+      setAdminStatus('#adminUploadStatus',cleanupStatusType(cleanup),cleanupSuccessMessage(cleanup,'admin.uploaded'));
+    }catch(error){logAssetFailure(error,{operation:'asset.replace',assetId:id,assetType:row.asset_type,ownerType:row.owner_type,ownerId:ownerId,bucket:CONFIG.supabase.bucket});setAdminStatus('#adminUploadStatus','err',formatAssetUploadError(error))}
+  },{once:true,signal:controller.signal});
+  input.click();
+}
 
 async function downloadAdminAsset(id){
   const row=assetRegistry.get(id);if(!row)return;
@@ -427,6 +441,7 @@ function projectSectionsFromRuntime(p){
 
 function validateProjectPayload(payload,{creating=false}={}){
   if(!payload.slug||!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(payload.slug))throw new Error('invalid_slug');
+  if(['cert','insight','admin'].includes(payload.slug))throw new Error(currentLang==='en'?'Project slug "cert", "insight" and "admin" are reserved routes.':'Slug project "cert", "insight" và "admin" là các route dành riêng.');
   if(!payload.title_vi||!payload.title_en)throw new Error('project_title_required');
   if(!Number.isInteger(payload.sort_order)||payload.sort_order<0)throw new Error('invalid_sort_order');
   if(!Array.isArray(payload.categories))throw new Error('invalid_categories');
@@ -756,7 +771,7 @@ function projectSectionLangs(){return $$('#projectSectionsEditor .admin-section-
 
 function renderProjectMediaManager(project){
   const host=$('#projectMediaList');if(!host)return;
-  if(!project||!session){host.innerHTML=`<div class="admin-empty">${esc(t('admin.loginRequired'))}</div>`;return;}
+  if(!project||!HQVShared.auth?.isAuthed()){host.innerHTML=`<div class="admin-empty">${esc(t('admin.loginRequired'))}</div>`;return;}
   const cover=projectCovers.get(project.id);
   const proofRows=[...assetRegistry.values()].filter(row=>row.asset_type==='proof'||row.asset_type==='gallery').filter(row=>(row.owner_id===project.id)||(row.project_id===project.id)).sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')));
   const rows=[];
@@ -799,7 +814,7 @@ async function upsertProjectSections(projectId,sections){
 function projectDraftPayloadFromEditor(){return {version:1,project:projectFormPayload(),sections:projectSectionPayloads()}}
 
 async function saveProjectDraft(){
-  if(!session){setProjectStatus('err',t('admin.loginRequired'));return}
+  if(!HQVShared.auth?.isAuthed()){setProjectStatus('err',t('admin.loginRequired'));return}
   const btn=$('#saveProjectDraftBtn');btn.disabled=true;setProjectStatus('ok',t('admin.uploading'));
   try{
     const draft=projectDraftPayloadFromEditor();validateProjectPayload(draft.project,{creating:!draft.project.id});const oldSlug=$('#projectSlug').dataset.originalSlug||'';await upsertProjectDraftRow(`project.draft.${draft.project.slug}`,draft);if(oldSlug&&oldSlug!==draft.project.slug)await deleteContentKey(`project.draft.${oldSlug}`);projectDrafts.set(draft.project.slug,draft);$('#projectSlug').dataset.originalSlug=draft.project.slug;refreshAdminProjectList();setProjectLifecycleUI(projectBySlug(draft.project.slug)||projectFromDraftPayload({id:draft.project.slug,published:false},draft));setProjectStatus('ok',t('admin.projectDraftSaved'));
@@ -819,7 +834,7 @@ async function currentProjectSnapshot(projectId){const pr=await sbFetch(`/rest/v
 async function restoreProjectSnapshot(snapshot){if(!snapshot?.row)return;await sbFetch(`/rest/v1/portfolio_projects?id=eq.${encodeURIComponent(snapshot.row.id)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify(snapshot.row)});const existing=await sbFetch(`/rest/v1/portfolio_project_sections?select=id&project_id=eq.${encodeURIComponent(snapshot.row.id)}`,{method:'GET'});const ids=await existing.json();if(Array.isArray(ids)&&ids.length){await sbFetch(`/rest/v1/portfolio_project_sections?id=in.(${ids.map(x=>encodeURIComponent(x.id)).join(',')})`,{method:'DELETE',headers:{Prefer:'return=minimal'}})}if(snapshot.sections.length)await sbFetch('/rest/v1/portfolio_project_sections',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(snapshot.sections)})}
 
 async function publishProject(){
-  if(!session){setProjectStatus('err',t('admin.loginRequired'));return}
+  if(!HQVShared.auth?.isAuthed()){setProjectStatus('err',t('admin.loginRequired'));return}
   const btn=$('#publishProjectBtn');btn.disabled=true;setProjectStatus('ok',t('admin.uploading'));let createdId=null,snapshot=null;
   try{
     const draft=projectDraftPayloadFromEditor();validateProjectForPublish(draft.project,draft.sections);const body={slug:draft.project.slug,sort_order:draft.project.sort_order,published:true,title_vi:draft.project.title_vi,title_en:draft.project.title_en,hook_vi:draft.project.hook_vi||null,hook_en:draft.project.hook_en||null,intro_vi:draft.project.intro_vi||null,intro_en:draft.project.intro_en||null,categories:draft.project.categories,stats:draft.project.stats,visual_type:draft.project.visual_type,tone_a:draft.project.tone_a,tone_b:draft.project.tone_b};let projectId=draft.project.id;
@@ -839,12 +854,12 @@ async function publishProject(){
 }
 
 async function unpublishProject(){
-  const slug=$('#projectSlug').dataset.originalSlug||$('#projectSlug').value,p=projectBySlug(slug);if(!session||!p?.dbId){setProjectStatus('err',t('admin.projectMissing'));return}const btn=$('#unpublishProjectBtn');btn.disabled=true;try{await sbFetch(`/rest/v1/portfolio_projects?id=eq.${encodeURIComponent(p.dbId)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({published:false})});await loadAdminProjects();await loadProjectDrafts();refreshAdminProjectList();const fresh=projectBySlug(slug);if(fresh)editProject(fresh);setProjectStatus('ok',t('admin.projectUnpublished'))}catch(err){setProjectStatus('err',projectErrorText(err))}finally{btn.disabled=false}
+  const slug=$('#projectSlug').dataset.originalSlug||$('#projectSlug').value,p=projectBySlug(slug);if(!HQVShared.auth?.isAuthed()||!p?.dbId){setProjectStatus('err',t('admin.projectMissing'));return}const btn=$('#unpublishProjectBtn');btn.disabled=true;try{await sbFetch(`/rest/v1/portfolio_projects?id=eq.${encodeURIComponent(p.dbId)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({published:false})});await loadAdminProjects();await loadProjectDrafts();refreshAdminProjectList();const fresh=projectBySlug(slug);if(fresh)editProject(fresh);setProjectStatus('ok',t('admin.projectUnpublished'))}catch(err){setProjectStatus('err',projectErrorText(err))}finally{btn.disabled=false}
 }
 
 function projectErrorText(err){
   const kind=classifySupabaseError(err);
-  if(err?.message==='session_expired')return sessionExpiredMessage();
+  if(err?.message==='session_expired')return currentLang==='en'?'Session expired, please log in again':'Phiên đăng nhập hết hạn, vui lòng đăng nhập lại';
   if(kind==='permission'||kind==='auth'||err?.status===403||err?.status===401)return kind==='auth'?t('admin.authError'):t('admin.permissionError');
   if(err?.message==='invalid_slug')return currentLang==='en'?'Slug must use lowercase letters, numbers and hyphens.':'Slug chỉ dùng chữ thường, số và dấu gạch ngang.';
   if(err?.message==='project_title_required')return currentLang==='en'?'Both project titles are required.':'Cần nhập đủ tiêu đề Project VI và EN.';
@@ -855,13 +870,13 @@ function projectErrorText(err){
 }
 
 function refreshAdminProjectList(){
-  const host=$('#projectManagementList');if(!host)return;if(!session){host.innerHTML=`<div class="admin-empty">${esc(t('admin.loginRequired'))}</div>`;return}
+  const host=$('#projectManagementList');if(!host)return;if(!HQVShared.auth?.isAuthed()){host.innerHTML=`<div class="admin-empty">${esc(t('admin.loginRequired'))}</div>`;return}
   const liveRows=PROJECTS.filter(p=>p.dbId).map(p=>({project:p,draft:projectDrafts.get(p.id)||null}));const draftOnly=[...projectDrafts.entries()].filter(([slug])=>!PROJECTS.some(p=>p.id===slug)).map(([slug,draft])=>({project:projectFromDraftPayload({id:slug,published:false,content:{vi:{title:draft.project?.title_vi||slug},en:{title:draft.project?.title_en||slug}}},draft),draft}));const rows=[...liveRows,...draftOnly];
   host.innerHTML=rows.length?rows.map(({project:p,draft})=>{const hasDraft=!!draft;const live=p.dbId&&p.published!==false;const status=live&&!hasDraft?t('admin.livePublished'):(live&&hasDraft?`${t('admin.draftAvailable')} · ${t('admin.livePublished')}`:t('admin.draftOnly'));return `<article class="admin-project-row"><div><strong>${esc(p.content?.[currentLang]?.title||p.id)}</strong><span class="admin-project-meta">${esc(p.id)} · ${p.dbId?'DB UUID':'draft only'} · ${esc(status)}</span></div><div class="admin-project-actions"><button class="admin-btn" type="button" data-edit-project="${esc(p.id)}">${esc(t('admin.edit'))}</button>${p.dbId?`<button class="admin-btn danger" type="button" data-delete-project="${esc(p.id)}">${esc(t('admin.delete'))}</button>`:''}</div></article>`}).join(''):`<div class="admin-empty">${esc(t('admin.noDraft'))}</div>`;
 }
 
 async function deleteProject(project){
-  if(!session||!project?.dbId)return;
+  if(!HQVShared.auth?.isAuthed()||!project?.dbId)return;
   if(!confirm(t('admin.projectDeleteConfirm')))return;
   const btn=document.querySelector(`[data-delete-project="${CSS.escape(project.id)}"]`);if(btn)btn.disabled=true;
   setProjectStatus('ok',t('admin.uploading'));
@@ -930,7 +945,7 @@ async function deleteProject(project){
 }
 
 async function migrateExistingProjects(){
-  if(!session){setProjectStatus('err',t('admin.loginRequired'));return}
+  if(!HQVShared.auth?.isAuthed()){setProjectStatus('err',t('admin.loginRequired'));return}
   const btn=$('#migrateProjectsBtn');btn.disabled=true;setProjectStatus('ok',t('admin.uploading'));
   try{
     for(const p of PROJECT_FALLBACK){
@@ -963,34 +978,7 @@ function populateAdminProjects(){const html=PROJECTS.map(p=>`<option value="${es
 
 
 
-async function uploadStorage(file,path,mime,attempt=0){
-  if(!session?.access_token||jwtExpired(session.access_token)){if(attempt){clearExpiredSession();throw new Error('session_expired')}await refreshAdminSession()}
-  const url=storageObjectUrl(path),contentType=mime||file.type||'application/octet-stream';
-  try{
-    await new Promise((resolve,reject)=>{
-      const xhr=new XMLHttpRequest();
-      xhr.open('POST',url,true);
-      xhr.setRequestHeader('apikey',CONFIG.supabase.anonKey);
-      xhr.setRequestHeader('Authorization',`Bearer ${session.access_token}`);
-      xhr.setRequestHeader('Content-Type',contentType);
-      xhr.setRequestHeader('cache-control','max-age=31536000');
-      xhr.setRequestHeader('x-upsert','false');
-      xhr.upload.onprogress=e=>{if(e.lengthComputable)setUploadProgress(e.loaded/e.total*100)};
-      xhr.onload=()=>{if(xhr.status>=200&&xhr.status<300){setUploadProgress(100);resolve();return}const error=new Error(`storage_upload_failed (${xhr.status})`);error.status=xhr.status;error.detail=xhr.responseText;reject(error)};
-      xhr.onerror=()=>{const error=new Error('supabase_network_error');error.status=0;reject(error)};
-      xhr.ontimeout=()=>{const error=new Error('supabase_network_error');error.status=0;reject(error)};
-      xhr.send(file);
-    });
-  }catch(error){
-    const detail=error.detail||'';
-    console.error('[HQV storage]',{status:error.status,body:detail,method:'POST',objectPath:path});
-    if(!attempt&&jwtExpiredResponse(error.status,detail)){await refreshAdminSession();return uploadStorage(file,path,mime,1)}
-    if(error.status&&error.message!=='session_expired')error.message=`storage_upload_failed (${error.status})`;
-    if(jwtExpiredResponse(error.status,detail)){clearExpiredSession();error.message='session_expired'}
-    throw error;
-  }
-  return path;
-}
+async function uploadStorage(file,path,mime,attempt=0){const token=await HQVShared.authToken();const url=storageObjectUrl(path),contentType=mime||file.type||'application/octet-stream';try{await new Promise((resolve,reject)=>{const xhr=new XMLHttpRequest();xhr.open('POST',url,true);xhr.setRequestHeader('apikey',CONFIG.supabase.anonKey);xhr.setRequestHeader('Authorization',`Bearer ${token}`);xhr.setRequestHeader('Content-Type',contentType);xhr.setRequestHeader('cache-control','max-age=31536000');xhr.setRequestHeader('x-upsert','false');xhr.upload.onprogress=e=>{if(e.lengthComputable)setUploadProgress(e.loaded/e.total*100)};xhr.onload=()=>{if(xhr.status>=200&&xhr.status<300){setUploadProgress(100);resolve();return}const error=new Error(`storage_upload_failed (${xhr.status})`);error.status=xhr.status;error.detail=xhr.responseText;reject(error)};xhr.onerror=()=>{const error=new Error('supabase_network_error');error.status=0;reject(error)};xhr.ontimeout=()=>{const error=new Error('supabase_network_error');error.status=0;reject(error)};xhr.send(file)})}catch(error){const detail=error.detail||'';console.error('[HQV storage]',{status:error.status,body:detail,method:'POST',objectPath:path});if(!attempt&&jwtExpiredResponse(error.status,detail)){try{await HQVShared.auth.refresh();return uploadStorage(file,path,mime,1)}catch(refreshError){HQVShared.auth?.onExpired?.();throw refreshError}}if(error.status&&error.message!=='session_expired')error.message=`storage_upload_failed (${error.status})`;if(jwtExpiredResponse(error.status,detail)){HQVShared.auth?.onExpired?.();error.message='session_expired'}throw error}return path}
 
 async function deleteStorage(paths){
   if(!paths.length)return;
@@ -1074,18 +1062,19 @@ function assertAssetSchema(){
   if(assetLoadState!=='ready')throw new Error('asset_schema_unavailable');
 }
 
-function makeStoragePath(assetType,ownerId,file){const id=newId();const name=safeFileName(file.name);if(assetType==='avatar')return `profile/avatar-${id}-${name}`;if(assetType==='project_cover')return `projects/${ownerId}/cover-${id}-${name}`;return `projects/${ownerId}/proof/${Date.now()}-${id}-${name}`}
+function makeStoragePath(assetType,ownerId,file){const id=newId();const name=safeFileName(file.name);if(assetType==='avatar')return `profile/avatar-${id}-${name}`;if(assetType==='project_cover')return `projects/${ownerId}/cover-${id}-${name}`;if(assetType==='cert_cover')return `certificates/${ownerId}/cover-${id}-${name}`;return `projects/${ownerId}/proof/${Date.now()}-${id}-${name}`}
 
 async function uploadAssetBatch({assetType,ownerType,ownerId,projectId,titleVi,titleEn,sortOrderStart=0,files}){
   assertAssetSchema();
   const galleryId=assetType==='proof'&&ownerType!=='certificate'&&files.length>1&&files.every(f=>f.type.startsWith('image/'))?newId():null;
   if(assetType==='avatar'&&files.length!==1)throw new Error('asset_required');
   if(assetType==='project_cover'&&(files.length!==1||!files[0].type.startsWith('image/')))throw new Error('asset_required');
+  if(assetType==='cert_cover'&&(files.length!==1||!files[0].type.startsWith('image/')))throw new Error('asset_required');
   const infos=new Map();
   for(const file of files){
     if(file.size>MAX_ASSET_FILE_BYTES)throw new Error('asset_too_large');
     const info=await inspectUploadFile(file);infos.set(file,info);
-    if((assetType==='avatar'||assetType==='project_cover')&&info.kind!=='image')throw new Error('asset_required');
+    if((assetType==='avatar'||assetType==='project_cover'||assetType==='cert_cover')&&info.kind!=='image')throw new Error('asset_required');
   }
   const rows=[];const uploadedPaths=[];let insertedRows=[];
   try{
@@ -1156,13 +1145,25 @@ function cleanupSuccessMessage(result,successKey){return result?.storageCleanupF
 function cleanupStatusType(result){return result?.storageCleanupFailed?'warn':'ok'}
 
 async function doAvatarUpload(e){
-  e.preventDefault();const files=[...$('#avatarFile').files],btn=$('#avatarUploadBtn');if(!files.length){setAdminStatus('#avatarUploadStatus','err',t('admin.assetRequired'));return}if(!session){setAdminStatus('#avatarUploadStatus','err',t('admin.loginRequired'));return}btn.disabled=true;setAdminStatus('#avatarUploadStatus','ok',t('admin.uploading'));
+  e.preventDefault();const files=[...$('#avatarFile').files],btn=$('#avatarUploadBtn');if(!files.length){setAdminStatus('#avatarUploadStatus','err',t('admin.assetRequired'));return}if(!HQVShared.auth?.isAuthed()){setAdminStatus('#avatarUploadStatus','err',t('admin.loginRequired'));return}btn.disabled=true;setAdminStatus('#avatarUploadStatus','ok',t('admin.uploading'));
   try{const rows=await uploadAssetBatch({assetType:'avatar',ownerType:'profile',ownerId:'hqv',titleVi:'Ảnh đại diện Hoàng Quốc Việt',titleEn:'Hoàng Quốc Việt profile avatar',files});const cleanup=await replaceSingleAsset('avatar','profile','hqv',rows);await loadAssets();$('#avatarUploadForm').reset();setAdminStatus('#avatarUploadStatus',cleanupStatusType(cleanup),cleanupSuccessMessage(cleanup,'admin.avatarUploaded'))}catch(err){setAdminStatus('#avatarUploadStatus','err',formatAssetUploadError(err))}finally{btn.disabled=false}
 }
 
 async function doCoverUpload(e){
-  e.preventDefault();const files=[...$('#projectCoverFile').files],projectId=$('#coverProject').value,btn=$('#coverUploadBtn');if(!files.length){setAdminStatus('#coverUploadStatus','err',t('admin.assetRequired'));return}if(!session){setAdminStatus('#coverUploadStatus','err',t('admin.loginRequired'));return}const p=PROJECTS.find(x=>x.id===projectId);if(!p){setAdminStatus('#coverUploadStatus','err',t('admin.projectMissing'));return}btn.disabled=true;setAdminStatus('#coverUploadStatus','ok',t('admin.uploading'));
+  e.preventDefault();const files=[...$('#projectCoverFile').files],projectId=$('#coverProject').value,btn=$('#coverUploadBtn');if(!files.length){setAdminStatus('#coverUploadStatus','err',t('admin.assetRequired'));return}if(!HQVShared.auth?.isAuthed()){setAdminStatus('#coverUploadStatus','err',t('admin.loginRequired'));return}const p=PROJECTS.find(x=>x.id===projectId);if(!p){setAdminStatus('#coverUploadStatus','err',t('admin.projectMissing'));return}btn.disabled=true;setAdminStatus('#coverUploadStatus','ok',t('admin.uploading'));
   try{const rows=await uploadAssetBatch({assetType:'project_cover',ownerType:'project',ownerId:projectId,projectId,titleVi:p.content.vi.title,titleEn:p.content.en.title,files});const cleanup=await replaceSingleAsset('project_cover','project',projectId,rows);await loadAssets();$('#coverUploadForm').reset();$('#coverProject').value=projectId;const editingSlug=$('#projectSlug')?.dataset.originalSlug;const editing=editingSlug?projectBySlug(editingSlug):null;if(editing)renderProjectMediaManager(editing);setAdminStatus('#coverUploadStatus',cleanupStatusType(cleanup),cleanupSuccessMessage(cleanup,'admin.coverUploaded'))}catch(err){setAdminStatus('#coverUploadStatus','err',formatAssetUploadError(err))}finally{btn.disabled=false}
+}
+
+async function doCertCoverUpload(id,file){
+  const item=findCertAdminItem(id);if(!item||!file)return;
+  const existing=certCoverAsset(id);if(existing&&!await assertAssetUnused(existing.id))return;
+  setAdminStatus('#globalContentStatus','ok',t('admin.uploading'));
+  try{
+    const ownerType=certificateOwnerType(id),rows=await uploadAssetBatch({assetType:'cert_cover',ownerType,ownerId:id,projectId:null,titleVi:item.title.vi,titleEn:item.title.en,files:[file]});
+    const cleanup=await replaceSingleAsset('cert_cover',ownerType,id,rows);
+    await loadAssets();mergeEditorInputs();renderGlobalEditor();
+    setAdminStatus('#globalContentStatus',cleanupStatusType(cleanup),cleanupSuccessMessage(cleanup,'admin.uploaded'));
+  }catch(error){setAdminStatus('#globalContentStatus','err',formatAssetUploadError(error))}
 }
 
 let mediaLibraryUploadActive=false;
@@ -1171,7 +1172,7 @@ async function uploadMediaLibraryFiles(files){
   const projectId=mediaLibraryState.projectId||$('#projectSlug')?.dataset.originalSlug||$('#projectSlug')?.value||'';
   if(!projectId)throw new Error('project_missing');
   if(!files.length)throw new Error('asset_required');
-  if(!session)throw new Error('supabase_auth_error');
+  if(!HQVShared.auth?.isAuthed())throw new Error('supabase_auth_error');
   const rows=await uploadAssetBatch({assetType:'proof',ownerType:'project',ownerId:projectId,projectId,titleVi:'',titleEn:'',files});
   await loadAssets();
   refreshAdminList();
@@ -1183,27 +1184,38 @@ async function uploadMediaLibraryFiles(files){
 }
 
 async function doProofUpload(e){
-  e.preventDefault();const projectId=$('#adminProject').value,titleVi=$('#proofTitleVi').value.trim(),titleEn=$('#proofTitleEn').value.trim(),files=[...$('#proofFiles').files],btn=$('#uploadBtn');if(!files.length){setAdminStatus('#adminUploadStatus','err',t('admin.assetRequired'));return}if(!session){setAdminStatus('#adminUploadStatus','err',t('admin.loginRequired'));return}btn.disabled=true;setAdminStatus('#adminUploadStatus','ok',t('admin.uploading'));
+  e.preventDefault();const projectId=$('#adminProject').value,titleVi=$('#proofTitleVi').value.trim(),titleEn=$('#proofTitleEn').value.trim(),files=[...$('#proofFiles').files],btn=$('#uploadBtn');if(!files.length){setAdminStatus('#adminUploadStatus','err',t('admin.assetRequired'));return}if(!HQVShared.auth?.isAuthed()){setAdminStatus('#adminUploadStatus','err',t('admin.loginRequired'));return}btn.disabled=true;setAdminStatus('#adminUploadStatus','ok',t('admin.uploading'));
   try{const insightId=projectId.startsWith('insight:')?projectId.slice(8):'';await uploadAssetBatch({assetType:'proof',ownerType:insightId?'insight':'project',ownerId:insightId||projectId,projectId:insightId?null:projectId,titleVi,titleEn,files});$('#proofUploadForm').reset();await loadAssets();refreshAdminList();if($('#mediaLibraryDialog')?.open)renderMediaLibrary();const editingSlug=$('#projectSlug')?.dataset.originalSlug;const editing=editingSlug?projectBySlug(editingSlug):null;if(editing)renderProjectMediaManager(editing);setAdminStatus('#adminUploadStatus','ok',t('admin.uploaded'))}catch(err){setAdminStatus('#adminUploadStatus','err',formatAssetUploadError(err))}finally{btn.disabled=false}
 }
 
-function assertAssetUnused(id){
+async function assertAssetUnused(id,statusTarget='#adminUploadStatus'){
   const usage=mediaUsage(id);
-  if(!usage.known){setAdminStatus('#adminUploadStatus','err',currentLang==='en'?'Cannot verify asset references safely. Delete has been blocked.':'Không thể xác minh reference của asset một cách an toàn. Đã chặn xóa.');return false}
-  if(usage.count){
-    const detail=usage.refs.slice(0,8).join(' · ');
-    const msg=currentLang==='en'?`Cannot delete this asset because it is currently used in ${usage.count} place${usage.count===1?'':'s'}. ${detail}`:`Không thể xóa asset vì đang được sử dụng ở ${usage.count} vị trí. ${detail}`;
-    setAdminStatus('#adminUploadStatus','err',msg);
+  if(!usage.known){setAdminStatus(statusTarget,'err',currentLang==='en'?'Cannot verify asset references safely. Delete has been blocked.':'Không thể xác minh reference của asset một cách an toàn. Đã chặn xóa.');return false}
+  const blockingRefs=[...usage.blockRefs];
+  try{
+    const response=await sbFetch('/rest/v1/portfolio_content?select=content_key,value_vi&content_key=like.project.draft.%25',{method:'GET'});
+    const drafts=await response.json();
+    (Array.isArray(drafts)?drafts:[]).forEach(row=>{const payload=parseContentJSON(row.value_vi,{});blockingRefs.push(...blockAssetReferences(payload.sections,id,`${String(row.content_key).slice('project.draft.'.length)} — Draft`))});
+    blockingRefs.push(...await insightAssetReferences(id));
+  }catch(error){
+    setAdminStatus(statusTarget,'err',currentLang==='en'?'Cannot verify draft/Insight references safely. Delete has been blocked.':'Không thể xác minh tham chiếu bản nháp/Insight an toàn. Đã chặn xóa.');
+    return false;
+  }
+  const uniqueRefs=[...new Set(blockingRefs)];
+  if(uniqueRefs.length){
+    const detail=uniqueRefs.slice(0,8).join(' · ');
+    const msg=currentLang==='en'?`Cannot delete this asset because it is referenced by ${uniqueRefs.length} case-study/Insight block${uniqueRefs.length===1?'':'s'}. ${detail}`:`Không thể xóa asset vì đang được tham chiếu bởi ${uniqueRefs.length} block Case Study/Insight. ${detail}`;
+    setAdminStatus(statusTarget,'err',msg);
     return false;
   }
   return true;
 }
 
 async function deleteAsset(id){
-  if(!session){setAdminStatus('#adminUploadStatus','err',t('admin.loginRequired'));return}
+  if(!HQVShared.auth?.isAuthed()){setAdminStatus('#adminUploadStatus','err',t('admin.loginRequired'));return}
   if(deletingAssetIds.has(id))return;
   const row=assetRegistry.get(id);if(!row)return;
-  if(!assertAssetUnused(id))return;
+  if(!await assertAssetUnused(id))return;
   deletingAssetIds.add(id);
   const rows=row.asset_type==='gallery'&&row.gallery_id?[...assetRegistry.values()].filter(item=>item.asset_type==='gallery'&&item.gallery_id===row.gallery_id):[row];
   setAdminStatus('#adminUploadStatus','ok',t('admin.uploading'));
@@ -1247,9 +1259,9 @@ Object.assign(I18N.en,{
   'admin.cleanupWarning':'Metadata was processed, but file cleanup failed. See the console.',
   'admin.globalContent':'GLOBAL CONTENT','admin.globalContentCopy':'Edit Home, Approach, Skills, Experience, Contact and Footer without changing the layout system.','admin.globalHome':'Home','admin.globalApproach':'Approach','admin.globalSkills':'Skills','admin.globalExperience':'Experience','admin.globalContact':'Contact','admin.globalFooter':'Footer','admin.saveDraft':'Save Draft','admin.previewDraft':'Preview Draft','admin.publish':'Publish','admin.unpublish':'Unpublish','admin.draftPreviewLabel':'DRAFT PREVIEW','admin.globalSaved':'Global Content draft saved.','admin.globalPublished':'Global Content published.','admin.globalUnpublished':'Global Content unpublished.','admin.globalPreviewOpened':'Draft Preview opened.','admin.projectDraftSaved':'Project draft saved.','admin.projectPublished':'Project published.','admin.projectUnpublished':'Project unpublished.','admin.publishBlocked':'Publish blocked','admin.noDraft':'No saved draft exists.','admin.invalidGlobal':'Global Content is invalid.','admin.draftAvailable':'Saved draft exists','admin.livePublished':'PUBLISHED · live','admin.draftOnly':'DRAFT · not yet live'
 });
-function loadGlobalDrafts(){return fetchGlobalContentRows().then(async published=>{const response=await sbFetch('/rest/v1/portfolio_content?select=content_key,value_vi,value_en,updated_at&content_key=like.global.draft.%25&order=content_key.asc',{method:'GET'});const drafts=await response.json();globalDraftContent=Array.isArray(drafts)&&drafts.length?Object.fromEntries(drafts.map(row=>{const key=String(row.content_key).slice('global.draft.'.length);return [key,globalCanonicalFromStored(parseContentJSON(row.value_vi,null),parseContentJSON(row.value_en,null),globalFallbackContent()[key]||{})]})):null;globalAdminContent=deepClone(globalDraftContent||globalPublishedContent||globalFallbackContent());renderGlobalEditor()})}
+async function loadGlobalDrafts(){try{const rows=await fetchGlobalPrefixRows('global.draft.');globalDraftContent=rows.length?buildGlobalFromRows(rows,'global.draft.'):null;globalAdminContent=HQVShared.composeGlobalContent(globalFallbackContent(),globalPublishedContent||{},globalDraftContent||{});globalContentLoadState='ready';renderGlobalEditor();refreshGlobalBadge();refreshGlobalControls()}catch(error){globalContentLoadState='failed';refreshGlobalBadge();refreshGlobalControls();setAdminStatus('#globalContentStatus','err',currentLang==='en'?'Could not load live or draft content. Writes are blocked to prevent overwriting it.':'Không tải được nội dung live hoặc bản nháp, đã chặn ghi để tránh ghi đè.')}}
 async function loadAdminProjects(){const response=await sbFetch('/rest/v1/portfolio_projects?select=id,slug,sort_order,published,title_vi,title_en,hook_vi,hook_en,intro_vi,intro_en,categories,stats,visual_type,tone_a,tone_b&order=sort_order.asc,id.asc',{method:'GET'});const rows=await response.json();if(!Array.isArray(rows))throw new Error('project_rows_invalid');const sectionsResponse=await sbFetch('/rest/v1/portfolio_project_sections?select=id,project_id,sort_order,title_vi,body_vi,title_en,body_en,blocks&order=sort_order.asc,id.asc',{method:'GET'});const sections=await sectionsResponse.json();const grouped=new Map();(Array.isArray(sections)?sections:[]).forEach(row=>{if(!grouped.has(row.project_id))grouped.set(row.project_id,[]);grouped.get(row.project_id).push(row)});PROJECTS.splice(0,PROJECTS.length,...rows.map(row=>projectRuntimeFromDb(row,grouped.get(row.id)||[])));refreshAdminProjectList()}
-function applyAdminStatic(){adminDialog.setAttribute('aria-label',currentLang==='en'?'Portfolio CMS':'Quản trị portfolio');adminDialog.querySelectorAll('[data-i18n]').forEach(el=>{const value=I18N[currentLang][el.dataset.i18n];if(value)el.textContent=value});populateAdminProjects()}
+function applyAdminStatic(){if(!adminDialog)return;document.documentElement.lang=currentLang;adminDialog.setAttribute('aria-label',currentLang==='en'?'Portfolio CMS':'Quản trị portfolio');adminDialog.querySelectorAll('[data-i18n]').forEach(element=>{const value=I18N[currentLang][element.dataset.i18n];if(value)element.textContent=value});adminDialog.querySelectorAll('[data-admin-lang]').forEach(button=>button.classList.toggle('active',button.dataset.adminLang===currentLang));populateAdminProjects()}
 function renderAdmin(){applyAdminStatic();renderGlobalEditor();renderAvatar();refreshAdminProjectList();refreshAdminList();loadGlobalDrafts();loadProjectDrafts()}
 function bindAdminEvents(){
 document.addEventListener('click',async e=>{
@@ -1276,7 +1288,7 @@ document.addEventListener('click',async e=>{
   }
   
   
-  const pv=e.target.closest('[data-cert-preview]');if(pv){const [id,aid]=pv.dataset.certPreview.split('|');openCertViewer(id,Math.max(0,certAssetList(id).findIndex(x=>x.id===aid)));return}
+  const pv=e.target.closest('[data-cert-preview]');if(pv){const [,aid]=pv.dataset.certPreview.split('|');openAdminAsset(aid,'preview');return}
   const up=e.target.closest('[data-cert-upload]');
   if(up){const input=document.createElement('input');input.type='file';input.multiple=true;input.accept=ACCEPTED_ASSET_INPUT;input.hidden=true;document.body.appendChild(input);
     input.addEventListener('change',async()=>{const files=[...input.files];input.remove();if(!files.length)return;
@@ -1361,7 +1373,7 @@ document.addEventListener('click',async e=>{
   const del=e.target.closest('[data-project-media-delete]');if(del){await deleteAsset(del.dataset.projectMediaDelete);const p=projectBySlug($('#projectSlug')?.dataset.originalSlug||$('#projectSlug')?.value);if(p)renderProjectMediaManager(p);return;}
   const coverOpen=e.target.closest('[data-project-cover-open]');if(coverOpen){const row=assetRegistry.get(coverOpen.dataset.projectCoverOpen);if(row)window.open(publicUrl(row.storage_path),'_blank','noopener');return;}
   const coverRep=e.target.closest('[data-project-cover-replace]');if(coverRep){$('#coverProject').value=coverRep.dataset.projectCoverReplace;$('#projectCoverFile').click();return;}
-  const coverDel=e.target.closest('[data-project-cover-delete]');if(coverDel){const row=assetRegistry.get(coverDel.dataset.projectCoverDelete);if(row){if(!assertAssetUnused(row.id))return;try{const cleanup=await removeAssetRows([row]);await loadAssets();const p=projectBySlug($('#projectSlug')?.dataset.originalSlug||$('#projectSlug')?.value);if(p)renderProjectMediaManager(p);setAdminStatus('#coverUploadStatus',cleanupStatusType(cleanup),cleanupSuccessMessage(cleanup,'admin.deleted'));}catch(err){setAdminStatus('#coverUploadStatus','err',formatAssetUploadError(err));}}return;}
+  const coverDel=e.target.closest('[data-project-cover-delete]');if(coverDel){const row=assetRegistry.get(coverDel.dataset.projectCoverDelete);if(row){if(!await assertAssetUnused(row.id,'#coverUploadStatus'))return;try{const cleanup=await removeAssetRows([row]);await loadAssets();const p=projectBySlug($('#projectSlug')?.dataset.originalSlug||$('#projectSlug')?.value);if(p)renderProjectMediaManager(p);setAdminStatus('#coverUploadStatus',cleanupStatusType(cleanup),cleanupSuccessMessage(cleanup,'admin.deleted'));}catch(err){setAdminStatus('#coverUploadStatus','err',formatAssetUploadError(err));}}return;}
 },{signal:controller.signal});
 document.addEventListener('click',async e=>{
   const close=e.target.closest('[data-media-close]');if(close){closeMediaLibrary();return}
@@ -1496,12 +1508,12 @@ document.addEventListener('paste',e=>{
 document.addEventListener('input',e=>{if(e.isComposing)return;editorialSyncFromEvent(e)},{signal:controller.signal});
 document.addEventListener('compositionend',editorialSyncFromEvent,{signal:controller.signal});
 document.addEventListener('click',e=>{const download=e.target.closest('[data-download-asset]');if(download){downloadAdminAsset(download.dataset.downloadAsset);return}const del=e.target.closest('[data-delete-asset]');if(del){deleteAsset(del.dataset.deleteAsset);return}const rep=e.target.closest('[data-replace-asset]');if(rep){replaceProofAsset(rep.dataset.replaceAsset);return}const open=e.target.closest('[data-open-asset]');if(open){openAdminAsset(open.dataset.openAsset,open.dataset.action||'open')}},{signal:controller.signal});
-$('#adminLogout').addEventListener('click',()=>HQVShared.auth?.onExpired?.(),{signal:controller.signal});
+$('#adminLogout').addEventListener('click',()=>HQVShared.auth?.signOut?.(),{signal:controller.signal});
 adminDialog.addEventListener('cancel',event=>event.preventDefault(),{signal:controller.signal});
 adminDialog.querySelector('[data-close="admin"]')?.addEventListener('click',()=>location.assign('./index.html'),{signal:controller.signal});
-$('[data-lang="vi"]')?.addEventListener('click',()=>HQVShared.lang='vi',{signal:controller.signal});
-$('[data-lang="en"]')?.addEventListener('click',()=>HQVShared.lang='en',{signal:controller.signal});
+$('[data-admin-lang="vi"]')?.addEventListener('click',()=>changeAdminLanguage('vi'),{signal:controller.signal});
+$('[data-admin-lang="en"]')?.addEventListener('click',()=>changeAdminLanguage('en'),{signal:controller.signal});
 window.addEventListener('message',event=>{if(event.origin!==location.origin||event.source!==globalPreviewWindow||event.data?.type!=='hqv-global-preview-ready')return;globalPreviewWindow.postMessage({type:'hqv-global-preview',content:deepClone(globalPreviewSnapshot||{})},location.origin)},{signal:controller.signal});
 }
-window.HQVAdmin={mount(root){if(controller)return;controller=new AbortController();session=JSON.parse(sessionStorage.getItem('hqv-admin-session')||'null');const template=document.createElement('template');template.innerHTML=ADMIN_MARKUP;root.append(template.content);adminDialog=$('#adminDialog');unsubscribers=[HQVShared.on('projects',refreshAdminProjectList),HQVShared.on('assets',()=>{refreshAdminList();const slug=$('#projectSlug')?.dataset.originalSlug;const project=slug&&projectBySlug(slug);if(project)renderProjectMediaManager(project)}),HQVShared.on('global',loadGlobalDrafts),HQVShared.on('lang',applyAdminStatic)];bindAdminEvents();applyAdminStatic();renderGlobalEditor();openModalDialog(adminDialog);loadAssets();loadAdminProjects().catch(error=>setProjectStatus('err',projectErrorText(error)));loadGlobalDrafts();loadProjectDrafts();},unmount(){controller?.abort();controller=null;unsubscribers.forEach(unsubscribe=>unsubscribe());unsubscribers=[];document.querySelectorAll('#adminDialog,#mediaLibraryDialog').forEach(node=>node.remove());session=null;globalDraftContent=null;projectDrafts.clear();assetRegistry.clear();globalPreviewWindow=null;globalPreviewSnapshot=null;sessionStorage.removeItem('hqv-admin-session');HQVShared.auth=null;}};
+window.HQVAdmin={mount(root){if(controller)return;controller=new AbortController();const template=document.createElement('template');template.innerHTML=ADMIN_MARKUP.replace('<div class="global-cms-head">','<div class="global-cms-head"><div class="login-langs" aria-label="Language"><button type="button" data-admin-lang="vi">VI</button><button type="button" data-admin-lang="en">EN</button></div>');root.append(template.content);adminDialog=$('#adminDialog');unsubscribers=[HQVShared.on('projects',refreshAdminProjectList),HQVShared.on('assets',()=>{refreshAdminList();const slug=$('#projectSlug')?.dataset.originalSlug;const project=slug&&projectBySlug(slug);if(project)renderProjectMediaManager(project)}),HQVShared.on('global',()=>{if(globalContentLoadState!=='loading')loadGlobalDrafts()})];bindAdminEvents();applyAdminStatic();renderGlobalEditor();openModalDialog(adminDialog);globalContentLoadState='loading';refreshGlobalControls();HQVShared.loadGlobalPublished().then(loaded=>{if(loaded)loadGlobalDrafts();else{globalContentLoadState='failed';globalAdminContent=HQVShared.composeGlobalContent(globalFallbackContent());renderGlobalEditor();refreshGlobalBadge();refreshGlobalControls();setAdminStatus('#globalContentStatus','err',currentLang==='en'?'Live content could not be loaded. Writes are blocked to prevent overwriting it.':'Không tải được bản live, chặn ghi để tránh ghi đè.')}});loadAssets();loadAdminProjects().catch(error=>setProjectStatus('err',projectErrorText(error)));loadProjectDrafts();},unmount(){controller?.abort();controller=null;unsubscribers.forEach(unsubscribe=>unsubscribe());unsubscribers=[];document.querySelectorAll('#adminDialog,#mediaLibraryDialog').forEach(node=>node.remove());globalDraftContent=null;projectDrafts.clear();assetRegistry.clear();globalPreviewWindow=null;globalPreviewSnapshot=null;HQVShared.auth=null;}};
 })();
