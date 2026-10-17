@@ -12,6 +12,7 @@ Single-developer, static portfolio for Hoàng Quốc Việt — Marketing Operat
 - `assets/` — repository-managed static assets only.
 - `legacy/js-modular-old/` — archived, unused modular JavaScript tree.
 - `legacy/index.single-file.html` — original single-file source snapshot.
+- `supabase/scripts/` — read-only Supabase data discovery and certificate owner-ID audit queries.
 
 ## How it runs
 
@@ -32,6 +33,8 @@ Repository assets belong in `assets/`.
 Dynamic portfolio content — avatar, project covers, proofs and galleries — remains in Supabase Storage with metadata in `portfolio_proofs`.
 
 ## Supabase
+
+For Phase 5/6 verification after deploying migrations, run `supabase/scripts/insights_check.sql`, `supabase/scripts/cert_owner_ids.sql`, and `supabase/scripts/rls_check.sql` in the Supabase SQL Editor. Deployment order and cache-busting are documented in [DEPLOY.md](DEPLOY.md).
 
 The browser bundle contains only the Supabase project URL and anon key. Admin writes are authorized by Supabase RLS, not by hiding the JavaScript file.
 

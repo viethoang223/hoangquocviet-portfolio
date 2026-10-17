@@ -10,7 +10,6 @@ drop policy if exists "portfolio admins self read" on public.portfolio_admins;
 create policy "portfolio admins self read" on public.portfolio_admins
 for select to authenticated using (user_id = auth.uid());
 
-drop function if exists public.is_portfolio_admin();
 create or replace function public.is_portfolio_admin()
 returns boolean language sql stable security definer set search_path = public
 as $$ select exists (select 1 from public.portfolio_admins where user_id = auth.uid()); $$;

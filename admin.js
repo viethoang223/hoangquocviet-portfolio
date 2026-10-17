@@ -12,6 +12,31 @@ let globalAdminTab='home';
 
 let projectDrafts=new Map();
 let projectDraftLoadState='pending';
+let INSIGHTS_ADMIN=[];
+let insightAdminLoadState='pending';
+let insightDrafts=new Map();
+let insightDraftLoadState='pending';
+let activeInsightAdminSlug='';
+
+const INSIGHT_ADMIN_MARKUP=`<section class="admin-project-management insight-management" id="insightManagement">
+  <div class="admin-project-head"><div><h3 data-i18n="admin.insightsManagement">Insights Management</h3><p class="admin-note" data-i18n="admin.insightsManagementCopy">Create, edit and publish public Insight articles.</p></div><button class="admin-btn primary" type="button" id="newInsightBtn" data-i18n="admin.newInsight">+ New Insight</button></div>
+  <div id="insightManagementList" class="admin-project-list"></div>
+  <div id="insightEditor" class="admin-project-editor" hidden>
+    <form class="admin-form" id="insightForm">
+      <input type="hidden" id="insightDbId"><div class="admin-row"><label class="admin-label"><span data-i18n="admin.slug">Slug</span><input class="admin-input" id="insightSlug" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*"></label><label class="admin-label"><span data-i18n="admin.sortOrder">Sort order</span><input class="admin-input" id="insightSortOrder" type="number" min="0" step="1" required></label></div>
+      <div class="admin-row"><label class="admin-label"><span data-i18n="admin.titleVi">Tiêu đề VI</span><input class="admin-input" id="insightTitleVi" required></label><label class="admin-label"><span data-i18n="admin.titleEn">Title EN</span><input class="admin-input" id="insightTitleEn" required></label></div>
+      <div class="admin-row"><label class="admin-label"><span data-i18n="admin.insightExcerptVi">Excerpt VI</span><textarea class="admin-textarea" id="insightExcerptVi" required></textarea></label><label class="admin-label"><span data-i18n="admin.insightExcerptEn">Excerpt EN</span><textarea class="admin-textarea" id="insightExcerptEn" required></textarea></label></div>
+      <div class="admin-row"><label class="admin-label"><span data-i18n="admin.insightIntroVi">Intro VI</span><textarea class="admin-textarea" id="insightIntroVi"></textarea></label><label class="admin-label"><span data-i18n="admin.insightIntroEn">Intro EN</span><textarea class="admin-textarea" id="insightIntroEn"></textarea></label></div>
+      <div class="admin-row"><label class="admin-label"><span data-i18n="admin.insightCategories">Categories</span><input class="admin-input" id="insightCategories" placeholder="AI, MarTech, Analysis"></label><label class="admin-label"><span data-i18n="admin.insightReadMinutes">Read minutes</span><input class="admin-input" id="insightReadMinutes" type="number" min="1" step="1" required><button class="admin-btn" type="button" id="recalculateInsightMinutes" data-i18n="admin.recalculate">Recalculate</button></label></div>
+      <div class="admin-row"><label class="admin-label"><span data-i18n="admin.toneA">Tone A</span><input class="admin-input" id="insightToneA" required></label><label class="admin-label"><span data-i18n="admin.toneB">Tone B</span><input class="admin-input" id="insightToneB" required></label></div>
+      <div class="admin-label"><span data-i18n="admin.insightPublishedAt">Published at</span><input class="admin-input" id="insightPublishedAt" readonly></div>
+      <div class="project-editor-lifecycle"><span id="insightLifecycleBadge" class="project-lifecycle-badge draft">DRAFT</span><div class="project-lifecycle-actions"><button class="admin-btn" type="button" id="saveInsightDraftBtn" data-i18n="admin.saveDraft">Save Draft</button><button class="admin-btn" type="button" id="previewInsightDraftBtn" data-i18n="admin.previewDraft">Preview Draft</button><button class="admin-btn primary" type="button" id="publishInsightBtn" data-i18n="admin.publish">Publish</button><button class="admin-btn danger" type="button" id="unpublishInsightBtn" data-i18n="admin.unpublish">Unpublish</button></div></div>
+      <div class="admin-project-head"><strong data-i18n="admin.insightSections">Insight sections</strong><button class="admin-btn" type="button" id="addInsightSectionBtn" data-i18n="admin.addSection">+ Section</button></div><div id="insightSectionsEditor" class="admin-section-editor" data-section-host="insight" data-owner-id=""></div>
+      <div class="admin-project-media"><div class="admin-project-head"><div><strong data-i18n="admin.insightMedia">Insight media</strong><p class="admin-note" data-i18n="admin.insightMediaCopy">Cover and proof assets scoped to this Insight.</p></div><div><button class="admin-btn" type="button" id="uploadInsightCoverBtn" data-i18n="admin.uploadCover">Upload cover</button><button class="admin-btn" type="button" id="uploadInsightProofBtn" data-i18n="admin.upload">Upload proof</button></div></div><div id="insightMediaList" class="admin-media-list"></div></div>
+      <div class="admin-actions"><button class="admin-btn" type="button" id="cancelInsightBtn" data-i18n="admin.cancel">Cancel</button></div><div id="insightStatus" class="admin-status" aria-live="polite"></div>
+    </form>
+  </div>
+</section>`;
 
 function overlayGlobalRows(base,rows,prefix){
   const clone=deepClone(base),fallback=globalFallbackContent();(rows||[]).filter(r=>String(r.content_key||'').startsWith(prefix)).forEach(r=>{const key=String(r.content_key).slice(prefix.length);if(!GLOBAL_SECTION_KEYS.includes(key))return;clone[key]=globalCanonicalFromStored(parseContentJSON(r.value_vi,null),parseContentJSON(r.value_en,null),fallback[key]||{})});return clone;
@@ -26,9 +51,6 @@ function globalField(path,label,vi,en,type='input',full=false){const textarea=ty
 function globalItemsField(path,label,vi,en){return `<div class="global-field"><span>${esc(label)}</span><div class="global-lang"><div class="global-field"><span>VI · one item per line</span><textarea class="admin-textarea" data-global-array="${esc(path)}" data-global-lang="vi">${esc((getPath(globalAdminContent,path)?.vi||[]).join?.('\n')||'')}</textarea></div><div class="global-field"><span>EN · one item per line</span><textarea class="admin-textarea" data-global-array="${esc(path)}" data-global-lang="en">${esc((getPath(globalAdminContent,path)?.en||[]).join?.('\n')||'')}</textarea></div></div></div>`}
 
 const globalFieldBase=globalField;
-const globalItemsFieldBase=globalItemsField;
-globalField=function(path,...args){return path.startsWith('experience.certGroups.')?'':globalFieldBase(path,...args)};
-globalItemsField=function(path,...args){return path.startsWith('experience.certGroups.')?'':globalItemsFieldBase(path,...args)};
 
 function renderGlobalEditor(){
   const host=$('#globalContentEditor');if(!host)return;const c=globalAdminContent;
@@ -40,7 +62,7 @@ function renderGlobalEditor(){
   </div>`;
   if(globalAdminTab==='approach')html=`<div class="global-pane"><div class="global-group"><h4>Approach</h4>${globalField('approach.eyebrow','Eyebrow')}${globalField('approach.resultTitle','Result title')}${globalField('approach.lead','Lead',null,null,'textarea')}${c.approach.formula.map((_,i)=>globalField(`approach.formula.${i}.label`,`Formula ${i+1} label`)+globalField(`approach.formula.${i}.micro`,`Formula ${i+1} description`,null,null,'textarea')).join('')}${globalField('approach.result','Result text',null,null,'textarea')}${globalField('approach.processKicker','Process kicker')}${c.approach.process.map((_,i)=>globalField(`approach.process.${i}`,`Process ${i+1}`)).join('')}</div></div>`;
   if(globalAdminTab==='skills')html=`<div class="global-pane"><div class="global-group"><h4>Skills / Capabilities</h4>${globalField('skills.eyebrow','Eyebrow')}${globalField('skills.heading','Heading')}${globalField('skills.headingAccent','Heading accent')}${globalField('skills.lead','Lead',null,null,'textarea')}<div class="global-repeat">${c.skills.cards.map((card,i)=>`<div class="global-repeat-item"><div class="global-repeat-head"><strong>${esc(card.num)} · Capability ${i+1}</strong><span class="global-inline-tags">Content only · layout stays code-owned</span></div>${globalField(`skills.cards.${i}.title`,'Card title')}${globalField(`skills.cards.${i}.copy`,'Card description',null,null,'textarea')}${globalField(`skills.cards.${i}.items`,'Card items',null,null,'textarea')}</div>`).join('')}</div></div></div>`;
-  if(globalAdminTab==='experience')html=`<div class="global-pane"><div class="global-group"><h4>Experience</h4>${globalField('experience.eyebrow','Eyebrow')}${globalField('experience.heading','Heading')}${globalField('experience.headingAccent','Heading accent')}${globalField('experience.lead','Lead',null,null,'textarea')}${globalField('experience.title','Experience title')}${globalField('experience.role','Role')}${globalField('experience.description','Description',null,null,'textarea')}${globalItemsField('experience.tags','Tags')}</div><div class="global-group"><h4>Certifications</h4>${['anthropic','marketing','english'].map(k=>globalField(`experience.certGroups.${k}.label`,`Group ${k} label`)+globalItemsField(`experience.certGroups.${k}.items`,`Group ${k} items`)).join('')}</div><div class="global-group"><h4>Minh chứng chứng chỉ</h4>${certAdminPanelHtml()}</div><div class="global-group"><h4>Supporting profile</h4>${globalField('experience.creative.label','Creative label')}${globalField('experience.creative.text','Creative text',null,null,'textarea')}${globalField('experience.direction.label','Direction label')}${globalField('experience.direction.text','Direction text',null,null,'textarea')}</div></div>`;
+  if(globalAdminTab==='experience')html=`<div class="global-pane"><div class="global-group"><h4>Experience</h4>${globalField('experience.eyebrow','Eyebrow')}${globalField('experience.heading','Heading')}${globalField('experience.headingAccent','Heading accent')}${globalField('experience.lead','Lead',null,null,'textarea')}${globalField('experience.title','Experience title')}${globalField('experience.role','Role')}${globalField('experience.description','Description',null,null,'textarea')}${globalItemsField('experience.tags','Tags')}</div><div class="global-group"><h4>Minh chứng chứng chỉ</h4>${certAdminPanelHtml()}</div><div class="global-group"><h4>Supporting profile</h4>${globalField('experience.creative.label','Creative label')}${globalField('experience.creative.text','Creative text',null,null,'textarea')}${globalField('experience.direction.label','Direction label')}${globalField('experience.direction.text','Direction text',null,null,'textarea')}</div></div>`;
   if(globalAdminTab==='contact')html=`<div class="global-pane"><div class="global-group"><h4>Contact</h4>${globalField('contact.eyebrow','Eyebrow')}${globalField('contact.heading','Heading')}${globalField('contact.headingAccent','Heading accent')}${globalField('contact.intro','Lead',null,null,'textarea')}${globalField('contact.flow','Flow text',null,null,'textarea')}${globalField('contact.submit','CTA')}${globalField('contact.nameLabel','Name label')}${globalField('contact.emailLabel','Email label')}${globalField('contact.messageLabel','Message label')}${globalField('contact.namePlaceholder','Name placeholder')}${globalField('contact.messagePlaceholder','Message placeholder',null,null,'textarea')}</div></div>`;
   if(globalAdminTab==='footer')html=`<div class="global-pane"><div class="global-group"><h4>Footer</h4>${globalField('footer.copyright','Copyright')}${globalField('footer.supporting','Supporting text')}</div></div>`;
   host.innerHTML=html;
@@ -112,7 +134,7 @@ function safeStorageRemove(storage,key){try{storage?.removeItem(key)}catch(_){} 
 
 async function uploadAsset(input){return uploadAssetBatch(input)}
 
-const mediaLibraryState={query:'',filter:'all',projectId:'',mode:'single',accept:'image',selectedId:null,selectedIds:new Set(),title:'',onConfirm:null,browseOnly:false};
+const mediaLibraryState={query:'',filter:'all',projectId:'',ownerType:'project',mode:'single',accept:'image',selectedId:null,selectedIds:new Set(),title:'',onConfirm:null,browseOnly:false};
 
 const MAX_ASSET_FILE_BYTES=50*1024*1024;
 
@@ -178,9 +200,9 @@ function mediaFilterMatch(row,filter){
 
 function mediaAssetProject(row){return row?.project_id||row?.owner_id||''}
 
-function mediaProjectKeys(key){const k=String(key||'');if(!k)return null;const keys=new Set([k]);const p=PROJECTS.find(x=>x.id===k||String(x.dbId||'')===k)||PROJECT_FALLBACK.find(x=>x.id===k);if(p){keys.add(String(p.id));if(p.dbId)keys.add(String(p.dbId))}return keys}
+function mediaProjectKeys(key){let k=String(key||''),forcedOwner='';if(k.startsWith('insight:')){k=k.slice(8);forcedOwner='insight'}if(!k)return null;const keys=new Set([k]);const p=!forcedOwner&&(PROJECTS.find(x=>x.id===k||String(x.dbId||'')===k)||PROJECT_FALLBACK.find(x=>x.id===k));const insight=INSIGHTS_ADMIN.find(x=>x.id===k||String(x.dbId||'')===k)||INSIGHTS.find(x=>x.id===k||String(x.dbId||'')===k);if(p){keys.add(String(p.id));if(p.dbId)keys.add(String(p.dbId));keys.ownerType='project'}else if(insight){keys.add(String(insight.id));if(insight.dbId)keys.add(String(insight.dbId));keys.ownerType='insight'}return keys}
 
-function mediaAssetBelongsTo(row,keys){if(!keys)return true;return [row?.project_id,row?.owner_id].some(v=>v!=null&&v!==''&&keys.has(String(v)))}
+function mediaAssetBelongsTo(row,keys){if(!keys)return true;const ownerType=keys.ownerType;if(ownerType==='insight'&&row?.owner_type!=='insight')return false;if(ownerType==='project'&&row?.owner_type&&row.owner_type!=='project')return false;return [row?.project_id,row?.owner_id].some(v=>v!=null&&v!==''&&keys.has(String(v)))}
 
 function blockAssetReferences(sections,assetId,label){
   const refs=[];
@@ -198,7 +220,7 @@ function blockAssetReferences(sections,assetId,label){
 
 function mediaUsage(assetId){
   const refs=[],blockRefs=[];
-  const known=assetLoadState==='ready'&&projectDraftLoadState==='ready'&&PROJECTS.every(project=>Array.isArray(project.sections));
+  const known=assetLoadState==='ready'&&projectDraftLoadState==='ready'&&insightAdminLoadState==='ready'&&insightDraftLoadState==='ready'&&PROJECTS.every(project=>Array.isArray(project.sections));
   if(!assetId)return {count:0,refs,blockRefs,known};
   if(!known)return {count:0,refs,blockRefs,known:false};
   for(const project of PROJECTS){
@@ -206,9 +228,12 @@ function mediaUsage(assetId){
     if(cover?.id===assetId)refs.push(`${project.id} — Project cover`);
     blockRefs.push(...blockAssetReferences(project.sections,assetId,project.id));
   }
+  for(const insight of INSIGHTS_ADMIN){const cover=HQVShared.insightCovers.get(insight.id);if(cover?.id===assetId)refs.push(`${insight.id} — Insight cover`);blockRefs.push(...blockAssetReferences(insight.sections,assetId,`${insight.id} — Insight`))}
+  for(const [slug,draft] of insightDrafts)blockRefs.push(...blockAssetReferences(draft.sections,assetId,`${slug} — Insight Draft`));
   for(const [slug,draft] of projectDrafts)blockRefs.push(...blockAssetReferences(draft.sections,assetId,`${slug} — Draft`));
   refs.push(...blockRefs);
   const owner=assetRegistry.get(assetId);
+  if(owner?.owner_type==='insight')refs.push(`Insight — ${owner.owner_id}`);
   if(owner?.owner_type==='certificate'||owner?.owner_type==='experience')refs.push(`Certificate — ${owner.title_vi||owner.owner_id}`);
   else if(owner?.owner_type==='profile')refs.push('Profile — HQV');
   else if(owner?.owner_type==='insight')refs.push(`Insight — ${owner.owner_id}`);
@@ -271,15 +296,15 @@ function renderMediaLibrary(){
   const confirm=$('[data-media-confirm]');if(confirm){const ids=mediaSelectionIds();confirm.disabled=mediaLibraryState.browseOnly||ids.length===0||mediaLibraryState.mode==='multi'&&ids.some(id=>!getAsset(id));confirm.textContent=mediaLibraryState.browseOnly?t('admin.mediaCancel'):mediaLibraryState.mode==='single'?t('admin.mediaSelect'):t('admin.mediaInsert')}
 }
 
-function openMediaLibrary({mode='single',accept='image',selectedId=null,selectedIds=[],projectId='',title='',onConfirm,browseOnly=false}={}){
+function openMediaLibrary({mode='single',accept='image',selectedId=null,selectedIds=[],projectId='',ownerType='project',title='',onConfirm,browseOnly=false}={}){
   if(!HQVShared.auth?.isAuthed()){setAdminStatus('#projectStatus','err',t('admin.loginRequired'));return}
-  Object.assign(mediaLibraryState,{mode,accept,projectId,title,selectedId:selectedId||null,selectedIds:new Set(selectedIds||[]),query:'',filter:'all',onConfirm,browseOnly});
+  Object.assign(mediaLibraryState,{mode,accept,projectId,ownerType,title,selectedId:selectedId||null,selectedIds:new Set(selectedIds||[]),query:'',filter:'all',onConfirm,browseOnly});
   const dlg=$('#mediaLibraryDialog');if(!dlg)return;
   $('[data-media-title]').textContent=title||t('admin.mediaLibrary');$('[data-media-copy]').textContent=t('admin.mediaLibraryCopy');
   $('[data-media-query]').value='';$('[data-media-filter]').value='all';
   const projectSelect=$('[data-media-project]');
-  projectSelect.innerHTML=`<option value="">${esc(t('admin.mediaAnyProject'))}</option>`+PROJECTS.map(p=>`<option value="${esc(p.id)}">${esc(p.content?.vi?.title||p.id)}</option>`).join('');
-  projectSelect.value=projectId||'';
+  projectSelect.innerHTML=`<option value="">${esc(t('admin.mediaAnyProject'))}</option>`+PROJECTS.map(p=>`<option value="${esc(p.id)}">${esc(p.content?.vi?.title||p.id)}</option>`).join('')+INSIGHTS_ADMIN.map(p=>`<option value="insight:${esc(p.id)}">Insight · ${esc(p.content?.vi?.title||p.id)}</option>`).join('');
+  projectSelect.value=projectId?(ownerType==='insight'?`insight:${projectId}`:projectId):'';
   renderMediaLibrary();openModalDialog(dlg);
 }
 
@@ -328,10 +353,11 @@ const deletingAssetIds=new Set();
 
 function ownerLabel(row){
   if(row.asset_type==='avatar')return currentLang==='en'?'Profile · HQV':'Profile · HQV';
+  if(row.owner_type==='insight')return INSIGHTS_ADMIN.find(item=>item.id===row.owner_id)?.content?.[currentLang]?.title||`Insight · ${row.owner_id}`;
   const p=PROJECTS.find(x=>x.id===row.owner_id||x.id===row.project_id);return p?.content[currentLang]?.title||row.owner_id||row.project_id||'—';
 }
 
-function assetTypeLabel(type){return ({avatar:'Avatar',project_cover:currentLang==='en'?'Project cover':'Project cover',proof:'Proof',gallery:'Gallery'})[type]||type}
+function assetTypeLabel(type){return ({avatar:'Avatar',project_cover:currentLang==='en'?'Project cover':'Ảnh bìa dự án',insight_cover:currentLang==='en'?'Insight cover':'Ảnh bìa Insight',cert_cover:currentLang==='en'?'Certificate cover':'Ảnh bìa chứng chỉ',proof:'Proof',gallery:'Gallery'})[type]||type}
 
 function assetFileTypeLabel(row){const mime=String(row.mime_type||'').toLowerCase(),name=String(row.original_name||row.file_name||'').toLowerCase();if(row.asset_type==='gallery')return 'Gallery';if(row.type==='json'||mime==='application/json'||name.endsWith('.json'))return 'JSON';if(row.type==='pdf'||mime==='application/pdf'||name.endsWith('.pdf'))return 'PDF';if(mime.startsWith('image/'))return currentLang==='en'?'Image':'Ảnh';return row.type||mime.split('/').pop()||'File'}
 
@@ -363,13 +389,26 @@ function adminProofRowHtml(row){
 async function refreshAdminList(){
   const list=$('#adminProofList');if(!HQVShared.auth?.isAuthed()){list.innerHTML=`<div class="admin-empty">${esc(t('admin.loginRequired'))}</div>`;return}if(assetSchemaReady===null){list.innerHTML=`<div class="admin-empty">${esc(t('admin.schemaChecking'))}</div>`;return}if(!sbReady()){list.innerHTML=`<div class="admin-empty">${esc(t('admin.notConfigured'))}</div>`;return}if(assetLoadState==='schema_missing'){list.innerHTML=`<div class="admin-empty">${esc(t('admin.schemaMissing'))}</div>`;return}if(['auth','permission','network','error'].includes(assetLoadState)){const key={auth:'admin.authError',permission:'admin.permissionError',network:'admin.networkError',error:'admin.loadError'}[assetLoadState];list.innerHTML=`<div class="admin-empty">${esc(t(key))}</div>`;return}
   try{
-    const source=[...assetRegistry.values()].filter(row=>['proof','gallery','avatar','project_cover','cert_cover'].includes(row.asset_type));
+    const source=[...assetRegistry.values()].filter(row=>['proof','gallery','avatar','project_cover','insight_cover','cert_cover'].includes(row.asset_type));
     const gallerySeen=new Set();
     const rows=source.filter(row=>{if(row.asset_type!=='gallery')return true;if(!row.gallery_id)return true;if(gallerySeen.has(row.gallery_id))return false;gallerySeen.add(row.gallery_id);return true}).sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')));
     const groups=[{key:'project',label:currentLang==='en'?'Projects':'Dự án'},{key:'insight',label:'Insights'},{key:'certificate',label:currentLang==='en'?'Certificates & achievements':'Chứng chỉ & thành tựu'},{key:'profile',label:currentLang==='en'?'Profile':'Hồ sơ'}];
     const category=row=>row.owner_type==='profile'?'profile':row.owner_type==='insight'?'insight':row.owner_type==='certificate'||row.owner_type==='experience'?'certificate':'project';
     list.innerHTML=groups.map(group=>{const items=rows.filter(row=>category(row)===group.key);return `<section class="admin-proof-group"><h4>${esc(group.label)}</h4>${items.length?items.map(adminProofRowHtml).join(''):`<div class="admin-empty">${esc(currentLang==='en'?'No assets in this group.':'Nhóm này chưa có asset.')}</div>`}</section>`}).join('');
   }catch(err){list.innerHTML=`<div class="admin-empty">${esc(t('admin.uploadFailed'))}`}
+}
+
+async function replaceProofAsset(id){
+  if(!HQVShared.auth?.isAuthed()){setAdminStatus('#adminUploadStatus','err',t('admin.loginRequired'));return}
+  const row=assetRegistry.get(id);if(!row)return;
+  if(!await assertAssetUnused(id))return;
+  const input=document.createElement('input');input.type='file';input.multiple=row.asset_type==='gallery';input.accept=['avatar','project_cover','insight_cover','cert_cover'].includes(row.asset_type)?'image/*':row.asset_type==='gallery'?'image/*':ACCEPTED_ASSET_INPUT;input.hidden=true;document.body.appendChild(input);
+  input.addEventListener('change',async()=>{
+    const files=[...input.files];input.remove();if(!files.length)return;
+    const ownerId=row.owner_id||row.project_id,ownerType=row.owner_type||'project',assetType=row.asset_type==='gallery'?'proof':row.asset_type,replaceType=row.asset_type==='gallery'?'gallery':row.asset_type,projectId=ownerType==='project'?(row.project_id||ownerId):null;
+    setAdminStatus('#adminUploadStatus','ok',t('admin.uploading'));
+    try{const uploaded=await uploadAssetBatch({assetType,ownerType,ownerId,projectId,titleVi:row.title_vi||row.original_name,titleEn:row.title_en||row.original_name,files});const cleanup=await replaceSingleAsset(replaceType,ownerType,ownerId,uploaded,row.asset_type==='gallery'?row.gallery_id:null,row.asset_type==='proof'?row.id:null);await loadAssets();refreshAdminList();renderGlobalEditor();if(ownerType==='project')$('#adminProject').value=ownerId;setAdminStatus('#adminUploadStatus',cleanupStatusType(cleanup),cleanupSuccessMessage(cleanup,'admin.uploaded'))}catch(error){logAssetFailure(error,{operation:'asset.replace',assetId:id,assetType:row.asset_type,ownerType:row.owner_type,ownerId});setAdminStatus('#adminUploadStatus','err',formatAssetUploadError(error))}
+  },{once:true,signal:controller.signal});input.click();
 }
 
 async function replaceProofAsset(id){
@@ -415,10 +454,11 @@ function openAdminAsset(id,action='open'){
     const rows=[...assetRegistry.values()].filter(item=>item.asset_type==='gallery'&&item.gallery_id===row.gallery_id).sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
     const title=currentLang==='en'?(row.title_en||row.title_vi||'Gallery'):(row.title_vi||row.title_en||'Gallery');
     const images=rows.filter(item=>String(item.mime_type||'').startsWith('image/')).map(item=>`<figure><img src="${esc(publicUrl(item.storage_path))}" alt="${esc(item.original_name||'')}" loading="lazy"><figcaption>${esc(item.original_name||'')}</figcaption></figure>`).join('');
-    const win=window.open('','_blank','noopener');
+    const win=window.open('','_blank');
     if(!win)return;
     win.document.write(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>body{margin:0;background:#0a0b10;color:#fff;font:14px system-ui,sans-serif;padding:24px}h1{font-size:22px;margin:0 0 18px}main{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px}figure{margin:0;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:12px}img{display:block;width:100%;height:auto;border-radius:10px}figcaption{padding:10px 2px 2px;color:rgba(255,255,255,.7);word-break:break-word}</style></head><body><h1>${esc(title)} · ${rows.length} ${currentLang==='en'?'images':'ảnh'}</h1><main>${images||`<p>${currentLang==='en'?'This gallery contains no image assets.':'Gallery này không chứa asset hình ảnh.'}</p>`}</main></body></html>`);
     win.document.close();
+    win.opener=null;
     return;
   }
   window.open(publicUrl(row.storage_path),'_blank','noopener');
@@ -702,6 +742,8 @@ function editorialMutateBlock(row,blockId,fn,opts){
   },opts);
 }
 
+function sectionEditorHost(row){return row?.closest('[data-section-host]')||$('#projectSectionsEditor')}
+function sectionOwnerId(row){return sectionEditorHost(row)?.dataset.ownerId||''}
 function editorialPickAsset(trigger,{mode,accept,title,clearUrl=false}){
   const ctx=editorialBlockContext(trigger);if(!ctx)return;
   const {row,blockId}=ctx;
@@ -709,7 +751,7 @@ function editorialPickAsset(trigger,{mode,accept,title,clearUrl=false}){
   const doc=readSectionBlockEditors(row);   /* sync before the editor is covered by the media dialog */
   const block=doc.items.find(x=>x.id===blockId);if(!block)return;
   openMediaLibrary({
-    mode,accept,projectId:window.__blockEditorProjectId||'',title,
+    mode,accept,projectId:sectionOwnerId(row)||window.__blockEditorProjectId||'',ownerType:row.closest('[data-section-host]')?.dataset.sectionHost==='insight'?'insight':'project',title,
     selectedId:mode==='single'?(block.settings?.asset_id||null):null,
     selectedIds:mode==='multi'?(block.settings?.asset_ids||[]):[],
     onConfirm:value=>{editorialMutateBlock(row,blockId,b=>{b.settings[key]=value;if(clearUrl)b.settings.url=''},{focusId:blockId})}
@@ -720,23 +762,24 @@ function editorialPickSettingAsset(trigger,setting,{accept,title}={}){
   const ctx=editorialBlockContext(trigger);if(!ctx)return;
   const {row,blockId}=ctx;
   const doc=readSectionBlockEditors(row),block=doc.items.find(x=>x.id===blockId);if(!block)return;
-  openMediaLibrary({mode:'single',accept,projectId:window.__blockEditorProjectId||'',title,selectedId:block.settings?.[setting]||null,onConfirm:value=>editorialMutateBlock(row,blockId,b=>{b.settings[setting]=value},{focusId:blockId})});
+  openMediaLibrary({mode:'single',accept,projectId:sectionOwnerId(row)||window.__blockEditorProjectId||'',ownerType:row.closest('[data-section-host]')?.dataset.sectionHost==='insight'?'insight':'project',title,selectedId:block.settings?.[setting]||null,onConfirm:value=>editorialMutateBlock(row,blockId,b=>{b.settings[setting]=value},{focusId:blockId})});
 }
 
 function legacyBodyFromBlocks(doc,lang){
   return doc.items.filter(b=>b.type==='paragraph'||b.type==='richtext').map(b=>b.type==='richtext'?richTextToPlainText(b.content?.[`text_${lang}`]):String(b.content?.[`text_${lang}`]||'').trim()).filter(Boolean).join('\n\n');
 }
 
-function projectSectionPayloads(){
-  return $$('#projectSectionsEditor .admin-section-row').map((row,i)=>{
+function projectSectionPayloads(host='#projectSectionsEditor'){
+  const root=typeof host==='string'?$(host):host;
+  return [...(root?.querySelectorAll('.admin-section-row')||[])].map((row,i)=>{
     const doc=readSectionBlockEditors(row);
     return {id:row.dataset.sectionId||null,sort_order:i,title_vi:row.querySelector('[data-section-title-vi]').value,title_en:row.querySelector('[data-section-title-en]').value,body_vi:legacyBodyFromBlocks(doc,'vi'),body_en:legacyBodyFromBlocks(doc,'en'),blocks:doc};
   });
 }
 
-function renderProjectSectionEditor(sections=[],langs=null){
-  window.__blockEditorProjectId=$('#projectSlug')?.dataset.originalSlug||$('#projectSlug')?.value||'';
-  const host=$('#projectSectionsEditor');
+function renderProjectSectionEditor(sections=[],langs=null,hostArg='#projectSectionsEditor'){
+  const host=typeof hostArg==='string'?$(hostArg):hostArg;
+  if(host?.dataset.sectionHost==='project')window.__blockEditorProjectId=$('#projectSlug')?.dataset.originalSlug||$('#projectSlug')?.value||'';
   host.innerHTML=sections.map((s,i)=>{
     const doc=normalizeBlockDocument(s.blocks,s.body_vi,s.body_en);
     const lang=((langs&&langs[i])||(currentLang==='en'?'en':'vi'))==='en'?'en':'vi';
@@ -746,8 +789,8 @@ function renderProjectSectionEditor(sections=[],langs=null){
         <div class="admin-editorial-section-actions">
           <button class="admin-btn" type="button" data-section-up ${i===0?'disabled':''} aria-label="${esc(t('admin.sectionUp'))}">↑</button>
           <button class="admin-btn" type="button" data-section-down ${i===sections.length-1?'disabled':''} aria-label="${esc(t('admin.sectionDown'))}">↓</button>
-          <button class="admin-btn" type="button" data-duplicate-project-section aria-label="${esc(t('admin.duplicateSection'))}">${esc(currentLang==='en'?'Duplicate':'Nhân bản')}</button>
-          <button class="admin-btn danger" type="button" data-remove-project-section aria-label="${esc(t('admin.removeSection'))}">×</button>
+          <button class="admin-btn" type="button" data-duplicate-section data-duplicate-project-section aria-label="${esc(t('admin.duplicateSection'))}">${esc(currentLang==='en'?'Duplicate':'Nhân bản')}</button>
+          <button class="admin-btn danger" type="button" data-remove-section data-remove-project-section aria-label="${esc(t('admin.removeSection'))}">×</button>
         </div>
       </div>
       <div class="admin-editorial-title-grid">
@@ -764,16 +807,16 @@ function renderProjectSectionEditor(sections=[],langs=null){
       </div>
     </section>`;
   }).join('');
-  $$('#projectSectionsEditor .admin-section-row').forEach(row=>refreshEditorialSectionRow(row));
+  [...(host?.querySelectorAll('.admin-section-row')||[])].forEach(row=>refreshEditorialSectionRow(row));
 }
 
-function projectSectionLangs(){return $$('#projectSectionsEditor .admin-section-row').map(editorialLangOf)}
+function projectSectionLangs(host='#projectSectionsEditor'){const root=typeof host==='string'?$(host):host;return [...(root?.querySelectorAll('.admin-section-row')||[])].map(editorialLangOf)}
 
 function renderProjectMediaManager(project){
   const host=$('#projectMediaList');if(!host)return;
   if(!project||!HQVShared.auth?.isAuthed()){host.innerHTML=`<div class="admin-empty">${esc(t('admin.loginRequired'))}</div>`;return;}
   const cover=projectCovers.get(project.id);
-  const proofRows=[...assetRegistry.values()].filter(row=>row.asset_type==='proof'||row.asset_type==='gallery').filter(row=>(row.owner_id===project.id)||(row.project_id===project.id)).sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')));
+  const proofRows=[...assetRegistry.values()].filter(row=>(row.asset_type==='proof'||row.asset_type==='gallery')&&(row.owner_type==='project'||!row.owner_type)).filter(row=>(row.owner_id===project.id)||(row.project_id===project.id)).sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')));
   const rows=[];
   if(cover){rows.push(`<div class="admin-media-row"><div class="admin-media-main"><strong>${esc(currentLang==='en'?'Cover':'Cover')}</strong><span>${esc(cover.original_name||'')} · ${esc(formatAssetSize(cover.file_size))}</span></div><div class="admin-media-actions"><button class="admin-btn" type="button" data-project-cover-open="${esc(cover.id)}">${esc(assetActionLabel('open'))}</button><button class="admin-btn" type="button" data-project-cover-replace="${esc(project.id)}">${esc(assetActionLabel('replace'))}</button><button class="admin-btn danger" type="button" data-project-cover-delete="${esc(cover.id)}">${esc(assetActionLabel('delete'))}</button></div></div>`)}
   proofRows.forEach(row=>{
@@ -890,7 +933,7 @@ async function deleteProject(project){
     const sectionR=await sbFetch(`/rest/v1/portfolio_project_sections?select=id,project_id,sort_order,title_vi,body_vi,title_en,body_en,blocks&project_id=eq.${encodeURIComponent(projectId)}`,{method:'GET'});
     sections=await sectionR.json();
     const proofR=await sbFetch(`/rest/v1/${encodeURIComponent(CONFIG.supabase.assetTable)}?select=id,project_id,asset_type,owner_type,owner_id,type,title_vi,title_en,storage_path,original_name,mime_type,file_size,gallery_id,created_at,description_vi,description_en,sort_order,updated_at&or=(project_id.eq.${encodeURIComponent(slug)},owner_id.eq.${encodeURIComponent(slug)})&asset_type=in.(project_cover,proof,gallery)`,{method:'GET'});
-    assetRows=await proofR.json();
+    assetRows=(await proofR.json()).filter(row=>(row.owner_type==='project'||!row.owner_type)&&(row.project_id===slug||row.owner_id===slug));
     if(!Array.isArray(assetRows))throw new Error('project_asset_lookup_failed');
     if(assetRows.length){
       const unsafe=assetRows.map(row=>({row,usage:mediaUsage(row.id)})).find(x=>{
@@ -974,7 +1017,7 @@ function setAdminStatus(id,type,msg){const el=$(id);if(!el)return;el.className=`
 
 function setUploadProgress(percent){const value=Math.max(0,Math.min(100,Math.round(Number(percent)||0)));const label=currentLang==='en'?`Uploading… ${value}%`:`Đang upload… ${value}%`;setAdminStatus('#adminUploadStatus','ok',label);setAdminStatus('#globalContentStatus','ok',label)}
 
-function populateAdminProjects(){const html=PROJECTS.map(p=>`<option value="${esc(p.id)}">${esc(p.content[currentLang].title)}</option>`).join('')+INSIGHTS.map(p=>`<option value="insight:${esc(p.id)}">Insights · ${esc(p.title)}</option>`).join('');$('#adminProject').innerHTML=html;$('#coverProject').innerHTML=PROJECTS.map(p=>`<option value="${esc(p.id)}">${esc(p.content[currentLang].title)}</option>`).join('');refreshAdminProjectList()}
+function populateAdminProjects(){const html=PROJECTS.map(p=>`<option value="${esc(p.id)}">${esc(p.content[currentLang].title)}</option>`).join('')+INSIGHTS_ADMIN.map(p=>`<option value="insight:${esc(p.id)}">Insights · ${esc(p.content[currentLang].title)}</option>`).join('');$('#adminProject').innerHTML=html;$('#coverProject').innerHTML=PROJECTS.map(p=>`<option value="${esc(p.id)}">${esc(p.content[currentLang].title)}</option>`).join('');refreshAdminProjectList();refreshAdminInsightList()}
 
 
 
@@ -1062,24 +1105,26 @@ function assertAssetSchema(){
   if(assetLoadState!=='ready')throw new Error('asset_schema_unavailable');
 }
 
-function makeStoragePath(assetType,ownerId,file){const id=newId();const name=safeFileName(file.name);if(assetType==='avatar')return `profile/avatar-${id}-${name}`;if(assetType==='project_cover')return `projects/${ownerId}/cover-${id}-${name}`;if(assetType==='cert_cover')return `certificates/${ownerId}/cover-${id}-${name}`;return `projects/${ownerId}/proof/${Date.now()}-${id}-${name}`}
+function makeStoragePath(assetType,ownerId,file,ownerType='project'){const id=newId();const name=safeFileName(file.name);if(assetType==='avatar')return `profile/avatar-${id}-${name}`;if(assetType==='project_cover')return `projects/${ownerId}/cover-${id}-${name}`;if(assetType==='cert_cover')return `certificates/${ownerId}/cover-${id}-${name}`;if(assetType==='insight_cover')return `insights/${ownerId}/cover-${id}-${name}`;return `${ownerType==='insight'?'insights':'projects'}/${ownerId}/proof/${Date.now()}-${id}-${name}`}
 
 async function uploadAssetBatch({assetType,ownerType,ownerId,projectId,titleVi,titleEn,sortOrderStart=0,files}){
   assertAssetSchema();
-  const galleryId=assetType==='proof'&&ownerType!=='certificate'&&files.length>1&&files.every(f=>f.type.startsWith('image/'))?newId():null;
+  if(assetType==='gallery'&&!['project','insight'].includes(ownerType))throw new Error('asset_required');
+  const galleryId=assetType==='proof'&&!['certificate','experience'].includes(ownerType)&&files.length>1&&files.every(f=>f.type.startsWith('image/'))?newId():null;
   if(assetType==='avatar'&&files.length!==1)throw new Error('asset_required');
   if(assetType==='project_cover'&&(files.length!==1||!files[0].type.startsWith('image/')))throw new Error('asset_required');
   if(assetType==='cert_cover'&&(files.length!==1||!files[0].type.startsWith('image/')))throw new Error('asset_required');
+  if(assetType==='insight_cover'&&(files.length!==1||!files[0].type.startsWith('image/')))throw new Error('asset_required');
   const infos=new Map();
   for(const file of files){
     if(file.size>MAX_ASSET_FILE_BYTES)throw new Error('asset_too_large');
     const info=await inspectUploadFile(file);infos.set(file,info);
-    if((assetType==='avatar'||assetType==='project_cover'||assetType==='cert_cover')&&info.kind!=='image')throw new Error('asset_required');
+    if((assetType==='avatar'||assetType==='project_cover'||assetType==='insight_cover'||assetType==='cert_cover')&&info.kind!=='image')throw new Error('asset_required');
   }
   const rows=[];const uploadedPaths=[];let insertedRows=[];
   try{
     for(const file of files){
-      const path=makeStoragePath(assetType,ownerId,file);
+      const path=makeStoragePath(assetType,ownerId,file,ownerType);
       await uploadStorage(file,path,infos.get(file).mime);
       uploadedPaths.push(path);
       rows.push({project_id:projectId||null,asset_type:galleryId?'gallery':assetType,owner_type:ownerType,owner_id:ownerId,type:galleryId?'gallery':infos.get(file).kind,title_vi:titleVi||file.name,title_en:titleEn||file.name,storage_path:path,original_name:file.name,mime_type:infos.get(file).mime,file_size:file.size,gallery_id:galleryId,sort_order:sortOrderStart+rows.length});
@@ -1156,24 +1201,26 @@ async function doCoverUpload(e){
 
 async function doCertCoverUpload(id,file){
   const item=findCertAdminItem(id);if(!item||!file)return;
-  const existing=certCoverAsset(id);if(existing&&!await assertAssetUnused(existing.id))return;
+  const existing=certCoverAsset(id);if(existing&&!await assertAssetUnused(existing.id,'#globalContentStatus',false))return;
   setAdminStatus('#globalContentStatus','ok',t('admin.uploading'));
+  let rows=[];
   try{
-    const ownerType=certificateOwnerType(id),rows=await uploadAssetBatch({assetType:'cert_cover',ownerType,ownerId:id,projectId:null,titleVi:item.title.vi,titleEn:item.title.en,files:[file]});
+    const ownerType=certificateOwnerType(id);rows=await uploadAssetBatch({assetType:'cert_cover',ownerType,ownerId:id,projectId:null,titleVi:item.title.vi,titleEn:item.title.en,files:[file]});
     const cleanup=await replaceSingleAsset('cert_cover',ownerType,id,rows);
     await loadAssets();mergeEditorInputs();renderGlobalEditor();
     setAdminStatus('#globalContentStatus',cleanupStatusType(cleanup),cleanupSuccessMessage(cleanup,'admin.uploaded'));
-  }catch(error){setAdminStatus('#globalContentStatus','err',formatAssetUploadError(error))}
+  }catch(error){if(rows.length)try{await removeAssetRows(rows)}catch(cleanupError){error.rollbackError=cleanupError}setAdminStatus('#globalContentStatus','err',formatAssetUploadError(error))}
 }
 
 let mediaLibraryUploadActive=false;
 
 async function uploadMediaLibraryFiles(files){
-  const projectId=mediaLibraryState.projectId||$('#projectSlug')?.dataset.originalSlug||$('#projectSlug')?.value||'';
-  if(!projectId)throw new Error('project_missing');
+  const selectedOwner=mediaLibraryState.projectId||sectionOwnerId(document.querySelector('#insightSectionsEditor .admin-section-row'))||$('#projectSlug')?.dataset.originalSlug||$('#projectSlug')?.value||'';
+  const ownerType=selectedOwner.startsWith('insight:')?'insight':mediaLibraryState.ownerType||'project',ownerId=selectedOwner.startsWith('insight:')?selectedOwner.slice(8):selectedOwner;
+  if(!ownerId)throw new Error('project_missing');
   if(!files.length)throw new Error('asset_required');
   if(!HQVShared.auth?.isAuthed())throw new Error('supabase_auth_error');
-  const rows=await uploadAssetBatch({assetType:'proof',ownerType:'project',ownerId:projectId,projectId,titleVi:'',titleEn:'',files});
+  const rows=await uploadAssetBatch({assetType:'proof',ownerType,ownerId,projectId:ownerType==='project'?ownerId:null,titleVi:'',titleEn:'',files});
   await loadAssets();
   refreshAdminList();
   renderMediaLibrary();
@@ -1188,7 +1235,7 @@ async function doProofUpload(e){
   try{const insightId=projectId.startsWith('insight:')?projectId.slice(8):'';await uploadAssetBatch({assetType:'proof',ownerType:insightId?'insight':'project',ownerId:insightId||projectId,projectId:insightId?null:projectId,titleVi,titleEn,files});$('#proofUploadForm').reset();await loadAssets();refreshAdminList();if($('#mediaLibraryDialog')?.open)renderMediaLibrary();const editingSlug=$('#projectSlug')?.dataset.originalSlug;const editing=editingSlug?projectBySlug(editingSlug):null;if(editing)renderProjectMediaManager(editing);setAdminStatus('#adminUploadStatus','ok',t('admin.uploaded'))}catch(err){setAdminStatus('#adminUploadStatus','err',formatAssetUploadError(err))}finally{btn.disabled=false}
 }
 
-async function assertAssetUnused(id,statusTarget='#adminUploadStatus'){
+async function assertAssetUnused(id,statusTarget='#adminUploadStatus',includeInsights=true){
   const usage=mediaUsage(id);
   if(!usage.known){setAdminStatus(statusTarget,'err',currentLang==='en'?'Cannot verify asset references safely. Delete has been blocked.':'Không thể xác minh reference của asset một cách an toàn. Đã chặn xóa.');return false}
   const blockingRefs=[...usage.blockRefs];
@@ -1196,7 +1243,7 @@ async function assertAssetUnused(id,statusTarget='#adminUploadStatus'){
     const response=await sbFetch('/rest/v1/portfolio_content?select=content_key,value_vi&content_key=like.project.draft.%25',{method:'GET'});
     const drafts=await response.json();
     (Array.isArray(drafts)?drafts:[]).forEach(row=>{const payload=parseContentJSON(row.value_vi,{});blockingRefs.push(...blockAssetReferences(payload.sections,id,`${String(row.content_key).slice('project.draft.'.length)} — Draft`))});
-    blockingRefs.push(...await insightAssetReferences(id));
+    if(includeInsights)blockingRefs.push(...await insightAssetReferences(id));
   }catch(error){
     setAdminStatus(statusTarget,'err',currentLang==='en'?'Cannot verify draft/Insight references safely. Delete has been blocked.':'Không thể xác minh tham chiếu bản nháp/Insight an toàn. Đã chặn xóa.');
     return false;
@@ -1259,12 +1306,79 @@ Object.assign(I18N.en,{
   'admin.cleanupWarning':'Metadata was processed, but file cleanup failed. See the console.',
   'admin.globalContent':'GLOBAL CONTENT','admin.globalContentCopy':'Edit Home, Approach, Skills, Experience, Contact and Footer without changing the layout system.','admin.globalHome':'Home','admin.globalApproach':'Approach','admin.globalSkills':'Skills','admin.globalExperience':'Experience','admin.globalContact':'Contact','admin.globalFooter':'Footer','admin.saveDraft':'Save Draft','admin.previewDraft':'Preview Draft','admin.publish':'Publish','admin.unpublish':'Unpublish','admin.draftPreviewLabel':'DRAFT PREVIEW','admin.globalSaved':'Global Content draft saved.','admin.globalPublished':'Global Content published.','admin.globalUnpublished':'Global Content unpublished.','admin.globalPreviewOpened':'Draft Preview opened.','admin.projectDraftSaved':'Project draft saved.','admin.projectPublished':'Project published.','admin.projectUnpublished':'Project unpublished.','admin.publishBlocked':'Publish blocked','admin.noDraft':'No saved draft exists.','admin.invalidGlobal':'Global Content is invalid.','admin.draftAvailable':'Saved draft exists','admin.livePublished':'PUBLISHED · live','admin.draftOnly':'DRAFT · not yet live'
 });
+Object.assign(I18N.vi,{'admin.insightsManagement':'Quản lý Insights','admin.insightsManagementCopy':'Tạo, sửa và publish bài Insight public.','admin.newInsight':'+ Insight mới','admin.insightExcerptVi':'Excerpt VI','admin.insightExcerptEn':'Excerpt EN','admin.insightIntroVi':'Intro VI','admin.insightIntroEn':'Intro EN','admin.insightCategories':'Danh mục','admin.insightReadMinutes':'Số phút đọc','admin.recalculate':'Tính lại','admin.insightPublishedAt':'Thời điểm publish','admin.insightSections':'Các section Insight','admin.insightMedia':'Media Insight','admin.insightMediaCopy':'Ảnh bìa và proof thuộc Insight này.','admin.uploadCover':'Tải ảnh bìa','admin.upload':'Tải proof','admin.cancel':'Hủy','admin.saveDraft':'Lưu bản nháp','admin.previewDraft':'Xem trước bản nháp','admin.publish':'Publish','admin.unpublish':'Bỏ publish'});
+Object.assign(I18N.en,{'admin.insightsManagement':'Insights Management','admin.insightsManagementCopy':'Create, edit and publish public Insight articles.','admin.newInsight':'+ New Insight','admin.insightExcerptVi':'Excerpt VI','admin.insightExcerptEn':'Excerpt EN','admin.insightIntroVi':'Intro VI','admin.insightIntroEn':'Intro EN','admin.insightCategories':'Categories','admin.insightReadMinutes':'Read minutes','admin.recalculate':'Recalculate','admin.insightPublishedAt':'Published at','admin.insightSections':'Insight sections','admin.insightMedia':'Insight media','admin.insightMediaCopy':'Cover and proof assets scoped to this Insight.','admin.uploadCover':'Upload cover','admin.upload':'Upload proof','admin.cancel':'Cancel','admin.saveDraft':'Save Draft','admin.previewDraft':'Preview Draft','admin.publish':'Publish','admin.unpublish':'Unpublish'});
 async function loadGlobalDrafts(){try{const rows=await fetchGlobalPrefixRows('global.draft.');globalDraftContent=rows.length?buildGlobalFromRows(rows,'global.draft.'):null;globalAdminContent=HQVShared.composeGlobalContent(globalFallbackContent(),globalPublishedContent||{},globalDraftContent||{});globalContentLoadState='ready';renderGlobalEditor();refreshGlobalBadge();refreshGlobalControls()}catch(error){globalContentLoadState='failed';refreshGlobalBadge();refreshGlobalControls();setAdminStatus('#globalContentStatus','err',currentLang==='en'?'Could not load live or draft content. Writes are blocked to prevent overwriting it.':'Không tải được nội dung live hoặc bản nháp, đã chặn ghi để tránh ghi đè.')}}
+function insightSectionEditorRows(){return projectSectionPayloads('#insightSectionsEditor')}
+function renderInsightSectionEditor(sections=[],langs=null){const host=$('#insightSectionsEditor');if(!host)return;const slug=$('#insightSlug')?.value||'';host.dataset.ownerId=slug;renderProjectSectionEditor(sections,langs,host)}
+function insightFormPayload(){const slug=$('#insightSlug').value.trim();if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)||['cert','insight','admin'].includes(slug))throw new Error('invalid_slug');const title_vi=$('#insightTitleVi').value.trim(),title_en=$('#insightTitleEn').value.trim(),excerpt_vi=$('#insightExcerptVi').value.trim(),excerpt_en=$('#insightExcerptEn').value.trim(),sections=insightSectionEditorRows();if(!title_vi||!title_en||!excerpt_vi||!excerpt_en)throw new Error('insight_required');if(!sections.length||sections.some(section=>!section.body_vi.trim()||!section.body_en.trim()))throw new Error('insight_sections_required');const tone_a=$('#insightToneA').value.trim(),tone_b=$('#insightToneB').value.trim();if(!/^#[0-9a-fA-F]{3,8}$/.test(tone_a)||!/^#[0-9a-fA-F]{3,8}$/.test(tone_b))throw new Error('invalid_tone');return {version:1,insight:{id:$('#insightDbId').value.trim()||null,slug,sort_order:Number($('#insightSortOrder').value)||0,published:false,title_vi,title_en,excerpt_vi,excerpt_en,intro_vi:$('#insightIntroVi').value,intro_en:$('#insightIntroEn').value,categories:$('#insightCategories').value.split(',').map(x=>x.trim()).filter(Boolean),tone_a,tone_b,read_minutes:Math.max(1,Number($('#insightReadMinutes').value)||1),published_at:$('#insightPublishedAt').value||null},sections}}
+function validateInsightForPublish(payload){const slug=payload.insight.slug;if(Number(payload.insight.read_minutes)<=0)throw new Error('Insight read time must be greater than zero.');if(INSIGHTS_ADMIN.some(item=>item.id===slug&&item.dbId!==payload.insight.id))throw new Error('Insight slug already exists.');const owned=asset=>asset&&asset.owner_type==='insight'&&asset.owner_id===slug;payload.sections.forEach((section,sectionIndex)=>{const blocks=normalizeBlockDocument(section.blocks,section.body_vi,section.body_en).items;let contentFound=false;blocks.forEach((block,blockIndex)=>{const label=`Section ${sectionIndex+1}, Block ${blockIndex+1}`;const c=block.content||{},settings=block.settings||{},text=Object.values(c).flatMap(value=>Array.isArray(value)?value:[value]).some(value=>typeof value==='string'&&richTextToPlainText(value).trim());if(text)contentFound=true;if(block.type==='image'){const asset=assetRegistry.get(settings.asset_id);if(!asset||!owned(asset)||!String(asset.mime_type||'').startsWith('image/'))throw new Error(`${label}: image must reference an image asset owned by this Insight.`)}if(block.type==='gallery'){const assets=(settings.asset_ids||[]).map(id=>assetRegistry.get(id));if(!assets.length||assets.some(asset=>!owned(asset)||!String(asset.mime_type||'').startsWith('image/')))throw new Error(`${label}: gallery must reference Insight-owned image assets.`)}if(block.type==='proof'||block.type==='file'){const asset=assetRegistry.get(settings.asset_id);if(!asset||!owned(asset)||!['proof','gallery'].includes(asset.asset_type))throw new Error(`${label}: referenced proof/file must belong to this Insight.`)}if(block.type==='video'){const url=settings.url||c.url;if(url&&!safeEmbedUrl(url))throw new Error(`${label}: video URL is not allowed.`);if(!url&&settings.asset_id){const asset=assetRegistry.get(settings.asset_id);if(!asset||!owned(asset)||!String(asset.mime_type||'').startsWith('video/'))throw new Error(`${label}: video asset must belong to this Insight.`)}}});if(!contentFound)throw new Error(`Section ${sectionIndex+1}: add at least one content block.`)})}
+function recalculateInsightMinutes(){const sections=insightSectionEditorRows(),count=lang=>sections.map(section=>richTextToPlainText(section[`body_${lang}`]||'')).join(' ').trim().split(/\s+/).filter(Boolean).length;$('#insightReadMinutes').value=Math.max(1,Math.ceil(Math.max(count('vi'),count('en'))/200))}
+function setInsightStatus(type,message){setAdminStatus('#insightStatus',type,message)}
+function insightErrorText(error){if(error.message==='invalid_slug')return currentLang==='en'?'Invalid or reserved Insight slug.':'Slug Insight không hợp lệ hoặc bị dành riêng.';if(error.message==='insight_required')return currentLang==='en'?'Title and excerpt are required in both languages.':'Cần đủ tiêu đề và excerpt ở cả hai ngôn ngữ.';if(error.message==='insight_sections_required')return currentLang==='en'?'Add at least one non-empty section in both languages.':'Cần ít nhất một section có nội dung ở cả hai ngôn ngữ.';if(error.message==='invalid_tone')return currentLang==='en'?'Tone colors must be valid hex colors.':'Tone A/B phải là mã màu hex.';return projectErrorText(error)}
+function refreshAdminInsightList(){const host=$('#insightManagementList');if(!host)return;const rows=[...INSIGHTS_ADMIN.map(item=>({item,draft:insightDrafts.get(item.id)})),...[...insightDrafts.entries()].filter(([slug])=>!INSIGHTS_ADMIN.some(item=>item.id===slug)).map(([slug,draft])=>({item:{id:slug,dbId:null,published:false,content:{vi:{title:draft.insight.title_vi},en:{title:draft.insight.title_en}}},draft}))];host.innerHTML=rows.length?rows.map(({item,draft})=>{const live=item.dbId&&item.published!==false,status=live&&!draft?'PUBLISHED':live&&draft?'DRAFT · LIVE VERSION PRESERVED':'DRAFT';return `<article class="admin-project-row"><div><strong>${esc(item.content?.[currentLang]?.title||item.id)}</strong><span class="admin-project-meta">${esc(item.id)} · ${status}</span></div><div class="admin-project-actions"><button class="admin-btn" type="button" data-edit-insight="${esc(item.id)}">Edit</button>${item.dbId?`<button class="admin-btn danger" type="button" data-delete-insight="${esc(item.id)}">Delete</button>`:''}</div></article>`}).join(''):`<div class="admin-empty">${esc(currentLang==='en'?'No Insights yet.':'Chưa có Insight nào.')}</div>`}
+async function loadAdminInsights(){if(!HQVShared.auth?.isAuthed()){insightAdminLoadState='failed';return}try{const response=await sbFetch('/rest/v1/portfolio_insights?select=id,slug,sort_order,published,title_vi,title_en,excerpt_vi,excerpt_en,intro_vi,intro_en,categories,tone_a,tone_b,read_minutes,published_at&order=sort_order.asc,id.asc',{method:'GET'});const rows=await response.json();const sectionsResponse=await sbFetch('/rest/v1/portfolio_insight_sections?select=id,insight_id,sort_order,title_vi,body_vi,title_en,body_en,blocks&order=sort_order.asc,id.asc',{method:'GET'});const sections=await sectionsResponse.json();const grouped=new Map();(Array.isArray(sections)?sections:[]).forEach(row=>{if(!grouped.has(row.insight_id))grouped.set(row.insight_id,[]);grouped.get(row.insight_id).push(row)});INSIGHTS_ADMIN.splice(0,INSIGHTS_ADMIN.length,...(Array.isArray(rows)?rows:[]).map(row=>insightRuntimeFromDb(row,grouped.get(row.id)||[])));insightAdminLoadState='ready';refreshAdminInsightList();populateAdminProjects()}catch(error){insightAdminLoadState='failed';setInsightStatus('err',insightErrorText(error))}}
+async function loadInsightDrafts(){if(!HQVShared.auth?.isAuthed()){insightDraftLoadState='failed';return}try{const response=await sbFetch('/rest/v1/portfolio_content?select=content_key,value_vi&content_key=like.insight.draft.%25&order=updated_at.desc',{method:'GET'});const rows=await response.json();insightDrafts=new Map();(Array.isArray(rows)?rows:[]).forEach(row=>{const payload=parseContentJSON(row.value_vi,{}),slug=String(row.content_key||'').slice('insight.draft.'.length);if(slug&&payload?.insight)insightDrafts.set(slug,payload)});insightDraftLoadState='ready';refreshAdminInsightList()}catch(_){insightDraftLoadState='failed'}}
+function previewCurrentInsight(){try{const payload=insightFormPayload(),runtime=insightRuntimeFromDb({...payload.insight,id:payload.insight.id||`draft-${payload.insight.slug}`,published:false},payload.sections),win=window.open(new URL('index.html#draft-preview',location.href).href,'_blank');if(!win){setInsightStatus('err',currentLang==='en'?'Popup blocked.':'Trình duyệt đã chặn popup.');return}win.opener=window;globalPreviewWindow=win;globalPreviewSnapshot=runtime;setInsightStatus('ok',currentLang==='en'?'Draft preview opened.':'Đã mở xem trước bản nháp.')}catch(error){setInsightStatus('err',insightErrorText(error))}}
+function previewCurrentProject(){try{const base=projectBySlug($('#projectSlug')?.dataset.originalSlug||$('#projectSlug')?.value);if(!base)return;const payload=projectFormPayload(),runtime=projectFromDraftPayload(base,{project:payload,sections:projectSectionPayloads()}),win=window.open(new URL('index.html#draft-preview',location.href).href,'_blank');if(!win){setProjectStatus('err',currentLang==='en'?'Popup blocked.':'Trình duyệt đã chặn popup.');return}win.opener=window;globalPreviewWindow=win;globalPreviewSnapshot=runtime;setProjectStatus('ok',currentLang==='en'?'Draft preview opened.':'Đã mở xem trước bản nháp.')}catch(error){setProjectStatus('err',projectErrorText(error))}}
+function resetInsightEditor(){activeInsightAdminSlug='';const editor=$('#insightEditor');if(editor)editor.hidden=true;$('#insightForm')?.reset();$('#insightSectionsEditor').innerHTML='';$('#insightMediaList').innerHTML=''}
+function renderInsightMediaManager(slug){const host=$('#insightMediaList');if(!host)return;const rows=[...assetRegistry.values()].filter(row=>row.owner_type==='insight'&&row.owner_id===slug);const cover=rows.find(row=>row.asset_type==='insight_cover'),proofs=rows.filter(row=>row.asset_type==='proof'||row.asset_type==='gallery');host.innerHTML=[cover,...proofs].filter(Boolean).map(row=>`<div class="admin-media-row"><div class="admin-media-main"><strong>${esc(row.asset_type==='insight_cover'?(currentLang==='en'?'Cover':'Ảnh bìa'):row.title_vi||row.original_name||row.id)}</strong><span>${esc(assetTypeLabel(row.asset_type))} · ${esc(row.original_name||'')} · ${esc(formatAssetSize(row.file_size))}</span></div><div class="admin-media-actions"><button class="admin-btn" type="button" data-insight-media-open="${esc(row.id)}">${esc(assetActionLabel(row.asset_type==='gallery'?'viewGallery':'open'))}</button>${row.asset_type==='insight_cover'?`<button class="admin-btn" type="button" data-insight-cover-replace="${esc(slug)}">Replace</button>`:''}<button class="admin-btn danger" type="button" data-insight-media-delete="${esc(row.id)}">${esc(assetActionLabel('delete'))}</button></div></div>`).join('')||`<div class="admin-empty">${esc(currentLang==='en'?'No Insight media.':'Chưa có media Insight.')}</div>`}
+function editInsight(item){const draft=insightDrafts.get(item.id),source=draft?.insight||item,dbId=source.dbId||item.dbId||(source.id&&source.id!==item.id?source.id:'');activeInsightAdminSlug=item.id;$('#insightEditor').hidden=false;$('#insightDbId').value=dbId;$('#insightSlug').value=source.slug||item.id;$('#insightSlug').disabled=!!dbId;$('#insightSortOrder').value=source.sort_order??0;$('#insightTitleVi').value=source.title_vi||item.content?.vi?.title||'';$('#insightTitleEn').value=source.title_en||item.content?.en?.title||'';$('#insightExcerptVi').value=source.excerpt_vi||item.content?.vi?.hook||'';$('#insightExcerptEn').value=source.excerpt_en||item.content?.en?.hook||'';$('#insightIntroVi').value=source.intro_vi||item.content?.vi?.intro||'';$('#insightIntroEn').value=source.intro_en||item.content?.en?.intro||'';$('#insightCategories').value=(source.categories||item.content?.vi?.category||[]).join(', ');$('#insightToneA').value=source.tone_a||item.tone?.[0]||'#22d3ee';$('#insightToneB').value=source.tone_b||item.tone?.[1]||'#a78bfa';$('#insightReadMinutes').value=source.read_minutes||item.readMinutes||1;$('#insightPublishedAt').value=source.published_at||item.publishedAt||'';renderInsightSectionEditor(draft?.sections||item.sections||[]);$('#insightSectionsEditor').dataset.ownerId=item.id;renderInsightMediaManager(item.id);$('#insightLifecycleBadge').textContent=item.dbId&&item.published!==false&&!draft?'PUBLISHED':item.dbId&&item.published!==false?'DRAFT · LIVE VERSION PRESERVED':'DRAFT';$('#insightTitleVi').focus()}
+async function saveInsightDraft(){try{const payload=insightFormPayload();await upsertContentRow(`insight.draft.${payload.insight.slug}`,payload,'');insightDrafts.set(payload.insight.slug,payload);refreshAdminInsightList();setInsightStatus('ok',currentLang==='en'?'Insight draft saved.':'Đã lưu bản nháp Insight.')}catch(error){setInsightStatus('err',insightErrorText(error))}}
+async function uploadInsightMedia(assetType,files){const slug=$('#insightSlug').value.trim();if(!slug||!files.length)throw new Error('asset_required');const rows=await uploadAssetBatch({assetType,ownerType:'insight',ownerId:slug,projectId:null,titleVi:$('#insightTitleVi').value.trim(),titleEn:$('#insightTitleEn').value.trim(),files});if(assetType==='insight_cover')await replaceSingleAsset('insight_cover','insight',slug,rows);await loadAssets();renderInsightMediaManager(slug)}
+async function publishInsight(){
+  let payload=null,oldRow=null,oldSections=[],draftRow=null,insightId=null,draftDeleted=false,rollbackFailure=false;
+  try{
+    payload=insightFormPayload();validateInsightForPublish(payload);
+    const lookup=await sbFetch(`/rest/v1/portfolio_insights?select=*&slug=eq.${encodeURIComponent(payload.insight.slug)}`,{method:'GET'});oldRow=(await lookup.json())?.[0]||null;
+    if(oldRow){const sectionResponse=await sbFetch(`/rest/v1/portfolio_insight_sections?select=*&insight_id=eq.${encodeURIComponent(oldRow.id)}&order=sort_order.asc,id.asc`,{method:'GET'});oldSections=await sectionResponse.json();insightId=oldRow.id}
+    const draftResponse=await sbFetch(`/rest/v1/portfolio_content?select=*&content_key=eq.${encodeURIComponent(`insight.draft.${payload.insight.slug}`)}`,{method:'GET'});draftRow=(await draftResponse.json())?.[0]||null;
+    const now=oldRow?.published_at||new Date().toISOString(),{id:ignoredId,...insightRow}=payload.insight,row={...insightRow,published:true,published_at:now};
+    const response=await sbFetch('/rest/v1/portfolio_insights?on_conflict=slug',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=representation'},body:JSON.stringify(row)});const created=(await response.json())[0];if(!created?.id)throw new Error('insight_publish_failed');insightId=created.id;
+    const keptIds=payload.sections.map(section=>section.id).filter(Boolean),sections=payload.sections.map(({id,...section})=>({...section,...(id?{id}:{}),insight_id:insightId}));
+    await sbFetch('/rest/v1/portfolio_insight_sections?on_conflict=id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(sections)});
+    const staleIds=oldSections.map(section=>section.id).filter(id=>!keptIds.includes(id));
+    if(staleIds.length)await sbFetch(`/rest/v1/portfolio_insight_sections?id=in.(${staleIds.map(encodeURIComponent).join(',')})`,{method:'DELETE'});
+    if(draftRow){await deleteContentKey(`insight.draft.${payload.insight.slug}`);draftDeleted=true}insightDrafts.delete(payload.insight.slug);await loadAdminInsights();await HQVShared.loadInsights();const fresh=INSIGHTS_ADMIN.find(item=>item.id===payload.insight.slug);if(fresh)editInsight(fresh);setInsightStatus('ok',currentLang==='en'?'Insight published.':'Insight đã publish.');
+  }catch(error){
+    if(insightId){try{if(oldRow){const {id,...restoreRow}=oldRow;await sbFetch('/rest/v1/portfolio_insights?on_conflict=slug',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(restoreRow)});await sbFetch(`/rest/v1/portfolio_insight_sections?insight_id=eq.${encodeURIComponent(insightId)}`,{method:'DELETE'});if(oldSections.length)await sbFetch('/rest/v1/portfolio_insight_sections',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(oldSections)})}else await sbFetch(`/rest/v1/portfolio_insights?id=eq.${encodeURIComponent(insightId)}`,{method:'DELETE'});if(draftDeleted&&draftRow)await upsertRawContentRow(draftRow)}catch(_){rollbackFailure=true}}
+    if(rollbackFailure)error.message=currentLang==='en'?'Publish failed and rollback could not be verified.':'Publish thất bại và không thể xác minh rollback.';
+    setInsightStatus('err',insightErrorText(error));
+  }
+}
+async function unpublishInsight(){const slug=$('#insightSlug').value.trim();const item=INSIGHTS_ADMIN.find(row=>row.id===slug);if(!item?.dbId){setInsightStatus('err',currentLang==='en'?'Insight is not published.':'Insight chưa được publish.');return}try{await sbFetch(`/rest/v1/portfolio_insights?id=eq.${encodeURIComponent(item.dbId)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({published:false})});await loadAdminInsights();await HQVShared.loadInsights();setInsightStatus('ok',currentLang==='en'?'Insight unpublished.':'Insight đã unpublish.')}catch(error){setInsightStatus('err',insightErrorText(error))}}
+async function deleteInsight(item){
+  if(!item?.dbId||!confirm(currentLang==='en'?'Delete this Insight?':'Xóa Insight này?'))return;
+  let assets=[],snapshots=[],sections=[],row=null,draftRow=null,assetsDeleted=false,sectionsDeleted=false,rowDeleted=false,draftDeleted=false,cleanupWarn=false;
+  try{
+    const assetResponse=await sbFetch(`/rest/v1/${encodeURIComponent(CONFIG.supabase.assetTable)}?select=*&owner_type=eq.insight&owner_id=eq.${encodeURIComponent(item.id)}`,{method:'GET'});assets=await assetResponse.json();
+    for(const asset of assets){const usage=mediaUsage(asset.id),external=(usage.refs||[]).filter(ref=>ref!==`Insight — ${item.id}`&&!String(ref).startsWith(`${item.id} — Insight`));if(!usage.known||external.length)throw new Error(currentLang==='en'?`Delete blocked: ${asset.id} is referenced outside this Insight. ${external.join(' · ')}`:`Đã chặn xóa: ${asset.id} còn được tham chiếu ngoài Insight này. ${external.join(' · ')}`);snapshots.push(await snapshotStorageRow(asset))}
+    const rowResponse=await sbFetch(`/rest/v1/portfolio_insights?select=*&id=eq.${encodeURIComponent(item.dbId)}`,{method:'GET'});row=(await rowResponse.json())?.[0];
+    const sectionResponse=await sbFetch(`/rest/v1/portfolio_insight_sections?select=*&insight_id=eq.${encodeURIComponent(item.dbId)}`,{method:'GET'});sections=await sectionResponse.json();
+    const draftResponse=await sbFetch(`/rest/v1/portfolio_content?select=*&content_key=eq.${encodeURIComponent(`insight.draft.${item.id}`)}`,{method:'GET'});draftRow=(await draftResponse.json())?.[0]||null;
+    if(assets.length){await deleteMetadataRows(assets);assetsDeleted=true;try{await deleteStorage(assets.map(asset=>asset.storage_path))}catch(error){cleanupWarn=true;console.error('[HQV orphaned insight storage]',{paths:assets.map(asset=>asset.storage_path),error:error.message})}}
+    if(sections.length){await sbFetch(`/rest/v1/portfolio_insight_sections?insight_id=eq.${encodeURIComponent(item.dbId)}`,{method:'DELETE'});sectionsDeleted=true}
+    await sbFetch(`/rest/v1/portfolio_insights?id=eq.${encodeURIComponent(item.dbId)}`,{method:'DELETE'});rowDeleted=true;
+    if(draftRow){await deleteContentKey(`insight.draft.${item.id}`);draftDeleted=true}
+    insightDrafts.delete(item.id);await loadAssets();await loadAdminInsights();await loadInsightDrafts();await HQVShared.loadInsights();resetInsightEditor();setInsightStatus(cleanupWarn?'warn':'ok',cleanupWarn?(currentLang==='en'?'Insight deleted; some storage objects may need cleanup.':'Insight đã xóa; một số file Storage cần dọn thủ công.'):(currentLang==='en'?'Insight deleted.':'Đã xóa Insight.'));
+  }catch(error){
+    let rollbackFailed=false;
+    try{if(rowDeleted&&row){const {id,...restore}=row;await sbFetch('/rest/v1/portfolio_insights?on_conflict=slug',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(restore)})}if(sectionsDeleted&&sections.length)await sbFetch('/rest/v1/portfolio_insight_sections',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(sections)});if(assetsDeleted){for(const snapshot of snapshots)await restoreStorageSnapshot(snapshot);await insertAssetRows(assets)}if(draftDeleted&&draftRow)await upsertRawContentRow(draftRow)}catch(_){rollbackFailed=true}
+    if(rollbackFailed)error.message=currentLang==='en'?'Insight delete failed and rollback could not be verified.':'Xóa Insight thất bại và không thể xác minh rollback.';
+    setInsightStatus('err',insightErrorText(error));
+  }
+}
 async function loadAdminProjects(){const response=await sbFetch('/rest/v1/portfolio_projects?select=id,slug,sort_order,published,title_vi,title_en,hook_vi,hook_en,intro_vi,intro_en,categories,stats,visual_type,tone_a,tone_b&order=sort_order.asc,id.asc',{method:'GET'});const rows=await response.json();if(!Array.isArray(rows))throw new Error('project_rows_invalid');const sectionsResponse=await sbFetch('/rest/v1/portfolio_project_sections?select=id,project_id,sort_order,title_vi,body_vi,title_en,body_en,blocks&order=sort_order.asc,id.asc',{method:'GET'});const sections=await sectionsResponse.json();const grouped=new Map();(Array.isArray(sections)?sections:[]).forEach(row=>{if(!grouped.has(row.project_id))grouped.set(row.project_id,[]);grouped.get(row.project_id).push(row)});PROJECTS.splice(0,PROJECTS.length,...rows.map(row=>projectRuntimeFromDb(row,grouped.get(row.id)||[])));refreshAdminProjectList()}
 function applyAdminStatic(){if(!adminDialog)return;document.documentElement.lang=currentLang;adminDialog.setAttribute('aria-label',currentLang==='en'?'Portfolio CMS':'Quản trị portfolio');adminDialog.querySelectorAll('[data-i18n]').forEach(element=>{const value=I18N[currentLang][element.dataset.i18n];if(value)element.textContent=value});adminDialog.querySelectorAll('[data-admin-lang]').forEach(button=>button.classList.toggle('active',button.dataset.adminLang===currentLang));populateAdminProjects()}
 function renderAdmin(){applyAdminStatic();renderGlobalEditor();renderAvatar();refreshAdminProjectList();refreshAdminList();loadGlobalDrafts();loadProjectDrafts()}
 function bindAdminEvents(){
+const projectSectionHost=$('#projectSectionsEditor');if(projectSectionHost)projectSectionHost.dataset.sectionHost='project';
 document.addEventListener('click',async e=>{
+  const insightMediaOpen=e.target.closest('[data-insight-media-open]');if(insightMediaOpen){const row=assetRegistry.get(insightMediaOpen.dataset.insightMediaOpen);openAdminAsset(insightMediaOpen.dataset.insightMediaOpen,row?.asset_type==='gallery'?'viewGallery':'open');return}
+  const insightCoverReplace=e.target.closest('[data-insight-cover-replace]');if(insightCoverReplace){$('#insightSlug').value=insightCoverReplace.dataset.insightCoverReplace;$('#uploadInsightCoverBtn').click();return}
+  const insightMediaDelete=e.target.closest('[data-insight-media-delete]');if(insightMediaDelete){const row=assetRegistry.get(insightMediaDelete.dataset.insightMediaDelete);if(!row||!await assertAssetUnused(row.id,'#insightStatus'))return;try{await removeAssetRows([row]);await loadAssets();renderInsightMediaManager($('#insightSlug').value.trim());setInsightStatus('ok',t('admin.deleted'))}catch(error){setInsightStatus('err',formatAssetUploadError(error))}return}
+  const editInsightButton=e.target.closest('[data-edit-insight]');if(editInsightButton){const slug=editInsightButton.dataset.editInsight,draft=insightDrafts.get(slug),item=INSIGHTS_ADMIN.find(row=>row.id===slug)||(draft?insightRuntimeFromDb({...draft.insight,id:null,published:false},draft.sections):null)||INSIGHT_FALLBACK.find(row=>row.id===slug);if(item)editInsight(item);return}
+  const deleteInsightButton=e.target.closest('[data-delete-insight]');if(deleteInsightButton){deleteInsight(INSIGHTS_ADMIN.find(row=>row.id===deleteInsightButton.dataset.deleteInsight));return}
   const move=e.target.closest('[data-cert-move]');
   if(move){const [id,index,direction]=move.dataset.certMove.split('|');await reorderCertificateAssets(id,Number(index),direction);return}
   const choose=e.target.closest('[data-cert-choose]');
@@ -1276,8 +1390,10 @@ document.addEventListener('click',async e=>{
         return;
       }
       try{
-        const sortOrder=certAssetList(choose.dataset.certChoose).length;
-        await sbFetch(`/rest/v1/${encodeURIComponent(CONFIG.supabase.assetTable)}?id=eq.${encodeURIComponent(assetId)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({project_id:null,owner_type:'certificate',owner_id:choose.dataset.certChoose,sort_order:sortOrder})});
+        const id=choose.dataset.certChoose,item=findCertAdminItem(id),asset=assetRegistry.get(assetId);
+        if(!item||!asset||!await assertAssetUnused(assetId,'#globalContentStatus',false))return;
+        const sortOrder=certAssetList(id).length;
+        await sbFetch(`/rest/v1/${encodeURIComponent(CONFIG.supabase.assetTable)}?id=eq.${encodeURIComponent(assetId)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({project_id:null,owner_type:certificateOwnerType(id),owner_id:id,asset_type:'proof',type:assetKindOf(asset),gallery_id:null,title_vi:item.title.vi,title_en:item.title.en,sort_order:sortOrder})});
         await loadAssets();
         mergeEditorInputs();
         renderGlobalEditor();
@@ -1288,14 +1404,18 @@ document.addEventListener('click',async e=>{
   }
   
   
-  const pv=e.target.closest('[data-cert-preview]');if(pv){const [,aid]=pv.dataset.certPreview.split('|');openAdminAsset(aid,'preview');return}
+  const pv=e.target.closest('[data-cert-preview]');if(pv){const [id,index]=pv.dataset.certPreview.split('|'),row=certAssetList(id)[Number(index)];if(row)window.open(publicUrl(row.storage_path),'_blank','noopener');return}
   const up=e.target.closest('[data-cert-upload]');
   if(up){const input=document.createElement('input');input.type='file';input.multiple=true;input.accept=ACCEPTED_ASSET_INPUT;input.hidden=true;document.body.appendChild(input);
-    input.addEventListener('change',async()=>{const files=[...input.files];input.remove();if(!files.length)return;
-      try{setAdminStatus('#globalContentStatus','ok',t('admin.uploading'));await uploadAssetBatch({assetType:'proof',ownerType:up.dataset.certOwnerType||'certificate',ownerId:up.dataset.certUpload,projectId:null,titleVi:up.dataset.certVi,titleEn:up.dataset.certEn,sortOrderStart:certAssetList(up.dataset.certUpload).length,files});await loadAssets();mergeEditorInputs();renderGlobalEditor();setAdminStatus('#globalContentStatus','ok',t('admin.uploaded'))}
+    input.addEventListener('change',async()=>{const files=[...input.files],id=up.dataset.certUpload;input.remove();if(!files.length)return;
+      try{mergeEditorInputs();const item=findCertAdminItem(id);setAdminStatus('#globalContentStatus','ok',t('admin.uploading'));await uploadAssetBatch({assetType:'proof',ownerType:certificateOwnerType(id),ownerId:id,projectId:null,titleVi:item?.title.vi||'',titleEn:item?.title.en||'',sortOrderStart:certAssetList(id).length,files});await loadAssets();mergeEditorInputs();renderGlobalEditor();setAdminStatus('#globalContentStatus','ok',t('admin.uploaded'))}
       catch(err){setAdminStatus('#globalContentStatus','err',formatAssetUploadError(err))}},{once:true,signal:controller.signal});input.click();return}
+  const coverUp=e.target.closest('[data-cert-cover-upload]');
+  if(coverUp){const id=coverUp.dataset.certCoverUpload,input=document.createElement('input');input.type='file';input.accept='image/*';input.hidden=true;document.body.appendChild(input);input.addEventListener('change',async()=>{const file=input.files?.[0];input.remove();if(!file)return;mergeEditorInputs();await doCertCoverUpload(id,file)},{once:true,signal:controller.signal});input.click();return}
+  const coverRemove=e.target.closest('[data-cert-cover-remove]');
+  if(coverRemove){const row=assetRegistry.get(coverRemove.dataset.certCoverRemove);if(!row||!await assertAssetUnused(row.id,'#globalContentStatus',false))return;try{await removeAssetRows([row]);await loadAssets();mergeEditorInputs();renderGlobalEditor();setAdminStatus('#globalContentStatus','ok',t('admin.deleted'))}catch(err){setAdminStatus('#globalContentStatus','err',formatAssetUploadError(err))}return}
   const rm=e.target.closest('[data-cert-remove]');
-  if(rm){const row=assetRegistry.get(rm.dataset.certRemove);if(!row)return;try{await removeAssetRows([row]);await loadAssets();mergeEditorInputs();renderGlobalEditor();setAdminStatus('#globalContentStatus','ok',t('admin.deleted'))}catch(err){setAdminStatus('#globalContentStatus','err',formatAssetUploadError(err))}}
+  if(rm){const row=assetRegistry.get(rm.dataset.certRemove);if(!row||!await assertAssetUnused(row.id,'#globalContentStatus',false))return;try{await removeAssetRows([row]);await loadAssets();mergeEditorInputs();renderGlobalEditor();setAdminStatus('#globalContentStatus','ok',t('admin.deleted'))}catch(err){setAdminStatus('#globalContentStatus','err',formatAssetUploadError(err))}}
 },{signal:controller.signal});
 $('#proofUploadForm').addEventListener('submit',doProofUpload,{signal:controller.signal});
 $('#avatarUploadForm').addEventListener('submit',doAvatarUpload,{signal:controller.signal});
@@ -1309,6 +1429,16 @@ $('#newProjectBtn').addEventListener('click',()=>{resetProjectEditor();$('#proje
 $('#cancelProjectBtn').addEventListener('click',resetProjectEditor,{signal:controller.signal});
 $('#addProjectSectionBtn').addEventListener('click',()=>{const current=projectSectionPayloads();current.push({sort_order:current.length,title_vi:'',body_vi:'',title_en:'',body_en:'',blocks:{version:BLOCKS_VERSION,items:[newBlock('paragraph')]}});const langs=projectSectionLangs();langs.push(currentLang==='en'?'en':'vi');renderProjectSectionEditor(current,langs)},{signal:controller.signal});
 $('#migrateProjectsBtn').addEventListener('click',migrateExistingProjects,{signal:controller.signal});
+$('#newInsightBtn').addEventListener('click',()=>{resetInsightEditor();$('#insightEditor').hidden=false;$('#insightSlug').disabled=false;$('#insightSortOrder').value=INSIGHTS_ADMIN.length+1;$('#insightReadMinutes').value=1;$('#insightToneA').value='#22d3ee';$('#insightToneB').value='#a78bfa';renderInsightSectionEditor([]);$('#insightTitleVi').focus()},{signal:controller.signal});
+$('#cancelInsightBtn').addEventListener('click',resetInsightEditor,{signal:controller.signal});
+$('#addInsightSectionBtn').addEventListener('click',()=>{const host=$('#insightSectionsEditor'),rows=projectSectionPayloads(host);rows.push({sort_order:rows.length,title_vi:'',body_vi:'',title_en:'',body_en:'',blocks:{version:BLOCKS_VERSION,items:[newBlock('paragraph')]}});renderInsightSectionEditor(rows,projectSectionLangs(host))},{signal:controller.signal});
+$('#saveInsightDraftBtn').addEventListener('click',saveInsightDraft,{signal:controller.signal});
+$('#previewInsightDraftBtn').addEventListener('click',previewCurrentInsight,{signal:controller.signal});
+$('#publishInsightBtn').addEventListener('click',publishInsight,{signal:controller.signal});
+$('#unpublishInsightBtn').addEventListener('click',unpublishInsight,{signal:controller.signal});
+$('#recalculateInsightMinutes').addEventListener('click',recalculateInsightMinutes,{signal:controller.signal});
+$('#uploadInsightCoverBtn').addEventListener('click',()=>{const input=document.createElement('input');input.type='file';input.accept='image/*';input.hidden=true;document.body.append(input);input.addEventListener('change',async()=>{const file=input.files?.[0];input.remove();if(!file)return;try{await uploadInsightMedia('insight_cover',[file]);setInsightStatus('ok',t('admin.uploaded'))}catch(error){setInsightStatus('err',formatAssetUploadError(error))}},{once:true,signal:controller.signal});input.click()},{signal:controller.signal});
+$('#uploadInsightProofBtn').addEventListener('click',()=>{const input=document.createElement('input');input.type='file';input.multiple=true;input.accept=ACCEPTED_ASSET_INPUT;input.hidden=true;document.body.append(input);input.addEventListener('change',async()=>{const files=[...input.files];input.remove();if(!files.length)return;try{await uploadInsightMedia('proof',files);setInsightStatus('ok',t('admin.uploaded'))}catch(error){setInsightStatus('err',formatAssetUploadError(error))}},{once:true,signal:controller.signal});input.click()},{signal:controller.signal});
 $('#globalSaveDraftBtn').addEventListener('click',saveGlobalDraft,{signal:controller.signal});
 $('#globalPreviewBtn').addEventListener('click',openGlobalPreview,{signal:controller.signal});
 $('#globalPublishBtn').addEventListener('click',publishGlobal,{signal:controller.signal});
@@ -1318,10 +1448,10 @@ document.addEventListener('input',e=>{const field=e.target.closest('[data-global
 document.addEventListener('click',e=>{
   const edit=e.target.closest('[data-edit-project]');if(edit){const p=projectBySlug(edit.dataset.editProject);if(p)editProject(p);return}
   const del=e.target.closest('[data-delete-project]');if(del){const p=projectBySlug(del.dataset.deleteProject);if(p)deleteProject(p);return}
-  const remove=e.target.closest('[data-remove-project-section]');if(remove){remove.closest('.admin-section-row')?.remove();return}
-  const sectionUp=e.target.closest('[data-section-up]');if(sectionUp){const row=sectionUp.closest('.admin-section-row');if(row?.previousElementSibling){row.parentElement.insertBefore(row,row.previousElementSibling);renderProjectSectionEditor(projectSectionPayloads(),projectSectionLangs());}return}
-  const sectionDown=e.target.closest('[data-section-down]');if(sectionDown){const row=sectionDown.closest('.admin-section-row');if(row?.nextElementSibling){row.parentElement.insertBefore(row.nextElementSibling,row);renderProjectSectionEditor(projectSectionPayloads(),projectSectionLangs());}return}
-  const duplicateSection=e.target.closest('[data-duplicate-project-section]');if(duplicateSection){const row=duplicateSection.closest('.admin-section-row');if(!row)return;const payload=projectSectionPayloads(),rows=[...document.querySelectorAll('#projectSectionsEditor .admin-section-row')],index=rows.indexOf(row);const copy=JSON.parse(JSON.stringify(payload[index]||{}));copy.id=null;copy.title_vi=copy.title_vi?`${copy.title_vi} · Copy`:'';copy.title_en=copy.title_en?`${copy.title_en} · Copy`:'';copy.blocks=normalizeBlockDocument(copy.blocks);copy.blocks.items=copy.blocks.items.map(b=>({...b,id:newId()}));const langs=projectSectionLangs();langs.splice(index+1,0,langs[index]);payload.splice(index+1,0,copy);renderProjectSectionEditor(payload,langs);return}
+  const remove=e.target.closest('[data-remove-section],[data-remove-project-section]');if(remove){remove.closest('.admin-section-row')?.remove();return}
+  const sectionUp=e.target.closest('[data-section-up]');if(sectionUp){const row=sectionUp.closest('.admin-section-row'),host=sectionEditorHost(row);if(row?.previousElementSibling){row.parentElement.insertBefore(row,row.previousElementSibling);renderProjectSectionEditor(projectSectionPayloads(host),projectSectionLangs(host),host);}return}
+  const sectionDown=e.target.closest('[data-section-down]');if(sectionDown){const row=sectionDown.closest('.admin-section-row'),host=sectionEditorHost(row);if(row?.nextElementSibling){row.parentElement.insertBefore(row.nextElementSibling,row);renderProjectSectionEditor(projectSectionPayloads(host),projectSectionLangs(host),host);}return}
+  const duplicateSection=e.target.closest('[data-duplicate-section],[data-duplicate-project-section]');if(duplicateSection){const row=duplicateSection.closest('.admin-section-row'),host=sectionEditorHost(row);if(!row)return;const payload=projectSectionPayloads(host),rows=[...host.querySelectorAll('.admin-section-row')],index=rows.indexOf(row);const copy=JSON.parse(JSON.stringify(payload[index]||{}));copy.id=null;copy.title_vi=copy.title_vi?`${copy.title_vi} · Copy`:'';copy.title_en=copy.title_en?`${copy.title_en} · Copy`:'';copy.blocks=normalizeBlockDocument(copy.blocks);copy.blocks.items=copy.blocks.items.map(b=>({...b,id:newId()}));const langs=projectSectionLangs(host);langs.splice(index+1,0,langs[index]);payload.splice(index+1,0,copy);renderProjectSectionEditor(payload,langs,host);return}
   if(!e.target.closest('.admin-ins'))document.querySelectorAll('.admin-ins.is-open').forEach(x=>{x.classList.remove('is-open');const m=x.querySelector('.admin-ins-menu');if(m)m.hidden=true;x.querySelector('[data-ins-toggle]')?.setAttribute('aria-expanded','false')});
   const editorialLangTab=e.target.closest('[data-editorial-lang-tab]');if(editorialLangTab){
     const row=editorialLangTab.closest('.admin-section-row');if(!row)return;
@@ -1489,7 +1619,7 @@ document.addEventListener('change',async e=>{
     return;
   }
   if(e.target.matches('[data-media-filter]')){mediaLibraryState.filter=e.target.value;renderMediaLibrary();return}
-  if(e.target.matches('[data-media-project]')){mediaLibraryState.projectId=e.target.value;renderMediaLibrary();return}
+  if(e.target.matches('[data-media-project]')){mediaLibraryState.projectId=e.target.value;mediaLibraryState.ownerType=e.target.value.startsWith('insight:')?'insight':'project';renderMediaLibrary();return}
 },{signal:controller.signal});
 document.addEventListener('paste',e=>{
   const editor=e.target.closest('[data-richtext-editor]');if(!editor)return;
@@ -1513,7 +1643,7 @@ adminDialog.addEventListener('cancel',event=>event.preventDefault(),{signal:cont
 adminDialog.querySelector('[data-close="admin"]')?.addEventListener('click',()=>location.assign('./index.html'),{signal:controller.signal});
 $('[data-admin-lang="vi"]')?.addEventListener('click',()=>changeAdminLanguage('vi'),{signal:controller.signal});
 $('[data-admin-lang="en"]')?.addEventListener('click',()=>changeAdminLanguage('en'),{signal:controller.signal});
-window.addEventListener('message',event=>{if(event.origin!==location.origin||event.source!==globalPreviewWindow||event.data?.type!=='hqv-global-preview-ready')return;globalPreviewWindow.postMessage({type:'hqv-global-preview',content:deepClone(globalPreviewSnapshot||{})},location.origin)},{signal:controller.signal});
+window.addEventListener('message',event=>{if(event.origin!==location.origin||event.source!==globalPreviewWindow)return;if(event.data?.type==='hqv-draft-preview-ready'){globalPreviewWindow.postMessage({type:'hqv-draft-preview',runtime:deepClone(globalPreviewSnapshot||{})},location.origin);return}if(event.data?.type!=='hqv-global-preview-ready')return;globalPreviewWindow.postMessage({type:'hqv-global-preview',content:deepClone(globalPreviewSnapshot||{})},location.origin)},{signal:controller.signal});
 }
-window.HQVAdmin={mount(root){if(controller)return;controller=new AbortController();const template=document.createElement('template');template.innerHTML=ADMIN_MARKUP.replace('<div class="global-cms-head">','<div class="global-cms-head"><div class="login-langs" aria-label="Language"><button type="button" data-admin-lang="vi">VI</button><button type="button" data-admin-lang="en">EN</button></div>');root.append(template.content);adminDialog=$('#adminDialog');unsubscribers=[HQVShared.on('projects',refreshAdminProjectList),HQVShared.on('assets',()=>{refreshAdminList();const slug=$('#projectSlug')?.dataset.originalSlug;const project=slug&&projectBySlug(slug);if(project)renderProjectMediaManager(project)}),HQVShared.on('global',()=>{if(globalContentLoadState!=='loading')loadGlobalDrafts()})];bindAdminEvents();applyAdminStatic();renderGlobalEditor();openModalDialog(adminDialog);globalContentLoadState='loading';refreshGlobalControls();HQVShared.loadGlobalPublished().then(loaded=>{if(loaded)loadGlobalDrafts();else{globalContentLoadState='failed';globalAdminContent=HQVShared.composeGlobalContent(globalFallbackContent());renderGlobalEditor();refreshGlobalBadge();refreshGlobalControls();setAdminStatus('#globalContentStatus','err',currentLang==='en'?'Live content could not be loaded. Writes are blocked to prevent overwriting it.':'Không tải được bản live, chặn ghi để tránh ghi đè.')}});loadAssets();loadAdminProjects().catch(error=>setProjectStatus('err',projectErrorText(error)));loadProjectDrafts();},unmount(){controller?.abort();controller=null;unsubscribers.forEach(unsubscribe=>unsubscribe());unsubscribers=[];document.querySelectorAll('#adminDialog,#mediaLibraryDialog').forEach(node=>node.remove());globalDraftContent=null;projectDrafts.clear();assetRegistry.clear();globalPreviewWindow=null;globalPreviewSnapshot=null;HQVShared.auth=null;}};
+window.HQVAdmin={mount(root){if(controller)return;controller=new AbortController();const template=document.createElement('template');template.innerHTML=ADMIN_MARKUP.replace('<div class="global-cms-head">','<div class="global-cms-head"><div class="login-langs" aria-label="Language"><button type="button" data-admin-lang="vi">VI</button><button type="button" data-admin-lang="en">EN</button></div>');root.append(template.content);adminDialog=$('#adminDialog');adminDialog.querySelector('.admin-project-management')?.insertAdjacentHTML('afterend',INSIGHT_ADMIN_MARKUP);unsubscribers=[HQVShared.on('projects',refreshAdminProjectList),HQVShared.on('assets',()=>{refreshAdminList();const slug=$('#projectSlug')?.dataset.originalSlug;const project=slug&&projectBySlug(slug);if(project)renderProjectMediaManager(project)}),HQVShared.on('global',()=>{if(globalContentLoadState!=='loading')loadGlobalDrafts()}),HQVShared.on('insights',()=>{refreshAdminInsightList();populateAdminProjects()})];bindAdminEvents();applyAdminStatic();renderGlobalEditor();openModalDialog(adminDialog);globalContentLoadState='loading';refreshGlobalControls();HQVShared.loadGlobalPublished().then(loaded=>{if(loaded)loadGlobalDrafts();else{globalContentLoadState='failed';globalAdminContent=HQVShared.composeGlobalContent(globalFallbackContent());renderGlobalEditor();refreshGlobalBadge();refreshGlobalControls();setAdminStatus('#globalContentStatus','err',currentLang==='en'?'Live content could not be loaded. Writes are blocked to prevent overwriting it.':'Không tải được nội dung live, chặn ghi để tránh ghi đè.')}});loadAssets();loadAdminProjects().catch(error=>setProjectStatus('err',projectErrorText(error)));loadProjectDrafts();loadAdminInsights();loadInsightDrafts();},unmount(){controller?.abort();controller=null;unsubscribers.forEach(unsubscribe=>unsubscribe());unsubscribers=[];document.querySelectorAll('#adminDialog,#mediaLibraryDialog').forEach(node=>node.remove());globalDraftContent=null;projectDrafts.clear();insightDrafts.clear();INSIGHTS_ADMIN.splice(0);assetRegistry.clear();globalPreviewWindow=null;globalPreviewSnapshot=null;HQVShared.auth=null;}};
 })();

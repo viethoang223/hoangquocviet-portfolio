@@ -394,7 +394,18 @@
 .admin-ins-menu .admin-btn{min-height:30px;padding:0 11px;font-size:9px}
 .admin-block-stream-list .admin-richtext-wrap{margin:0}
 .cert-admin-row{display:grid;gap:6px;padding:10px;border:1px solid rgba(255,255,255,.08);border-radius:12px;margin-top:8px}
-.cert-admin-files{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:11px}</style>
+.cert-admin-list,.cert-admin-group,.admin-cert-fields{display:grid;gap:10px;min-width:0}
+.cert-admin-group>h4{margin:0;color:var(--cyan);font-size:10px;letter-spacing:.08em;text-transform:uppercase}
+.cert-admin-row{min-width:0;overflow:hidden}
+.cert-admin-row-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;min-width:0}
+.cert-admin-row-head strong,.cert-admin-row-head code{min-width:0;overflow-wrap:anywhere}
+.cert-admin-files{display:grid;gap:6px;min-width:0;font-size:11px}
+.cert-admin-file{display:grid;grid-template-columns:minmax(0,1fr) repeat(4,auto);align-items:center;gap:4px;min-width:0}
+.cert-admin-file>span{min-width:0;overflow-wrap:anywhere}
+.cert-admin-file .admin-btn{min-width:32px;padding-inline:7px}
+.cert-admin-cover-thumb{width:min(100%,280px);max-height:150px;object-fit:cover}
+@media(max-width:500px){.admin-cert-fields>.admin-row{grid-template-columns:minmax(0,1fr)}.cert-admin-file .admin-btn{min-width:28px;padding-inline:5px}}
+</style>
 <style>
 :root{--muted:rgba(255,255,255,.58)}
 .global-tabs{display:flex;gap:7px;flex-wrap:wrap;margin:16px 0 12px}
@@ -403,6 +414,7 @@
 .admin-proof-group{display:grid;gap:8px;margin-top:16px}
 .admin-proof-group>h4{margin:0 0 2px;color:rgba(255,255,255,.72);font-size:10px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
 </style>
+<style>.login-form[hidden]{display:none!important}</style>
 </head>
 <body>
 <main id="adminRoot">
@@ -417,7 +429,7 @@
     <noscript>Trang quản trị cần JavaScript để đăng nhập.</noscript>
   </form>
 </main>
-<script src="./shared.js"></script>
+<script src="./shared.js?v=20261017"></script>
 <script>(() => {
   const root = document.querySelector('#adminRoot');
   const form = document.querySelector('#adminLoginForm');
@@ -441,6 +453,7 @@
   function paintLanguage() {
     const text = copyText[currentLang];
     document.documentElement.lang = currentLang;
+    document.querySelector('.login-langs').setAttribute('aria-label', currentLang === 'en' ? 'Language' : 'Ngôn ngữ');
     title.textContent = text.title;
     copy.textContent = text.copy;
     emailLabel.textContent = text.email;
@@ -540,7 +553,7 @@
     if (loadPromise) return loadPromise;
     loadPromise = new Promise((resolve, reject) => {
       const script = document.createElement('script');
-      script.src = './admin.js';
+      script.src = './admin.js?v=20261017';
       script.onload = resolve;
       script.onerror = () => reject(new Error('admin_script_load_failed'));
       document.body.append(script);

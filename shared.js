@@ -27,15 +27,35 @@ const SKILLS=[
   {num:'04',accent:'#ff6b35',content:{vi:{title:'Marketing Strategy & Creative',copy:'Giữ nền tảng Marketing để công nghệ luôn quay về bài toán người dùng, funnel và hiệu quả.',items:['Consumer Behavior','Customer Journey','Marketing Funnel','CRO','Canva · ~5 years','CapCut · ~4 years','Communication Strategy']},en:{title:'Marketing Strategy & Creative',copy:'Keep Marketing fundamentals at the center so technology always returns to people, funnels and outcomes.',items:['Consumer Behavior','Customer Journey','Marketing Funnel','CRO','Canva · ~5 years','CapCut · ~4 years','Communication Strategy']}}}
 ];
 
-const INSIGHTS=[
+const INSIGHT_SEED_SOURCE=[
   {id:'gemini-4-argon',tone:['#22d3ee','#a78bfa'],category:['AI','MarTech','Analysis'],title:'Gemini 4 Argon: signal, hype and the operator view',hook:'Một bài phân tích về cách đọc một làn sóng AI mới: tách năng lực thật khỏi hiệu ứng truyền thông, rồi chọn công cụ dựa trên workflow và bài toán vận hành.',intro:'Deep-dive editorial về AI, MarTech và cách một Marketing Operator nên đánh giá công nghệ trước khi đưa nó vào hệ thống.',story:[['The question','Không phải model nào đang được nhắc đến nhiều nhất, mà model nào giải quyết được một bước cụ thể trong workflow.'],['Operator lens','Đánh giá theo context, reliability, structured output, integration cost và khả năng đo lường sau triển khai.'],['Takeaway','Claude Code và MCP vẫn có giá trị khi mục tiêu là xây context-aware systems thay vì chỉ chạy theo benchmark.']]}
 ];
 
 const certAssets=new Map();
 
+const INSIGHT_FALLBACK=INSIGHT_SEED_SOURCE.map((source,index)=>({
+  kind:'insight',id:source.id,dbId:null,index:String(index+1).padStart(2,'0'),tone:[...source.tone],visual:'web',published:true,readMinutes:1,publishedAt:null,
+  content:{
+    vi:{category:[...source.category],title:source.title,hook:source.hook,intro:source.intro,stats:[],story:source.story.map(([title,body])=>[title,body])},
+    en:{category:[...source.category],title:source.title,hook:'An analysis of how to read a new AI wave: separate real capability from media hype, then choose tools by workflow and operating problem.',intro:'An editorial deep dive into AI, MarTech and how a Marketing Operator should evaluate technology before putting it into a system.',stats:[],story:[['The right question','It is not which model gets the most attention, but which model solves a concrete step in a workflow.'],['The operator lens','Evaluate context, reliability, structured output, integration cost and the ability to measure after deployment.'],['Takeaway','Claude Code and MCP remain valuable when the goal is to build context-aware systems instead of simply chasing benchmarks.']]}
+  },
+  sections:source.story.map(([title,body],sectionIndex)=>({id:`gemini-4-argon-${sectionIndex+1}`,sort_order:sectionIndex,title_vi:title,body_vi:body,title_en:title,body_en:[
+    'It is not which model gets the most attention, but which model solves a concrete step in a workflow.',
+    'Evaluate context, reliability, structured output, integration cost and the ability to measure after deployment.',
+    'Claude Code and MCP remain valuable when the goal is to build context-aware systems instead of simply chasing benchmarks.'
+  ][sectionIndex],blocks:{version:1,items:[{id:`gemini-4-argon-${sectionIndex+1}-paragraph`,type:'paragraph',content:{text_vi:body,text_en:[
+    'It is not which model gets the most attention, but which model solves a concrete step in a workflow.',
+    'Evaluate context, reliability, structured output, integration cost and the ability to measure after deployment.',
+    'Claude Code and MCP remain valuable when the goal is to build context-aware systems instead of simply chasing benchmarks.'
+  ][sectionIndex]},settings:{}}]}})),proof:[]}));
+const INSIGHTS=[];
+INSIGHTS.push(...deepClone(INSIGHT_FALLBACK));
+
 const CERTS={anthropic:['Claude 101','Claude Code 101','Claude Code in Action','Introduction to Model Context Protocol','Model Context Protocol: Advanced Topics'],marketing:['Google Analytics / GA4 Certification','HubSpot Inbound Certification'],english:['TOEIC Speaking & Writing — 260 (Speaking 110 · Writing 150)']};
 Object.assign(I18N.vi,{'cert.issuer':'Đơn vị cấp','cert.date':'Ngày cấp','cert.verify':'Xác minh chứng chỉ','cert.description':'Mô tả','cert.evidence':'Minh chứng','cert.noEvidence':'Chưa có minh chứng','cert.openEvidence':'Mở minh chứng'});
 Object.assign(I18N.en,{'cert.issuer':'Issuer','cert.date':'Issue date','cert.verify':'Verify credential','cert.description':'Description','cert.evidence':'Evidence','cert.noEvidence':'No evidence uploaded','cert.openEvidence':'Open evidence'});
+Object.assign(I18N.vi,{'insights.readMinutes':'{n} phút đọc','insights.read':'Đọc bài phân tích','insights.empty':'Chưa có bài viết','insights.cover':'Ảnh bìa Insight'});
+Object.assign(I18N.en,{'insights.readMinutes':'{n} min read','insights.read':'Read the analysis','insights.empty':'No articles yet','insights.cover':'Insight cover'});
 
 const CERT_GROUP_DEFAULTS=[
   {id:'communications',title:{vi:'Vai trò Truyền thông',en:'Communications role'},legacyKeys:['communications','experience'],items:[{id:'exp-vice-head-comms',title:{vi:'Phó chủ nhiệm truyền thông',en:'Vice Head of Communications'},issuer:'UMC — UTT MC & Events Club',date:'',credentialUrl:'',description:{vi:'Điều phối nội dung, thiết kế, video, phân tích xu hướng và triển khai truyền thông đa kênh.',en:'Coordinated content, design, video, trend analysis, and multi-channel communications execution.'},legacyTitles:['Phó chủ nhiệm truyền thông','Vice Head of Communications']}]},
@@ -75,7 +95,7 @@ function normalizeCertGroups(raw){
       const match=sourceItems.find(candidate=>{
         if(candidate?.id===defaultItem.id)return true;
         const title=candidate?.title||{vi:candidate?.title_vi||candidate?.vi||candidate,en:candidate?.title_en||candidate?.en||candidate};
-        const candidates=[title.vi,title.en,...defaultItem.legacyTitles];
+        const candidates=[title.vi,title.en];
         return candidates.some(value=>defaultItem.legacyTitles.some(known=>certMatchText(value)===certMatchText(known)));
       });
       if(!match)return {...defaultItem,title:{...defaultItem.title},description:{...defaultItem.description}};
@@ -165,7 +185,10 @@ function legacyCertGroupsFromStored(viValue,enValue){
   return normalizeCertGroups(legacy);
 }
 
+function isCertificateGroupsShape(shape){return Array.isArray(shape)&&shape[0]?.id==='communications'}
+
 function globalContentForStorage(node,lang,shape){
+  if(isCertificateGroupsShape(shape))return normalizeCertGroups(node);
   if(isLocalizedLeafShape(shape)){
     const raw=node&&typeof node==='object'&&!Array.isArray(node)?node[lang]:undefined;
     return deepClone(raw===undefined||raw===null?'':raw);
@@ -182,6 +205,10 @@ function globalContentForStorage(node,lang,shape){
 }
 
 function globalCanonicalFromStored(viValue,enValue,shape){
+  if(isCertificateGroupsShape(shape)){
+    const stored=[viValue,enValue].find(value=>Array.isArray(value)&&value.some(group=>typeof group?.id==='string'));
+    return stored?normalizeCertGroups(stored):legacyCertGroupsFromStored(viValue,enValue);
+  }
   if(isLocalizedLeafShape(shape)){
     const extract=(raw,lang)=>raw&&typeof raw==='object'&&!Array.isArray(raw)&&Object.prototype.hasOwnProperty.call(raw,'vi')&&Object.prototype.hasOwnProperty.call(raw,'en')?raw[lang]:raw;
     const vi=extract(viValue,'vi');const en=extract(enValue,'en');
@@ -420,11 +447,6 @@ function certBadgeHtml(item,lang){
   return `<button type="button" class="cert-badge" data-cert-open="${esc(item.id)}" aria-label="${esc(title)}${issuer?` · ${esc(issuer)}`:''}">${cover?`<img class="cert-badge-cover" src="${esc(getAssetUrl(cover))}" alt="${esc(title)}" loading="lazy">`:''}<strong>${esc(title)}</strong>${issuer?`<span>${esc(issuer)}</span>`:''}</button>`;
 }
 
-
-
-const EXPERIENCE_PROOF_ID='experience-communications';
-function certBadgesHtml(group){const groupId=group==='anthropic'?'anthropic':group==='marketing'?'marketing-analytics':group==='english'?'english':'communications';const data=normalizeCertGroups(getGlobalContent().experience.certGroups).find(item=>item.id===groupId);return data?data.items.map(item=>certBadgeHtml(item,currentLang)).join(''):''}
-
 function certDetailHtml(item,lang=currentLang){
   if(!item)return '';
   const title=getLocalizedContent(item.title,lang),description=getLocalizedContent(item.description,lang),cover=certCoverAsset(item.id),proofs=certAssetList(item.id),safeCredential=safeLinkHref(item.credentialUrl);
@@ -519,6 +541,31 @@ async function fetchProjectSections({projectIds=[]}={}){if(!projectIds.length)re
 
 async function loadProjects(){if(!sbReady()){projectDbState='not_configured';HQVShared.emit('projects');return false}if(projectLoadPromise)return projectLoadPromise;const work=(async()=>{try{const rows=await fetchProjectRows();if(!Array.isArray(rows))throw new Error('project_rows_invalid');if(rows.length===0){projectDbState='empty';PROJECTS.splice(0,PROJECTS.length);HQVShared.emit('projects');return true}const sections=await fetchProjectSections({projectIds:rows.map(row=>row.id)});const byProject=new Map();(Array.isArray(sections)?sections:[]).forEach(section=>{if(!byProject.has(section.project_id))byProject.set(section.project_id,[]);byProject.get(section.project_id).push(section)});PROJECTS.splice(0,PROJECTS.length,...rows.map(row=>projectRuntimeFromDb(row,byProject.get(row.id)||[])));projectDbState='ready';HQVShared.emit('projects');return true}catch(error){projectDbState=classifySupabaseError(error);PROJECTS.splice(0,PROJECTS.length,...PROJECT_FALLBACK);HQVShared.emit('projects');return false}finally{projectLoadPromise=null}})();projectLoadPromise=work;return work}
 
+let insightDbState='fallback';
+let insightLoadPromise=null;
+const insightCovers=new Map();
+
+function insightRuntimeFromDb(row,sections){
+  const categories=Array.isArray(row.categories)?row.categories:[];
+  const ordered=(Array.isArray(sections)?sections:[]).sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0)||String(a.id||'').localeCompare(String(b.id||'')));
+  const storyVi=ordered.map(section=>[section.title_vi||section.title_en||'',section.body_vi||section.body_en||'']);
+  const storyEn=ordered.map(section=>[section.title_en||section.title_vi||'',section.body_en||section.body_vi||'']);
+  return {kind:'insight',id:row.slug,dbId:row.id,index:String(row.sort_order??0).padStart(2,'0'),tone:[safeCssColor(row.tone_a||'#22d3ee'),safeCssColor(row.tone_b||'#a78bfa')],visual:'web',published:row.published===true,readMinutes:Math.max(1,Number(row.read_minutes)||1),publishedAt:row.published_at||null,content:{vi:{category:categories,title:row.title_vi,hook:row.excerpt_vi||'',intro:row.intro_vi||'',stats:[],story:storyVi},en:{category:categories,title:row.title_en,hook:row.excerpt_en||'',intro:row.intro_en||'',stats:[],story:storyEn}},sections:ordered.map(section=>({...section,__legacyBody:!blocksAreAuthored(section.blocks),blocks:normalizeBlockDocument(section.blocks,section.body_vi,section.body_en)})),proof:[]};
+}
+
+async function loadInsights(){
+  if(!sbReady()){insightDbState='not_configured';INSIGHTS.splice(0,INSIGHTS.length,...deepClone(INSIGHT_FALLBACK));attachInsightAssets();HQVShared.emit('insights');return false}
+  if(insightLoadPromise)return insightLoadPromise;
+  insightLoadPromise=(async()=>{try{
+    const response=await sbFetch('/rest/v1/portfolio_insights?select=id,slug,sort_order,published,title_vi,title_en,excerpt_vi,excerpt_en,intro_vi,intro_en,categories,tone_a,tone_b,read_minutes,published_at&published=eq.true&order=sort_order.asc,id.asc',{method:'GET'},null);
+    const rows=await response.json();if(!Array.isArray(rows))throw new Error('insight_rows_invalid');
+    const sections=rows.length?await (async()=>{const r=await sbFetch(`/rest/v1/portfolio_insight_sections?select=id,insight_id,sort_order,title_vi,body_vi,title_en,body_en,blocks&insight_id=in.(${rows.map(row=>encodeURIComponent(row.id)).join(',')})&order=sort_order.asc,id.asc`,{method:'GET'},null);return r.json()})():[];
+    const byInsight=new Map();(Array.isArray(sections)?sections:[]).forEach(section=>{if(!byInsight.has(section.insight_id))byInsight.set(section.insight_id,[]);byInsight.get(section.insight_id).push(section)});
+    INSIGHTS.splice(0,INSIGHTS.length,...(rows.length?rows.map(row=>insightRuntimeFromDb(row,byInsight.get(row.id)||[])):deepClone(INSIGHT_FALLBACK)));insightDbState=rows.length?'ready':'empty';attachInsightAssets();HQVShared.emit('insights');return true;
+  }catch(error){insightDbState=classifySupabaseError(error);INSIGHTS.splice(0,INSIGHTS.length,...deepClone(INSIGHT_FALLBACK));attachInsightAssets();HQVShared.emit('insights');return false}finally{insightLoadPromise=null}})();
+  return insightLoadPromise;
+}
+
 function projectBySlug(slug){return PROJECTS.find(p=>p.id===slug)||PROJECT_FALLBACK.find(p=>p.id===slug)||null}
 
 function contentFor(p){return p.content[currentLang]||p.content.vi}
@@ -529,10 +576,10 @@ function safeCssColor(value,fallback='#22d3ee'){
 }
 
 function visualH(p){
-  const c=contentFor(p);
-  const cover=projectCovers.get(p.id);
-  const shell=inner=>`<div class="mock-window"><div class="mock-top"><div class="window-dots"><span class="window-dot"></span><span class="window-dot"></span><span class="window-dot"></span></div><div class="window-label">CASE ${esc(p.index)} · ${esc(p.id)}</div></div><div class="mock-body">${inner}</div></div>`;
-  if(cover)return shell(`<div class="mock-cover"><img src="${esc(cover.url)}" alt="${esc(c.title)} project cover" loading="lazy"><div class="mock-cover-label"><span><b>PROJECT COVER</b> · CASE ${esc(p.index)}</span><span>${esc(c.category[0]||'Project')}</span></div></div>`);
+  const c=contentFor(p),isInsight=p.kind==='insight';
+  const cover=isInsight?insightCovers.get(p.id):projectCovers.get(p.id);
+  const shell=inner=>`<div class="mock-window"><div class="mock-top"><div class="window-dots"><span class="window-dot"></span><span class="window-dot"></span><span class="window-dot"></span></div><div class="window-label">${isInsight?'INSIGHT':'CASE'} ${esc(p.index)} · ${esc(p.id)}</div></div><div class="mock-body">${inner}</div></div>`;
+  if(cover)return shell(`<div class="mock-cover"><img src="${esc(cover.url)}" alt="${esc(c.title)} ${isInsight?'insight':'project'} cover" loading="lazy"><div class="mock-cover-label"><span><b>${isInsight?'INSIGHT COVER':'PROJECT COVER'}</b> · ${isInsight?'INSIGHT':'CASE'} ${esc(p.index)}</span><span>${esc(c.category[0]||(isInsight?'Insight':'Project'))}</span></div></div>`);
   if(p.visual==='workflow')return shell(`<div class="workflow"><div class="node cold">DATA SOURCE</div><div class="arrow">→</div><div class="node">EXTRACTION</div><div class="arrow">→</div><div class="node hot">AI PROCESSING</div><div class="arrow">→</div><div class="node hot">INTENT</div><div class="arrow">→</div><div class="node">JSON</div><div class="arrow">→</div><div class="node cold">TELEGRAM</div></div>`);
   if(p.visual==='research')return shell(`<div class="data-panel"><div class="metric-box"><div class="metric"><strong style="color:var(--lime)">0.849</strong><span>KMO</span></div><div class="metric"><strong style="color:var(--cyan)">68.7%</strong><span>Variance</span></div><div class="metric"><strong>0.694</strong><span>R²</span></div><div class="metric"><strong>0.679</strong><span>Adjusted R²</span></div></div><div class="bars"><div class="bar"><span>responses</span><i style="--w:88%"></i><b>193</b></div><div class="bar"><span>hypotheses</span><i style="--w:57%"></i><b>4/7</b></div></div></div>`);
   if(p.visual==='research2')return shell(`<div class="timeline"><div class="time-row"><span class="time-label">04/2025</span><div class="time-body">Project start · university-level research</div></div><div class="time-row"><span class="time-label">ĐTTĐ2425-20</span><div class="time-body">Applied AI + education research</div></div><div class="time-row"><span class="time-label">20,000,000</span><div class="time-body">Approved project budget · VND</div></div><div class="time-row"><span class="time-label">03/2026</span><div class="time-body">Project end</div></div></div>`);
@@ -573,39 +620,40 @@ function validProof(x){return !!(x&&(x.url||x.file||(Array.isArray(x.files)&&x.f
 function proofDownloadUrl(url,name){const separator=url.includes('?')?'&':'?';return `${url}${separator}download=${encodeURIComponent(name||'proof')}`}
 
 function caseProofHtml(p){
+  const routePrefix=p.kind==='insight'?`#/insight/${p.id}`:`#/${p.id}`;
   return (p.proof||[]).map((x,i)=>{
     if(!validProof(x))return '';
     if(x.type==='link'||x.type==='download')return `<a class="proof-btn" href="${esc(x.url||x.file)}" target="_blank" rel="noopener">${esc(proofTitle(x)||proofVerb(x.type))} ↗</a>`;
-    if(['pdf','image','gallery','json','video','audio','file'].includes(x.type)){const name=(x.original_name||proofTitle(x)||'proof').replace(/[\\/:*?"<>|]+/g,'_');const url=proofDownloadUrl(x.url||x.file,name);return `<span class="proof-download-actions">${['video','audio','file'].includes(x.type)?`<a class="proof-btn" href="#/${esc(p.id)}/${i}">${esc(currentLang==='en'?'View':'Xem')}${proofTitle(x)?` · ${esc(proofTitle(x))}`:''}</a>`:''}<a class="proof-btn" href="${esc(url)}" download="${esc(name)}">${esc(currentLang==='en'?'Download':'Tải')}${proofTitle(x)?` · ${esc(proofTitle(x))}`:''} ↓</a><a class="proof-btn proof-download-fallback" href="${esc(url)}" target="_blank" rel="noopener">${esc(currentLang==='en'?'Open file':'Mở file')} ↗</a></span>`}
+    if(['pdf','image','gallery','json','video','audio','file'].includes(x.type)){const name=(x.original_name||proofTitle(x)||'proof').replace(/[\\/:*?"<>|]+/g,'_');const url=proofDownloadUrl(x.url||x.file,name);return `<span class="proof-download-actions">${['video','audio','file'].includes(x.type)?`<a class="proof-btn" href="${esc(routePrefix)}/${i}">${esc(currentLang==='en'?'View':'Xem')}${proofTitle(x)?` · ${esc(proofTitle(x))}`:''}</a>`:''}<a class="proof-btn" href="${esc(url)}" download="${esc(name)}">${esc(currentLang==='en'?'Download':'Tải')}${proofTitle(x)?` · ${esc(proofTitle(x))}`:''} ↓</a><a class="proof-btn proof-download-fallback" href="${esc(url)}" target="_blank" rel="noopener">${esc(currentLang==='en'?'Open file':'Mở file')} ↗</a></span>`}
     return `<a class="proof-btn" href="${esc(x.url||x.file||'#')}" target="_blank" rel="noopener">${esc(proofTitle(x)||proofVerb(x.type)||'Open proof')} ↗</a>`;
   }).join('');
 }
 
 function articleMediaHtml(p){
   const c=contentFor(p);
-  const cover=projectCovers.get(p.id);
+  const isInsight=p.kind==='insight',cover=isInsight?insightCovers.get(p.id):projectCovers.get(p.id);
   if(cover){
-    return `<figure class="article-media article-media--hero article-media--full"><img src="${esc(cover.url)}" alt="${esc(c.title)} project cover"></figure>`;
+    return `<figure class="article-media article-media--hero article-media--full"><img src="${esc(cover.url)}" alt="${esc(c.title)} ${isInsight?'insight':'project'} cover"></figure>`;
   }
-  return `<figure class="article-media article-media--visual article-media--full">${visualH(p)}<figcaption>${esc(currentLang==='en'?'Project visual':'Hình ảnh trực quan của Project')}</figcaption></figure>`;
+  return `<figure class="article-media article-media--visual article-media--full">${visualH(p)}<figcaption>${esc(p.kind==='insight'?(currentLang==='en'?'Insight visual':'Hình ảnh của Insight'):(currentLang==='en'?'Project visual':'Hình ảnh trực quan của Project'))}</figcaption></figure>`;
 }
 
 function articleMetaHtml(p,c,techItems){
   const items=[];
   if(c.category?.length)items.push(`${esc(currentLang==='en'?'Category':'Danh mục')} · ${esc(c.category.join(' · '))}`);
-  if(p.visual)items.push(`${esc(currentLang==='en'?'Type':'Loại')} · ${esc(p.visual)}`);
+  if(p.visual&&p.kind!=='insight')items.push(`${esc(currentLang==='en'?'Type':'Loại')} · ${esc(p.visual)}`);
   if(techItems.length)items.push(`${esc(currentLang==='en'?'Technology':'Công nghệ')} · ${esc(techItems.slice(0,4).join(' · '))}`);
   return items.length?`<div class="case-article-meta">${items.map(x=>`<span>${x}</span>`).join('')}</div>`:'';
 }
 
 function articleProjectNav(p){
-  const visible=PROJECTS.filter(x=>x.published!==false);
+  const isInsight=p.kind==='insight',visible=(isInsight?INSIGHTS:PROJECTS).filter(x=>x.published!==false);
   const i=visible.findIndex(x=>x.id===p.id);if(i<0)return '';
   const prev=visible[i-1],next=visible[i+1];
-  const label=currentLang==='en'?{prev:'Previous project',next:'Next project',explore:'Explore another project'}:{prev:'Project trước',next:'Project tiếp theo',explore:'Khám phá Project khác'};
+  const label=isInsight?(currentLang==='en'?{prev:'Previous insight',next:'Next insight',explore:'Explore another insight'}:{prev:'Insight trước',next:'Insight tiếp theo',explore:'Khám phá Insight khác'}):(currentLang==='en'?{prev:'Previous project',next:'Next project',explore:'Explore another project'}:{prev:'Project trước',next:'Project tiếp theo',explore:'Khám phá Project khác'});
   const links=[];
-  if(prev)links.push(`<a href="#/${esc(prev.id)}"><small>${esc(label.prev)}</small><strong>${esc(contentFor(prev).title)}</strong></a>`);
-  if(next)links.push(`<a href="#/${esc(next.id)}"><small>${esc(label.next)}</small><strong>${esc(contentFor(next).title)}</strong></a>`);
+  if(prev)links.push(`<a href="${isInsight?'#/insight/':'#/'}${esc(prev.id)}"><small>${esc(label.prev)}</small><strong>${esc(contentFor(prev).title)}</strong></a>`);
+  if(next)links.push(`<a href="${isInsight?'#/insight/':'#/'}${esc(next.id)}"><small>${esc(label.next)}</small><strong>${esc(contentFor(next).title)}</strong></a>`);
   if(!links.length)return '';
   return `<footer class="case-footer"><div class="case-footer-label">${esc(label.explore)}</div><nav class="case-project-nav" aria-label="${esc(label.explore)}">${links.join('')}</nav></footer>`;
 }
@@ -619,8 +667,8 @@ function caseHtml(p){
   const techItems=String(tech[1]||'').split('·').map(x=>x.trim()).filter(Boolean);
   const locale=currentLang==='en';
   const labels=locale?{
-    eyebrow:'Case Study · Digital Editorial',
-    project:'Project',
+    eyebrow:p.kind==='insight'?'Insight · Digital Editorial':'Case Study · Digital Editorial',
+    project:p.kind==='insight'?'Insight':'Project',
     type:'Type',
     technology:'Technology',
     system:'The System',
@@ -636,8 +684,8 @@ function caseHtml(p){
     media:'Project visual',
     proofOpen:'Open evidence'
   }:{
-    eyebrow:'Case Study · Bài viết chuyên đề',
-    project:'Project',
+    eyebrow:p.kind==='insight'?'Insight · Bài viết chuyên đề':'Case Study · Bài viết chuyên đề',
+    project:p.kind==='insight'?'Insight':'Project',
     type:'Loại',
     technology:'Công nghệ',
     system:'Hệ thống',
@@ -657,7 +705,7 @@ function caseHtml(p){
     const sectionDocs=Array.isArray(p.sections)&&p.sections.length?p.sections:story.map(([label,text])=>({title_vi:label,title_en:label,body_vi:text,body_en:text,__legacyBody:true,blocks:legacyParagraphDocument(text,text)}));
     const sections=sectionDocs.map((section,i)=>{const label=locale?(section.title_en||section.title_vi||labels.system):(section.title_vi||section.title_en||labels.system);const rendered=renderBlockDocument(section.blocks, currentLang==='en'?'en':'vi', section);return `<section class="case-section"><div class="case-section-head"><div class="case-section-no">${String(i+1).padStart(2,'0')}</div><div><p class="case-section-kicker">${esc(label)}</p><h2>${esc(label)}</h2>${rendered}</div></div></section>`}).join('');
     const proofSection=proof?`<section class="case-section case-evidence"><div class="case-section-head"><div class="case-section-no">${String(sectionDocs.length+1).padStart(2,'0')}</div><div><p class="case-section-kicker">${esc(labels.evidence)}</p><h2>${esc(labels.evidence)}</h2><div class="proof-actions">${proof}</div></div></div></section>`:'';
-    return `<article class="case-article${p.id==='lead-intent'?' case-lead-intent':''}">
+    return `<article class="case-article${p.kind==='insight'?'':' '+(p.id==='lead-intent'?'case-lead-intent':'')}${p.kind==='insight'?`" data-content-kind="insight`:''}">
       <header class="case-article-header">
         <button class="modal-close" type="button" data-close="case" aria-label="${esc(t('modal.close'))}">✕</button>
         <div class="case-hero-meta"><span>${esc(labels.eyebrow)}</span><span>${esc(c.category?.join(' · ')||labels.project)}</span></div>
@@ -729,7 +777,15 @@ const assetRegistry=new Map();
 let assetLoadPromise=null;
 
 function assetRowsForProof(rows,project){
-  return rows.filter(row=>{const belongs=(row.owner_id===project.id)||(row.project_id===project.id);const kind=row.asset_type||'proof';return belongs&&(kind==='proof'||kind==='gallery')});
+  return rows.filter(row=>{const belongs=(row.owner_id===project.id)||(row.project_id===project.id);const kind=row.asset_type||'proof';const ownerType=row.owner_type||'project';return ownerType==='project'&&belongs&&(kind==='proof'||kind==='gallery')});
+}
+
+function attachInsightAssets(){
+  for(const insight of INSIGHTS){
+    insight.proof=buildProofs([...assetRegistry.values()].filter(row=>row.owner_type==='insight'&&row.owner_id===insight.id&&(row.asset_type==='proof'||row.asset_type==='gallery')));
+    const cover=[...assetRegistry.values()].find(row=>row.owner_type==='insight'&&row.owner_id===insight.id&&row.asset_type==='insight_cover');
+    if(cover)insightCovers.set(insight.id,{...cover,url:publicUrl(cover.storage_path)});else insightCovers.delete(insight.id);
+  }
 }
 
 function buildProofs(rows){
@@ -739,11 +795,11 @@ function buildProofs(rows){
 }
 
 async function loadLegacyProofsForProject(project){
-  const q=`/rest/v1/portfolio_proofs?select=id,project_id,type,title_vi,title_en,storage_path,original_name,mime_type,file_size,gallery_id,created_at&project_id=eq.${encodeURIComponent(project.id)}&order=created_at.desc`;
+  const q=`/rest/v1/portfolio_proofs?select=id,project_id,owner_type,owner_id,type,title_vi,title_en,storage_path,original_name,mime_type,file_size,gallery_id,created_at&project_id=eq.${encodeURIComponent(project.id)}&or=(owner_type.eq.project,owner_type.is.null)&order=created_at.desc`;
   const r=await sbFetch(q,{method:'GET'},null);const rows=await r.json();project.proof=buildProofs(rows);return project.proof;
 }
 
-async function loadAssets(){if(!sbReady()){assetLoadState='not_configured';assetSchemaReady=null;HQVShared.emit('assets');return}if(assetLoadPromise)return assetLoadPromise;assetLoadPromise=(async()=>{try{const table=encodeURIComponent(CONFIG.supabase.assetTable);const q='/rest/v1/'+table+'?select=id,project_id,asset_type,owner_type,owner_id,type,title_vi,title_en,storage_path,original_name,mime_type,file_size,gallery_id,sort_order,created_at&order=created_at.desc';const response=await sbFetch(q,{method:'GET'},null);const rows=await response.json();assetSchemaReady=true;assetLoadState='ready';assetRegistry.clear();rows.forEach(row=>assetRegistry.set(row.id,row));certAssets.clear();rows.filter(row=>(row.owner_type==='certificate'||row.owner_type==='experience')&&row.owner_id).sort((a,b)=>String(a.created_at||'').localeCompare(String(b.created_at||''))).forEach(row=>{if(!certAssets.has(row.owner_id))certAssets.set(row.owner_id,[]);certAssets.get(row.owner_id).push(row)});const avatar=rows.find(row=>row.asset_type==='avatar'&&row.owner_type==='profile'&&row.owner_id==='hqv');profileAvatar=avatar?{...avatar,url:publicUrl(avatar.storage_path)}:null;projectCovers.clear();for(const project of PROJECTS){const cover=rows.find(row=>row.asset_type==='project_cover'&&row.owner_type==='project'&&row.owner_id===project.id);if(cover)projectCovers.set(project.id,{...cover,url:publicUrl(cover.storage_path)});project.proof=buildProofs(assetRowsForProof(rows,project))}for(const insight of INSIGHTS)insight.proof=buildProofs(rows.filter(row=>row.owner_type==='insight'&&row.owner_id===insight.id&&(row.asset_type==='proof'||row.asset_type==='gallery')))}catch(error){const kind=classifySupabaseError(error);assetLoadState=kind;assetSchemaReady=kind==='schema_missing'?false:null;if(kind==='schema_missing')await Promise.all(PROJECTS.map(project=>loadLegacyProofsForProject(project).catch(()=>[])))}finally{assetLoadPromise=null;HQVShared.emit('assets')}})();return assetLoadPromise}
+async function loadAssets(){if(!sbReady()){assetLoadState='not_configured';assetSchemaReady=null;attachInsightAssets();HQVShared.emit('assets');return}if(assetLoadPromise)return assetLoadPromise;assetLoadPromise=(async()=>{try{const table=encodeURIComponent(CONFIG.supabase.assetTable);const q='/rest/v1/'+table+'?select=id,project_id,asset_type,owner_type,owner_id,type,title_vi,title_en,storage_path,original_name,mime_type,file_size,gallery_id,sort_order,created_at&order=created_at.desc';const response=await sbFetch(q,{method:'GET'},null);const rows=await response.json();assetSchemaReady=true;assetLoadState='ready';assetRegistry.clear();rows.forEach(row=>assetRegistry.set(row.id,row));certAssets.clear();rows.filter(row=>(row.owner_type==='certificate'||row.owner_type==='experience')&&row.owner_id).sort((a,b)=>String(a.created_at||'').localeCompare(String(b.created_at||''))).forEach(row=>{if(!certAssets.has(row.owner_id))certAssets.set(row.owner_id,[]);certAssets.get(row.owner_id).push(row)});const avatar=rows.find(row=>row.asset_type==='avatar'&&row.owner_type==='profile'&&row.owner_id==='hqv');profileAvatar=avatar?{...avatar,url:publicUrl(avatar.storage_path)}:null;projectCovers.clear();for(const project of PROJECTS){const cover=rows.find(row=>row.asset_type==='project_cover'&&row.owner_type==='project'&&row.owner_id===project.id);if(cover)projectCovers.set(project.id,{...cover,url:publicUrl(cover.storage_path)});project.proof=buildProofs(assetRowsForProof(rows,project))}attachInsightAssets()}catch(error){const kind=classifySupabaseError(error);assetLoadState=kind;assetSchemaReady=kind==='schema_missing'?false:null;if(kind==='schema_missing')await Promise.all(PROJECTS.map(project=>loadLegacyProofsForProject(project).catch(()=>[])))}finally{attachInsightAssets();assetLoadPromise=null;HQVShared.emit('assets')}})();return assetLoadPromise}
 
 async function loadProofsForProject(project){
   if(!sbReady())return project.proof||[];
@@ -760,7 +816,7 @@ async function loadAllProofs(){if(!sbReady())return;await loadAssets()}
 function formatAssetSize(size){const n=Number(size);if(!Number.isFinite(n)||n<0)return '';if(n<1024)return `${n} B`;if(n<1048576)return `${(n/1024).toFixed(1)} KB`;if(n<1073741824)return `${(n/1048576).toFixed(1)} MB`;return `${(n/1073741824).toFixed(1)} GB`}
 
 
-Object.assign(HQVShared,{CONFIG,I18N,PROJECTS,PROJECT_FALLBACK,SKILLS,INSIGHTS,CERTS,certAssets,currentLang,lang:currentLang,normalizeBlockDocument,renderBlock,sanitizeRichText,safeLinkHref,sbReady,sbHeaders,sbFetch,authToken,publicUrl,esc,$,$$,loadProjects,loadAssets,loadAllProofs,loadGlobalPublished,composeGlobalContent,caseHtml,globalFallbackContent,getGlobalContent,projectBySlug,mediaTypeLabel,formatAssetSize});
+Object.assign(HQVShared,{CONFIG,I18N,PROJECTS,PROJECT_FALLBACK,SKILLS,INSIGHTS,INSIGHT_FALLBACK,insightCovers,CERTS,certAssets,currentLang,lang:currentLang,normalizeBlockDocument,renderBlock,sanitizeRichText,safeLinkHref,sbReady,sbHeaders,sbFetch,authToken,publicUrl,esc,$,$$,loadProjects,loadInsights,loadAssets,loadAllProofs,attachInsightAssets,loadGlobalPublished,composeGlobalContent,caseHtml,globalFallbackContent,getGlobalContent,projectBySlug,mediaTypeLabel,formatAssetSize});
 HQVShared.setLang=next=>{if(next!=='vi'&&next!=='en')return;currentLang=next;safeStorageSet(getWebStorage('localStorage'),'hqv-lang',currentLang);HQVShared.emit('lang')};
 Object.defineProperty(HQVShared,'lang',{get:()=>currentLang,set:value=>HQVShared.setLang(value)});
 window.HQVShared=HQVShared;

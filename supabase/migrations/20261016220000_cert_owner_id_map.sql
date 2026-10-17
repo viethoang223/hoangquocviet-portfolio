@@ -1,95 +1,55 @@
--- Preserve the pre-map rows outside PostgREST access before changing any owner IDs.
-create table if not exists public.portfolio_proofs_backup_20261016 as
-select * from public.portfolio_proofs;
+-- Stable certificate and experience IDs. Only known rows and exact legacy IDs are mapped.
+update public.portfolio_proofs
+set owner_id = 'toeic-sw-260', owner_type = 'certificate'
+where id = '01cb63f2-0582-4fb6-981e-76d187ebe9ef'
+  and owner_id <> 'toeic-sw-260';
 
-alter table public.portfolio_proofs_backup_20261016 enable row level security;
-revoke all on table public.portfolio_proofs_backup_20261016 from anon, authenticated;
+update public.portfolio_proofs
+set owner_id = 'google-ga4',
+    owner_type = 'certificate',
+    title_vi = 'Google Analytics / GA4 Certification',
+    title_en = 'Google Analytics / GA4 Certification'
+where id = 'c1b83360-b3cd-4994-8ea4-9e0c620a581c'
+  and owner_id <> 'google-ga4';
 
-create temporary table if not exists cert_owner_map_phase2 (
-  old_pattern text primary key,
-  new_owner_id text not null,
-  new_owner_type text not null check (new_owner_type in ('certificate', 'experience'))
-) on commit drop;
-
-truncate table pg_temp.cert_owner_map_phase2;
-
-insert into pg_temp.cert_owner_map_phase2(old_pattern, new_owner_id, new_owner_type) values
-  ('exp-vice-head-comms', 'exp-vice-head-comms', 'experience'),
-  ('experience-communications', 'exp-vice-head-comms', 'experience'),
-  ('communications', 'exp-vice-head-comms', 'experience'),
-  ('cert-experience-communications-pho-chu-nhiem-truyen-thong', 'exp-vice-head-comms', 'experience'),
-  ('anthropic-claude-101', 'anthropic-claude-101', 'certificate'),
-  ('cert-anthropic-claude-101', 'anthropic-claude-101', 'certificate'),
-  ('anthropic-claude-code-101', 'anthropic-claude-code-101', 'certificate'),
-  ('cert-anthropic-claude-code-101', 'anthropic-claude-code-101', 'certificate'),
-  ('anthropic-claude-code-in-action', 'anthropic-claude-code-in-action', 'certificate'),
-  ('cert-anthropic-claude-code-in-action', 'anthropic-claude-code-in-action', 'certificate'),
-  ('anthropic-mcp-intro', 'anthropic-mcp-intro', 'certificate'),
-  ('cert-anthropic-introduction-to-model-context-protocol', 'anthropic-mcp-intro', 'certificate'),
-  ('anthropic-mcp-advanced', 'anthropic-mcp-advanced', 'certificate'),
-  ('cert-anthropic-model-context-protocol-advanced-topics', 'anthropic-mcp-advanced', 'certificate'),
-  ('google-ga4', 'google-ga4', 'certificate'),
-  ('cert-marketing-google-analytics-ga4-certification', 'google-ga4', 'certificate'),
-  ('cert-marketing-google-analytics-%', 'google-ga4', 'certificate'),
-  ('cert-marketing-ga4-%', 'google-ga4', 'certificate'),
-  ('hubspot-inbound', 'hubspot-inbound', 'certificate'),
-  ('cert-marketing-hubspot-inbound-certification', 'hubspot-inbound', 'certificate'),
-  ('cert-marketing-hubspot-%', 'hubspot-inbound', 'certificate'),
-  ('toeic-sw-260', 'toeic-sw-260', 'certificate'),
-  ('cert-english-toeic-speaking-writing-260-%', 'toeic-sw-260', 'certificate');
-
-with candidates as (
-  select
-    p.id,
-    count(distinct m.new_owner_id) as target_count,
-    min(m.new_owner_id) as new_owner_id,
-    min(m.new_owner_type) as new_owner_type
-  from public.portfolio_proofs p
-  join pg_temp.cert_owner_map_phase2 m
-    on p.owner_id = m.old_pattern or p.owner_id like m.old_pattern
-  where p.owner_type in ('certificate', 'experience')
-     or p.owner_id like 'cert-%'
-     or p.owner_id like 'exp-%'
-     or p.owner_id in ('experience-communications', 'communications')
-  group by p.id
-), unique_matches as (
-  select id, new_owner_id, new_owner_type
-  from candidates
-  where target_count = 1
-)
 update public.portfolio_proofs p
-set owner_id = m.new_owner_id,
-    owner_type = m.new_owner_type
-from unique_matches m
-where p.id = m.id
-  and (p.owner_id is distinct from m.new_owner_id or p.owner_type is distinct from m.new_owner_type);
+set owner_id = legacy.new_owner_id,
+    owner_type = legacy.new_owner_type
+from (values
+  ('experience-communications', 'exp-vice-head-comms', 'experience'),
+  ('cert-experience-communications-pho-chu-nhiem-truyen-thong', 'exp-vice-head-comms', 'experience'),
+  ('cert-anthropic-claude-101', 'anthropic-claude-101', 'certificate'),
+  ('cert-anthropic-claude-code-101', 'anthropic-claude-code-101', 'certificate'),
+  ('cert-anthropic-claude-code-in-action', 'anthropic-claude-code-in-action', 'certificate'),
+  ('cert-anthropic-introduction-to-model-context-protocol', 'anthropic-mcp-intro', 'certificate'),
+  ('cert-anthropic-model-context-protocol-advanced-topics', 'anthropic-mcp-advanced', 'certificate')
+) as legacy(old_owner_id, new_owner_id, new_owner_type)
+where p.owner_id = legacy.old_owner_id
+  and p.owner_type in ('certificate', 'experience')
+  and (p.owner_id is distinct from legacy.new_owner_id or p.owner_type is distinct from legacy.new_owner_type);
 
 do $$
 declare
   unmatched record;
 begin
   for unmatched in
-    with relevant as (
-      select
-        p.owner_type,
-        p.owner_id,
-        count(*) as asset_count,
-        count(distinct m.new_owner_id) as target_count
-      from public.portfolio_proofs p
-      left join pg_temp.cert_owner_map_phase2 m
-        on p.owner_id = m.old_pattern or p.owner_id like m.old_pattern
-      where p.owner_type in ('certificate', 'experience')
-         or p.owner_id like 'cert-%'
-         or p.owner_id like 'exp-%'
-         or p.owner_id in ('experience-communications', 'communications')
-      group by p.owner_type, p.owner_id
-    )
-    select owner_type, owner_id, asset_count, target_count
-    from relevant
-    where target_count <> 1
-    order by owner_type, owner_id
+    select id, owner_type, owner_id
+    from public.portfolio_proofs
+    where owner_type in ('certificate', 'experience')
+      and owner_id not in (
+        'exp-vice-head-comms',
+        'anthropic-claude-101',
+        'anthropic-claude-code-101',
+        'anthropic-claude-code-in-action',
+        'anthropic-mcp-intro',
+        'anthropic-mcp-advanced',
+        'google-ga4',
+        'hubspot-inbound',
+        'toeic-sw-260'
+      )
+    order by owner_type, owner_id, id
   loop
-    raise notice 'Unmapped certificate/experience owner: owner_type=%, owner_id=%, assets=%, matching_targets=%',
-      unmatched.owner_type, unmatched.owner_id, unmatched.asset_count, unmatched.target_count;
+    raise notice 'Unmapped certificate/experience proof: id=%, owner_type=%, owner_id=%',
+      unmatched.id, unmatched.owner_type, unmatched.owner_id;
   end loop;
 end $$;
