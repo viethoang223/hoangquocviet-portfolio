@@ -4,31 +4,27 @@ Single-developer, static portfolio for Hoàng Quốc Việt — Marketing Operat
 
 ## Structure
 
-- `index.html` — public semantic HTML structure.
-- `css/style.css` — extracted visual system and responsive styles.
-- `js/main.js` — application entry point and public rendering coordination.
-- `js/projects.js` — project, skill and certification data.
-- `js/i18n.js` — Vietnamese / English translation data.
-- `js/config.js` — public configuration; no secrets.
-- `js/state.js` — shared application state.
-- `js/utils.js` — small shared helpers.
-- `js/ui/` — navigation, animation, project and proof viewer behavior.
-- `js/services/` — Supabase REST, authentication and asset services.
-- `js/admin/` — hidden admin UI and asset management.
+- `index.html` — public portfolio markup and styles; loads the shared layer before the public site layer.
+- `shared.js` — data, pure helpers, Supabase REST access, asset loaders, and block engine; safe to load without page markup.
+- `site.js` — public DOM rendering, language repainting, modal/viewer UI, routes, and public event subscriptions.
+- `admin.html` — noindex admin login and membership gate.
+- `admin.js` — CMS loaded only after the gate confirms membership in `portfolio_admins`.
 - `assets/` — repository-managed static assets only.
+- `legacy/js-modular-old/` — archived, unused modular JavaScript tree.
 - `legacy/index.single-file.html` — original single-file source snapshot.
+- `supabase/scripts/` — read-only Supabase data discovery and certificate owner-ID audit queries.
 
 ## How it runs
 
-This is a framework-free static site using native ES modules. Deploy the repository directly to Vercel or another static host.
+This is a framework-free static site using classic scripts and Supabase REST; it does not use the Supabase SDK. `index.html` loads `shared.js` followed by `site.js`; `admin.html` loads only `shared.js` before its login gate. Deploy the repository to a static host.
 
-For local development, use any static HTTP server because native ES modules should be served over HTTP rather than opened with `file://`.
+For local development, use a static HTTP server rather than opening files with `file://`.
 
 ## Project data
 
-Project, skill and certification content lives in `js/projects.js`.
+Public project, skill, certification, and translation data currently lives in `shared.js`.
 
-Translations live in `js/i18n.js`.
+Admin translations are merged only when `admin.js` is loaded after successful membership verification.
 
 ## Static assets vs Supabase assets
 
@@ -38,7 +34,9 @@ Dynamic portfolio content — avatar, project covers, proofs and galleries — r
 
 ## Supabase
 
-Configure `js/config.js` with the Supabase project URL and anon key only.
+For Phase 5/6 verification after deploying migrations, run `supabase/scripts/insights_check.sql`, `supabase/scripts/cert_owner_ids.sql`, and `supabase/scripts/rls_check.sql` in the Supabase SQL Editor. Deployment order and cache-busting are documented in [DEPLOY.md](DEPLOY.md).
+
+The browser bundle contains only the Supabase project URL and anon key. Admin writes are authorized by Supabase RLS, not by hiding the JavaScript file.
 
 Required external setup:
 
@@ -54,4 +52,6 @@ Never place a Supabase service-role key in frontend code.
 
 GitHub → Vercel → `hoangquocviet.id.vn`.
 
-Use relative paths such as `./css/style.css` and `./js/main.js`.
+Configure a host rewrite from `/admin` to `admin.html`; GitHub Pages users can open `/admin.html` directly. Host-specific examples and required Supabase setup are in [CHANGES.md](CHANGES.md).
+
+Vercel deployments exclude `legacy/` and `supabase/` through `.vercelignore`. For GitHub Pages, publish from a generated artifact that omits those directories.
