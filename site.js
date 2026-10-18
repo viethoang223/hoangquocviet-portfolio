@@ -340,8 +340,8 @@ $('#contactForm').addEventListener('submit', async event => {
   } catch (error) {
     const errorMessages = {
       contact_service_not_configured: currentLang === 'en'
-        ? 'The contact service is not configured on the server yet. Please use the direct email address for now.'
-        : 'Dịch vụ gửi tin trên máy chủ chưa được cấu hình đầy đủ. Tạm thời vui lòng liên hệ qua email trực tiếp.',
+        ? 'The contact service is not configured on the server yet. Please email viet.hq.work@gmail.com for now.'
+        : 'Dịch vụ gửi tin trên máy chủ chưa được cấu hình đầy đủ. Tạm thời vui lòng gửi email đến viet.hq.work@gmail.com.',
       contact_rate_limit_unavailable: currentLang === 'en'
         ? 'The anti-spam service is temporarily unavailable. Please try again later.'
         : 'Dịch vụ chống spam đang tạm thời không khả dụng. Vui lòng thử lại sau.',
