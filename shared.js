@@ -132,7 +132,7 @@ let globalDbState='fallback';
 
 function deepClone(v){return JSON.parse(JSON.stringify(v));}
 
-function composeGlobalContent(...layers){const isObject=value=>value&&typeof value==='object'&&!Array.isArray(value);const merge=(target,source)=>{if(Array.isArray(source))return deepClone(source);if(!isObject(source))return source;const out=isObject(target)?{...target}:{};for(const [key,value] of Object.entries(source))out[key]=isObject(value)?merge(out[key],value):Array.isArray(value)?deepClone(value):value;return out};return layers.filter(layer=>layer!=null).reduce((result,layer)=>merge(result,layer),{})}
+function composeGlobalContent(...layers){const isObject=value=>value&&typeof value==='object'&&!Array.isArray(value);const merge=(target,source)=>{if(Array.isArray(source)){if(!Array.isArray(target))return deepClone(source);if(!source.length&&target.length)return deepClone(target);return source.map((value,index)=>{if(typeof value==='string'&&!value.trim()&&typeof target[index]==='string'&&target[index].trim())return target[index];return isObject(value)&&isObject(target[index])||Array.isArray(value)&&Array.isArray(target[index])?merge(target[index],value):deepClone(value)})}if(!isObject(source))return source;const out=isObject(target)?{...target}:{};for(const [key,value] of Object.entries(source)){if(typeof value==='string'&&!value.trim()&&typeof out[key]==='string'&&out[key].trim())continue;out[key]=isObject(value)||Array.isArray(value)?merge(out[key],value):value}return out};return layers.filter(layer=>layer!=null).reduce((result,layer)=>merge(result,layer),{})}
 
 function legacyGlobalFallbackContent(){
   const mk=(vi,en)=>({vi,en});

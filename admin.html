@@ -569,7 +569,7 @@
     if (loadPromise) return loadPromise;
     loadPromise = new Promise((resolve, reject) => {
       const script = document.createElement('script');
-      script.src = './admin.js?v=20261018-global-nav-validation';
+      script.src = './admin.js?v=20261018-global-content-recovery';
       script.onload = resolve;
       script.onerror = () => reject(new Error('admin_script_load_failed'));
       document.body.append(script);

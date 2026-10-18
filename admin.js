@@ -43,7 +43,7 @@ const INSIGHT_ADMIN_MARKUP=`<section class="admin-project-management insight-man
 </section>`;
 
 function overlayGlobalRows(base,rows,prefix){
-  const clone=deepClone(base),fallback=globalFallbackContent();(rows||[]).filter(r=>String(r.content_key||'').startsWith(prefix)).forEach(r=>{const key=String(r.content_key).slice(prefix.length);if(!GLOBAL_SECTION_KEYS.includes(key))return;clone[key]=globalCanonicalFromStored(parseContentJSON(r.value_vi,null),parseContentJSON(r.value_en,null),fallback[key]||{})});return clone;
+  const clone=deepClone(base),fallback=globalFallbackContent();(rows||[]).filter(r=>String(r.content_key||'').startsWith(prefix)).forEach(r=>{const key=String(r.content_key).slice(prefix.length);if(!GLOBAL_SECTION_KEYS.includes(key))return;const stored=globalCanonicalFromStored(parseContentJSON(r.value_vi,null),parseContentJSON(r.value_en,null),fallback[key]||{});clone[key]=HQVShared.composeGlobalContent(fallback[key]||{},stored)});return clone;
 }
 
 let globalAdminContent=deepClone(globalFallbackContent());
