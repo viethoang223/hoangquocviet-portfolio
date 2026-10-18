@@ -84,7 +84,7 @@ function globalContentSnapshot(){const c=mergeEditorInputs();const valid=GLOBAL_
 function validateGlobalContent(content){
   const problems=[];
   GLOBAL_SECTION_KEYS.forEach(key=>{if(!content?.[key]||typeof content[key]!=='object'||Array.isArray(content[key]))problems.push(`Global / ${key}: section content is missing.`);});
-  const home=content?.home||{};for(const lang of ['vi','en']){const name=home?.name?.[lang],role=home?.role?.[lang];if(!String(name??'').trim())problems.push(`Global / Home / ${lang.toUpperCase()} / name: required.`);if(!String(role??'').trim())problems.push(`Global / Home / ${lang.toUpperCase()} / role: required.`)}
+  const home=content?.home||{};for(const lang of ['vi','en']){const name=home?.name?.[lang],role=home?.role?.[lang];if(!String(name??'').trim())problems.push(`Global / Home / ${lang.toUpperCase()} / name: required.`);if(!String(role??'').trim())problems.push(`Global / Home / ${lang.toUpperCase()} / role: required.`);for(const field of ['projects','skills','experience','contact','cta'])if(!String(home?.nav?.[field]?.[lang]??'').trim())problems.push(`Global / Home / ${lang.toUpperCase()} / navigation ${field}: required.`);for(const field of ['ctaProjects','ctaContact'])if(!String(home?.[field]?.[lang]??'').trim())problems.push(`Global / Home / ${lang.toUpperCase()} / ${field}: required.`)}
   if(problems.length){const e=new Error('global_publish_validation_failed');e.validation=problems;throw e}
 }
 
