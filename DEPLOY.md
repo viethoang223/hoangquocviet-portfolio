@@ -3,7 +3,7 @@
 ## 1. Chuẩn bị
 
 1. Backup metadata trước khi chạy SQL: `portfolio_proofs`, `portfolio_content`, `portfolio_projects` và `portfolio_project_sections`.
-2. Deploy code cùng cache version hiện tại `20261017`.
+2. Deploy code cùng cache version hiện tại `20261018-contact-recovery-celebration`.
 3. Không điền email, domain hoặc nội dung Insight thay cho chủ sở hữu.
 
 ## 2. Thứ tự SQL
@@ -16,6 +16,8 @@ Chạy trong Supabase SQL Editor, theo thứ tự timestamp:
 4. `20261017000000_portfolio_insights_phase5.sql` - bảng, seed, trigger và RLS Insights.
 5. `20261017010000_phase6_rls_storage_hardening.sql` - draft-content RLS và Storage prefix policies, gồm `insights/`.
 6. `20261014171942_harden_portfolio_proofs_bucket.sql` - bucket limits; chạy sau khi bucket đã tồn tại.
+7. `20261018100000_contact_spam_protection.sql` - contact rate-limit table và RPC nội bộ; chỉ cho `service_role` truy cập.
+8. `20261018120000_contact_admin_recovery.sql` - recovery Google Authenticator và giới hạn nhập sai; chạy sau migration contact spam.
 
 Migrations `20261014180200_certificate_owner_ids.sql` và `20261014180300_portfolio_insights.sql` là lịch sử Phase 4/đầu Phase 5 trong workspace; không chạy lại nếu chúng đã được áp dụng. Kiểm tra bằng `supabase/scripts/cert_owner_ids.sql`, `supabase/scripts/insights_check.sql` và `supabase/scripts/rls_check.sql` sau các bước tương ứng.
 
@@ -26,10 +28,20 @@ Migrations `20261014180200_certificate_owner_ids.sql` và `20261014180300_portfo
 3. Rewrite `/admin` tới `/admin.html` trên Vercel/Netlify; GitHub Pages mở trực tiếp `/admin.html`.
 4. Giữ `.vercelignore` loại `legacy/` và `supabase/` khỏi artifact public.
 5. Khi deploy bản JS mới, tăng cùng giá trị `?v=` trong `index.html` và `admin.html`.
+6. Contact form chạy qua Vercel Function `/api/contact`; đặt các biến sau trong Vercel Project Settings → Environment Variables. Không thêm giá trị thật vào repo hoặc biến `NEXT_PUBLIC_*`:
+	- `SUPABASE_URL`
+	- `SUPABASE_SERVICE_ROLE_KEY` (server-side only)
+	- `CONTACT_IP_HASH_SECRET` (secret ngẫu nhiên dài tối thiểu 32 bytes)
+	- `RESEND_API_KEY`
+	- `RESEND_FROM_EMAIL` (sender thuộc domain đã verify với Resend)
+	- `CONTACT_ADMIN_EMAIL` (email đăng nhập Supabase Auth của admin; có thể khác email nhận contact)
+	- `CONTACT_ADMIN_TOTP_SECRET` (khóa Base32 ngẫu nhiên tối thiểu 160 bit, chỉ lưu trong Vercel)
+	Tin nhắn được gửi tới `viet.hq.work@gmail.com`.
+	Sau khi tạo khóa TOTP bằng trình tạo secret an toàn trên máy riêng, thêm cùng khóa vào Google Authenticator bằng tùy chọn nhập setup key. Không gửi khóa hoặc mã OTP qua chat, source code hay commit. Khi contact bị chặn, form recovery xác minh email admin + mã 6 số; xác minh thành công chỉ reset ban của IP hiện tại. Năm lần nhập sai sẽ khóa recovery của IP đó 15 phút.
 
 ## 4. Quyết định của chủ sở hữu
 
-- `CONFIG.email` đang rỗng: chọn email nhận form và xác nhận email lần đầu với FormSubmit.
+- Email nhận contact form được cố định là `viet.hq.work@gmail.com`; cần cấu hình Vercel environment variables và sender domain trước khi gửi thật.
 - Quyết định bản dịch tiêu đề VI của Insight seed hiện giữ nguyên source title tiếng Anh theo J1.
 - Chọn/chỉnh nội dung Insight đầu tiên trước khi publish.
 - Cấu hình domain và rewrite hosting.

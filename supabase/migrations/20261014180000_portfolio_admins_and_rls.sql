@@ -14,6 +14,10 @@ create or replace function public.is_portfolio_admin()
 returns boolean language sql stable security definer set search_path = public
 as $$ select exists (select 1 from public.portfolio_admins where user_id = auth.uid()); $$;
 
+revoke execute on function public.is_portfolio_admin() from public;
+revoke execute on function public.is_portfolio_admin() from anon;
+grant execute on function public.is_portfolio_admin() to authenticated;
+
 drop policy if exists "portfolio admins manage" on public.portfolio_admins;
 create policy "portfolio admins manage" on public.portfolio_admins
 for all to authenticated using (public.is_portfolio_admin()) with check (public.is_portfolio_admin());

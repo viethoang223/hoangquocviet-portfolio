@@ -406,6 +406,21 @@
 .cert-admin-file .admin-btn{min-width:32px;padding-inline:7px}
 .cert-admin-cover-thumb{width:min(100%,280px);max-height:150px;object-fit:cover}
 @media(max-width:500px){.admin-cert-fields>.admin-row{grid-template-columns:minmax(0,1fr)}.cert-admin-file .admin-btn{min-width:28px;padding-inline:5px}}
+.admin-asset-preview-dialog{width:min(1120px,96vw);height:min(90dvh,900px);max-height:min(90dvh,900px);padding:0;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:#090c11;color:#fff;overflow:hidden}
+.admin-asset-preview-dialog::backdrop{background:rgba(0,0,0,.78);backdrop-filter:blur(6px)}
+.admin-asset-preview-shell{height:100%;min-height:0;display:flex;flex-direction:column}
+.admin-asset-preview-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.09);background:#0d1117}
+.admin-asset-preview-heading{min-width:0}.admin-asset-preview-heading strong{display:block;font-size:12px;overflow-wrap:anywhere}.admin-asset-preview-heading span{display:block;margin-top:3px;color:var(--dim);font-size:9px}
+.admin-asset-preview-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}.admin-asset-preview-actions .admin-btn{min-height:34px;padding:0 10px}
+.admin-asset-preview-body{position:relative;flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;background:#05070a}.admin-asset-preview-body>iframe{display:block;width:100%;height:100%;min-height:0;border:0;background:#fff}
+.admin-asset-preview-stage{position:absolute;inset:0;display:grid;place-items:center;overflow:hidden;touch-action:none;cursor:grab}.admin-asset-preview-stage.is-dragging{cursor:grabbing}
+.admin-asset-preview-stage img{display:block;max-width:94%;max-height:94%;object-fit:contain;transform-origin:center;user-select:none;-webkit-user-drag:none}
+.admin-asset-preview-stage iframe{width:100%;height:100%;border:0;background:#fff}
+.admin-asset-preview-text{min-height:100%;padding:18px;overflow:auto;color:#dce4ea;font:12px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;overflow-wrap:anywhere}
+.admin-asset-preview-table-wrap{width:100%;height:100%;overflow:auto;background:#fff;color:#111}
+.admin-asset-preview-table{border-collapse:collapse;min-width:100%;font:12px/1.4 ui-sans-serif,system-ui,sans-serif}.admin-asset-preview-table td{max-width:420px;padding:7px 10px;border:1px solid #d8dde3;white-space:pre-wrap;overflow-wrap:anywhere;vertical-align:top}.admin-asset-preview-table tr:first-child td{position:sticky;top:0;background:#e9eef4;font-weight:700}
+.admin-asset-preview-empty{display:grid;place-items:center;min-height:100%;padding:30px;color:var(--dim);text-align:center}.admin-asset-preview-empty>div{max-width:520px}.admin-asset-preview-empty p{line-height:1.6}
+@media(max-width:600px){.admin-asset-preview-dialog{width:100vw;height:100dvh;max-height:none;border-radius:0;border-inline:0}.admin-asset-preview-head{align-items:flex-start;padding:10px}.admin-asset-preview-actions{max-width:48%}.admin-asset-preview-actions .admin-btn{min-height:32px;padding-inline:8px;font-size:9px}.admin-asset-preview-text{padding:12px}}
 </style>
 <style>
 :root{--muted:rgba(255,255,255,.58)}
@@ -430,7 +445,7 @@
     <noscript>Trang quản trị cần JavaScript để đăng nhập.</noscript>
   </form>
 </main>
-<script src="./shared.js?v=20261017"></script>
+<script src="./shared.js?v=20261018-contact-recovery-celebration"></script>
 <script>(() => {
   const root = document.querySelector('#adminRoot');
   const form = document.querySelector('#adminLoginForm');
@@ -554,7 +569,7 @@
     if (loadPromise) return loadPromise;
     loadPromise = new Promise((resolve, reject) => {
       const script = document.createElement('script');
-      script.src = './admin.js?v=20261018-reference';
+      script.src = './admin.js?v=20261018-contact-recovery-celebration';
       script.onload = resolve;
       script.onerror = () => reject(new Error('admin_script_load_failed'));
       document.body.append(script);

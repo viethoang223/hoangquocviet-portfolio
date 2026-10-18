@@ -213,12 +213,102 @@ document.addEventListener('error', event => {
   image.removeAttribute('src');
   if (!image.alt) image.alt = currentLang === 'en' ? 'Image unavailable' : 'Hình ảnh không khả dụng';
 }, true);
+function showContactCelebration(language) {
+  const dialog = $('#contactSuccessDialog');
+  const english = language === 'en';
+  $('#contactSuccessTitle').textContent = english ? 'Your message is on its way!' : 'Tin nhắn đã cất cánh!';
+  $('#contactSuccessCopy').textContent = english ? 'Thank you for reaching out. I will get back to you as soon as I can.' : 'Cảm ơn bạn đã liên hệ. Tôi sẽ phản hồi sớm nhất có thể.';
+  dialog.querySelector('[data-contact-success-close]').textContent = english ? 'Close' : 'Đóng';
+  if (!dialog.open) dialog.showModal();
+
+  const canvas = dialog.querySelector('.contact-fireworks'), context = canvas.getContext('2d');
+  if (!context || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  let frame = 0, rockets = [], sparks = [], lastLaunch = 0, launched = 0;
+  const resize = () => {
+    const bounds = dialog.getBoundingClientRect(), ratio = Math.min(devicePixelRatio || 1, 2);
+    canvas.width = Math.round(bounds.width * ratio); canvas.height = Math.round(bounds.height * ratio);
+    canvas.style.width = `${bounds.width}px`; canvas.style.height = `${bounds.height}px`;
+    context.setTransform(ratio, 0, 0, ratio, 0, 0);
+  };
+  const burst = (x, y) => {
+    const hue = [42, 12, 184, 320, 156][Math.floor(Math.random() * 5)];
+    for (let index = 0; index < 96; index++) {
+      const angle = Math.random() * Math.PI * 2, speed = 1.5 + Math.random() * 5.3;
+      sparks.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: 82 + Math.random() * 58, hue, size: 1.6 + Math.random() * 2.6 });
+    }
+  };
+  const tick = time => {
+    if (!dialog.open) return;
+    const width = canvas.clientWidth, height = canvas.clientHeight;
+    context.clearRect(0, 0, width, height);
+    if (time - lastLaunch > 310 && launched < 24) {
+      rockets.push({ x: width * (.12 + Math.random() * .76), y: height + 4, target: height * (.16 + Math.random() * .48), vy: -(7 + Math.random() * 3), hue: [42, 12, 184, 320, 156][launched % 5] });
+      lastLaunch = time; launched++;
+    }
+    rockets = rockets.filter(rocket => {
+      rocket.y += rocket.vy; rocket.vy += .08;
+      context.beginPath(); context.arc(rocket.x, rocket.y, 2.4, 0, Math.PI * 2); context.fillStyle = `hsl(${rocket.hue} 100% 70%)`; context.fill();
+      if (rocket.y <= rocket.target || rocket.vy >= 0) { burst(rocket.x, rocket.y); return false; }
+      return true;
+    });
+    sparks = sparks.filter(spark => {
+      const previousX = spark.x, previousY = spark.y;
+      spark.x += spark.vx; spark.y += spark.vy; spark.vy += .035; spark.vx *= .992; spark.life--;
+      context.globalAlpha = Math.min(1, Math.max(0, spark.life / 115)); context.beginPath(); context.moveTo(previousX, previousY); context.lineTo(spark.x, spark.y);
+      context.strokeStyle = `hsl(${spark.hue} 100% 70%)`; context.lineWidth = spark.size; context.shadowBlur = 18; context.shadowColor = context.strokeStyle; context.stroke();
+      context.beginPath(); context.arc(spark.x, spark.y, spark.size * .7, 0, Math.PI * 2); context.fillStyle = context.strokeStyle; context.fill();
+      return spark.life > 0;
+    });
+    context.globalAlpha = 1; context.shadowBlur = 0;
+    if (launched < 16 || rockets.length || sparks.length) frame = requestAnimationFrame(tick);
+  };
+  resize();
+  frame = requestAnimationFrame(tick);
+  dialog.addEventListener('close', () => { cancelAnimationFrame(frame); rockets = []; sparks = []; }, { once: true });
+  window.addEventListener('resize', resize, { once: true });
+}
+
+const contactSuccessDialog = $('#contactSuccessDialog');
+contactSuccessDialog.querySelector('[data-contact-success-close]').addEventListener('click', () => contactSuccessDialog.close());
+contactSuccessDialog.addEventListener('click', event => { if (!event.target.closest('.contact-success-panel')) contactSuccessDialog.close(); });
+
+$('#contactRecoveryForm').addEventListener('submit', async event => {
+  event.preventDefault();
+  const form = event.currentTarget, button = $('#contactRecoverySubmit'), state = $('#formState');
+  button.disabled = true;
+  try {
+    const response = await fetch('/api/contact-recovery', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ email: form.elements.email.value.trim(), code: form.elements.code.value.trim() }) });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.code || 'recovery_failed');
+    form.reset(); form.hidden = true;
+    state.className = 'form-state ok';
+    state.textContent = currentLang === 'en' ? 'Admin recovery verified. Sending is re-enabled for this IP.' : 'Đã xác minh quản trị viên. Quyền gửi tin từ IP này đã được mở lại.';
+  } catch (error) {
+    state.className = 'form-state err';
+    state.textContent = error.message === 'recovery_temporarily_locked'
+      ? (currentLang === 'en' ? 'Recovery is temporarily locked after too many attempts. Try again in 15 minutes.' : 'Tạm khóa xác minh sau nhiều lần thử sai. Vui lòng thử lại sau 15 phút.')
+      : (currentLang === 'en' ? 'Admin verification failed. Check the email and current authenticator code.' : 'Xác minh không thành công. Hãy kiểm tra email và mã Authenticator hiện tại.');
+  } finally {
+    button.disabled = false;
+  }
+});
+
 $('#contactForm').addEventListener('submit', async event => {
   event.preventDefault();
   const form = event.currentTarget, button = form.querySelector('.submit'), state = $('#formState');
-  if (!CONFIG.email) {
+  const fields = {
+    name: form.elements.name.value.trim(),
+    email: form.elements.email.value.trim(),
+    message: form.elements.message.value.trim(),
+    honeypot: form.elements._honey.value,
+    language: currentLang
+  };
+  const length = value => [...value].length;
+  if (length(fields.name) < 2 || length(fields.name) > 80 || length(fields.email) < 6 || length(fields.email) > 254 || length(fields.message) < 20 || length(fields.message) > 4000 || !form.elements.email.validity.valid) {
     state.className = 'form-state err';
-    state.textContent = currentLang === 'en' ? 'Form is waiting for configuration. Add the receiving email in CONFIG.email.' : 'Form đang ở chế độ chờ cấu hình. Hãy điền email nhận tin trong CONFIG.email.';
+    state.textContent = currentLang === 'en'
+      ? 'Check your name (2–80 characters), email (6–254 characters), and message (20–4000 characters).'
+      : 'Vui lòng kiểm tra tên (2–80 ký tự), email (6–254 ký tự) và nội dung (20–4000 ký tự).';
     state.style.display = 'block';
     return;
   }
@@ -227,16 +317,35 @@ $('#contactForm').addEventListener('submit', async event => {
   state.textContent = currentLang === 'en' ? 'Sending…' : 'Đang gửi…';
   state.style.display = 'block';
   try {
-    const response = await fetch(`https://formsubmit.co/ajax/${encodeURIComponent(CONFIG.email)}`, { method: 'POST', headers: { Accept: 'application/json' }, body: new FormData(form) });
-    if (!response.ok) throw new Error('submit_failed');
+    const response = await fetch('/api/contact', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(fields) });
+    const result = await response.json().catch(() => ({}));
+    if (response.status === 429) {
+      state.className = 'form-state err';
+      state.textContent = fields.language === 'en' ? result.message_en : result.message_vi;
+      state.style.display = 'block';
+      const recovery = $('#contactRecoveryForm');
+      recovery.hidden = false;
+      $('#contactRecoveryCopy').textContent = fields.language === 'en' ? 'If you are the administrator, verify with Google Authenticator to clear the current IP block.' : 'Nếu bạn là quản trị viên, xác minh bằng Google Authenticator để gỡ chặn địa chỉ IP hiện tại.';
+      $('#contactRecoveryEmailLabel').textContent = fields.language === 'en' ? 'Administrator email' : 'Email quản trị';
+      $('#contactRecoveryCodeLabel').textContent = fields.language === 'en' ? 'Google Authenticator code' : 'Mã Google Authenticator';
+      $('#contactRecoverySubmit').textContent = fields.language === 'en' ? 'Verify and unblock' : 'Xác minh và gỡ chặn';
+      return;
+    }
+    if (!response.ok) throw new Error(result.code || 'submit_failed');
     state.className = 'form-state ok';
     state.textContent = currentLang === 'en' ? '✓ Sent. Thank you — I will reply soon.' : '✓ Đã gửi. Cảm ơn bạn — tôi sẽ phản hồi sớm.';
     form.reset();
-  } catch (_) {
+    $('#contactRecoveryForm').hidden = true;
+    showContactCelebration(fields.language);
+  } catch (error) {
     state.className = 'form-state err';
-    state.textContent = currentLang === 'en' ? '✗ Could not send. Please try again or use a direct contact channel.' : '✗ Chưa gửi được. Vui lòng thử lại hoặc dùng kênh liên hệ trực tiếp.';
+    state.textContent = error.message === 'validation_failed'
+      ? (currentLang === 'en' ? 'Please check the highlighted field limits.' : 'Vui lòng kiểm tra giới hạn ký tự của các trường.')
+      : (currentLang === 'en' ? '✗ Could not send. Please try again or use a direct contact channel.' : '✗ Chưa gửi được. Vui lòng thử lại hoặc dùng kênh liên hệ trực tiếp.');
+    state.style.display = 'block';
+  } finally {
+    button.disabled = false;
   }
-  button.disabled = false;
 });
 
 observeMotion();
