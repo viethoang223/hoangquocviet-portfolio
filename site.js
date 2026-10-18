@@ -41,12 +41,18 @@ function openCertViewer(id,idx=0){
 }
 
 function proofOpenUrl(it,url,name){
-  const mime=String(it?.mime_type||'').toLowerCase(),extension=String(name||it?.original_name||'').toLowerCase().match(/\.([a-z0-9]+)$/)?.[1]||'';
-  const officeExtensions=['doc','docx','xls','xlsx','ppt','pptx'];
-  const officeMime=mime==='application/msword'||mime==='application/vnd.ms-excel'||mime==='application/vnd.ms-powerpoint'||mime.includes('openxmlformats-officedocument');
-  if(!officeExtensions.includes(extension)&&!officeMime)return url;
+  if(proofPreviewKind(it)!=='office')return url;
   const safe=safeLinkHref(url);
   return safe?`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(safe)}`:url;
+}
+
+function isTextProof(it){const mime=String(it?.mime_type||'').toLowerCase(),name=String(it?.original_name||it?.file_name||'').toLowerCase(),extension=name.match(/\.([a-z0-9]+)$/)?.[1]||'';return mime.startsWith('text/')||['application/json','application/xml','application/rtf'].includes(mime)||['txt','csv','tsv','json','xml','md','log','rtf'].includes(extension)}
+
+function loadProofTextPreview(){
+  const host=viewerBody.querySelector('[data-proof-text-preview]');if(!host)return;
+  const url=safeLinkHref(host.dataset.proofTextPreview);if(!url){host.textContent=currentLang==='en'?'Text preview is unavailable.':'Không thể xem trước văn bản.';return}
+  const limit=2*1024*1024;if(Number(host.dataset.proofTextSize)>limit){host.textContent=currentLang==='en'?'This file is too large to preview. Download it to view the full file.':'Tệp quá lớn để xem trước. Hãy tải tệp để xem đầy đủ.';return}
+  fetch(url,{credentials:'omit'}).then(response=>{if(!response.ok)throw new Error(`text_preview_http_${response.status}`);return response.text()}).then(text=>{if(!host.isConnected)return;host.textContent=text.length>limit?`${text.slice(0,limit)}\n\n${currentLang==='en'?'[Preview truncated]':'[Đã rút gọn bản xem trước]'}`:text}).catch(()=>{if(host.isConnected)host.textContent=currentLang==='en'?'Text preview is unavailable. Download the file to view it.':'Không thể xem trước văn bản. Hãy tải tệp để xem.'});
 }
 
 function viewerExtraBody(it){
@@ -56,10 +62,10 @@ function viewerExtraBody(it){
   if(it.type==='video')return `<video src="${esc(url)}" controls playsinline preload="metadata"></video>`;
   if(it.type==='audio')return `<div class="viewer-file-card"><strong>${esc(name)}</strong><span>${meta}</span><audio src="${esc(url)}" controls preload="metadata"></audio></div>`;
   if(it.type==='file'){
-    const previewUrl=proofOpenUrl(it,url,name),mime=String(it.mime_type||'').toLowerCase(),extension=String(name).toLowerCase().match(/\.([a-z0-9]+)$/)?.[1]||'';
-    if(previewUrl!==url)return `<iframe src="${esc(previewUrl)}" title="${esc(name)}" loading="lazy" referrerpolicy="no-referrer"></iframe>`;
-    const safe=safeLinkHref(url),isText=mime==='text/plain'||mime==='text/csv'||mime==='application/json'||mime==='application/xml'||['txt','csv','json','xml','md','log'].includes(extension);
-    if(safe&&isText)return `<iframe src="${esc(safe)}" title="${esc(name)}" sandbox="" loading="lazy" referrerpolicy="no-referrer"></iframe>`;
+    const kind=proofPreviewKind(it),previewUrl=proofOpenUrl(it,url,name);
+    if(kind==='pdf')return `<iframe src="${esc(url)}#view=FitH" title="${esc(name)}"></iframe>`;
+    if(kind==='office')return `<iframe src="${esc(previewUrl)}" title="${esc(name)}" loading="lazy" referrerpolicy="no-referrer"></iframe>`;
+    if(isTextProof(it))return `<pre class="viewer-text-preview" data-proof-text-preview="${esc(url)}" data-proof-text-size="${Number(it.file_size)||0}" aria-label="${esc(name)}">${esc(currentLang==='en'?'Loading preview…':'Đang tải bản xem trước…')}</pre>`;
     return `<div class="viewer-file-card"><strong>${esc(name)}</strong><span>${meta}</span><a class="viewer-btn" href="${esc(dl)}" download="${esc(name)}" data-proof-download="${esc(url)}" data-proof-download-name="${esc(name)}">${esc(t('modal.download'))} ↓</a></div>`;
   }
   return null;
@@ -128,7 +134,7 @@ async function downloadProofUrl(url,name){
   setTimeout(()=>URL.revokeObjectURL(objectUrl),1000);
 }
 
-function viewerHtml(it){viewerBody.querySelectorAll('video,audio').forEach(m=>{try{m.pause()}catch(_){}});const __r=viewerHtml0(it);const __x=viewerExtraBody(it);if(__x!==null)viewerBody.innerHTML=__x;return __r}
+function viewerHtml(it){viewerBody.querySelectorAll('video,audio').forEach(m=>{try{m.pause()}catch(_){}});const __r=viewerHtml0(it);const __x=viewerExtraBody(it);if(__x!==null)viewerBody.innerHTML=__x;loadProofTextPreview();return __r}
 
 function viewerHtml0(it){
   const files=Array.isArray(it.files)&&it.files.length?it.files:[it.file||it.url];const first=files[0];
@@ -136,7 +142,7 @@ function viewerHtml0(it){
   const downloadName=(it.original_name||proofTitle(it)||'proof').replace(/[\\/:*?"<>|]+/g,'_');
   const downloadUrl=proofDownloadUrl(firstUrl,downloadName),openUrl=proofOpenUrl(it,firstUrl,downloadName);
   viewerHead.innerHTML=`<strong>${esc(proofTitle(it)||t('modal.evidence'))}</strong><div class="viewer-actions"><a class="viewer-btn" href="${esc(downloadUrl)}" download="${esc(downloadName)}" data-proof-download="${esc(firstUrl)}" data-proof-download-name="${esc(downloadName)}">${esc(t('modal.download'))} ↓</a><a class="viewer-btn proof-download-fallback" href="${esc(openUrl)}" target="_blank" rel="noopener">${esc(currentLang==='en'?'Open file':'Mở file')} ↗</a><button class="viewer-btn" type="button" data-close="viewer">${esc(t('modal.close'))}</button></div>`;
-  viewerBody.innerHTML=it.type==='pdf'?`<iframe src="${esc(firstUrl)}#view=FitH" title="${esc(proofTitle(it)||'PDF')}"></iframe>`:it.type==='json'?`<iframe src="${esc(firstUrl)}" title="${esc(proofTitle(it)||'JSON')}"></iframe>`:`<div class="gallery">${files.map(src=>`<img src="${esc(src.url||src)}" alt="${esc(proofTitle(it)||'Proof')}" loading="lazy">`).join('')}</div>`;
+  viewerBody.innerHTML=it.type==='pdf'?`<iframe src="${esc(firstUrl)}#view=FitH" title="${esc(proofTitle(it)||'PDF')}"></iframe>`:it.type==='json'?`<pre class="viewer-text-preview" data-proof-text-preview="${esc(firstUrl)}" data-proof-text-size="${Number(it.file_size)||0}" aria-label="${esc(proofTitle(it)||'JSON')}">${esc(currentLang==='en'?'Loading preview…':'Đang tải bản xem trước…')}</pre>`:`<div class="gallery">${files.map(src=>`<img src="${esc(src.url||src)}" alt="${esc(proofTitle(it)||'Proof')}" loading="lazy">`).join('')}</div>`;
 }
 
 function parseHash(){const route=location.hash.slice(1);const certificate=route.match(/^\/?cert\/([a-z0-9-]+)$/i);if(certificate)return {certificateId:certificate[1]};const insightMatch=route.match(/^\/?insight\/([a-z0-9-]+)(?:\/(\d+))?$/i);if(insightMatch){const insight=INSIGHTS.find(item=>item.id===insightMatch[1]&&item.published!==false);return insight?{project:insight,index:insightMatch[2]==null?null:Number(insightMatch[2]),insight:true}:null}const match=route.match(/^\/([a-z0-9-]+)(?:\/(\d+))?$/i);if(!match)return null;const project=PROJECTS.find(item=>item.id===match[1]);return project&&project.published!==false?{project,index:match[2]==null?null:Number(match[2])}:null}
