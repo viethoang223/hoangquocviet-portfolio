@@ -40,13 +40,28 @@ function openCertViewer(id,idx=0){
   if(!viewerDialog.open)openModalDialog(viewerDialog);
 }
 
+function proofOpenUrl(it,url,name){
+  const mime=String(it?.mime_type||'').toLowerCase(),extension=String(name||it?.original_name||'').toLowerCase().match(/\.([a-z0-9]+)$/)?.[1]||'';
+  const officeExtensions=['doc','docx','xls','xlsx','ppt','pptx'];
+  const officeMime=mime==='application/msword'||mime==='application/vnd.ms-excel'||mime==='application/vnd.ms-powerpoint'||mime.includes('openxmlformats-officedocument');
+  if(!officeExtensions.includes(extension)&&!officeMime)return url;
+  const safe=safeLinkHref(url);
+  return safe?`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(safe)}`:url;
+}
+
 function viewerExtraBody(it){
   const f=Array.isArray(it.files)&&it.files.length?it.files[0]:(it.file||it.url),url=(f&&f.url)||f||'';
   const name=it.original_name||proofTitle(it)||'file',dl=proofDownloadUrl(url,String(name).replace(/[\\/:*?"<>|]+/g,'_'));
   const meta=`${esc(mediaTypeLabel(it))}${it.file_size?' · '+esc(formatMediaBytes(it.file_size)):''}`;
   if(it.type==='video')return `<video src="${esc(url)}" controls playsinline preload="metadata"></video>`;
   if(it.type==='audio')return `<div class="viewer-file-card"><strong>${esc(name)}</strong><span>${meta}</span><audio src="${esc(url)}" controls preload="metadata"></audio></div>`;
-  if(it.type==='file')return `<div class="viewer-file-card"><strong>${esc(name)}</strong><span>${meta}</span><a class="viewer-btn" href="${esc(dl)}" download="${esc(name)}" data-proof-download="${esc(url)}" data-proof-download-name="${esc(name)}">${esc(t('modal.download'))} ↓</a></div>`;
+  if(it.type==='file'){
+    const previewUrl=proofOpenUrl(it,url,name),mime=String(it.mime_type||'').toLowerCase(),extension=String(name).toLowerCase().match(/\.([a-z0-9]+)$/)?.[1]||'';
+    if(previewUrl!==url)return `<iframe src="${esc(previewUrl)}" title="${esc(name)}" loading="lazy" referrerpolicy="no-referrer"></iframe>`;
+    const safe=safeLinkHref(url),isText=mime==='text/plain'||mime==='text/csv'||mime==='application/json'||mime==='application/xml'||['txt','csv','json','xml','md','log'].includes(extension);
+    if(safe&&isText)return `<iframe src="${esc(safe)}" title="${esc(name)}" sandbox="" loading="lazy" referrerpolicy="no-referrer"></iframe>`;
+    return `<div class="viewer-file-card"><strong>${esc(name)}</strong><span>${meta}</span><a class="viewer-btn" href="${esc(dl)}" download="${esc(name)}" data-proof-download="${esc(url)}" data-proof-download-name="${esc(name)}">${esc(t('modal.download'))} ↓</a></div>`;
+  }
   return null;
 }
 
@@ -119,8 +134,8 @@ function viewerHtml0(it){
   const files=Array.isArray(it.files)&&it.files.length?it.files:[it.file||it.url];const first=files[0];
   const firstUrl=first?.url||first||'';
   const downloadName=(it.original_name||proofTitle(it)||'proof').replace(/[\\/:*?"<>|]+/g,'_');
-  const downloadUrl=proofDownloadUrl(firstUrl,downloadName);
-  viewerHead.innerHTML=`<strong>${esc(proofTitle(it)||t('modal.evidence'))}</strong><div class="viewer-actions"><a class="viewer-btn" href="${esc(downloadUrl)}" download="${esc(downloadName)}" data-proof-download="${esc(firstUrl)}" data-proof-download-name="${esc(downloadName)}">${esc(t('modal.download'))} ↓</a><a class="viewer-btn proof-download-fallback" href="${esc(downloadUrl)}" target="_blank" rel="noopener">${esc(currentLang==='en'?'Open file':'Mở file')} ↗</a><button class="viewer-btn" type="button" data-close="viewer">${esc(t('modal.close'))}</button></div>`;
+  const downloadUrl=proofDownloadUrl(firstUrl,downloadName),openUrl=proofOpenUrl(it,firstUrl,downloadName);
+  viewerHead.innerHTML=`<strong>${esc(proofTitle(it)||t('modal.evidence'))}</strong><div class="viewer-actions"><a class="viewer-btn" href="${esc(downloadUrl)}" download="${esc(downloadName)}" data-proof-download="${esc(firstUrl)}" data-proof-download-name="${esc(downloadName)}">${esc(t('modal.download'))} ↓</a><a class="viewer-btn proof-download-fallback" href="${esc(openUrl)}" target="_blank" rel="noopener">${esc(currentLang==='en'?'Open file':'Mở file')} ↗</a><button class="viewer-btn" type="button" data-close="viewer">${esc(t('modal.close'))}</button></div>`;
   viewerBody.innerHTML=it.type==='pdf'?`<iframe src="${esc(firstUrl)}#view=FitH" title="${esc(proofTitle(it)||'PDF')}"></iframe>`:it.type==='json'?`<iframe src="${esc(firstUrl)}" title="${esc(proofTitle(it)||'JSON')}"></iframe>`:`<div class="gallery">${files.map(src=>`<img src="${esc(src.url||src)}" alt="${esc(proofTitle(it)||'Proof')}" loading="lazy">`).join('')}</div>`;
 }
 

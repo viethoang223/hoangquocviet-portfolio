@@ -112,7 +112,6 @@ module.exports = async function contact(request, response) {
     return sendJson(response, 429, { code: 'spam_blocked', ...messages });
   }
 
-  const safeName = name.replace(/[\r\n]+/g, ' ').slice(0, LIMITS.name[1]);
   try {
     const mail = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -121,7 +120,7 @@ module.exports = async function contact(request, response) {
         from: fromEmail,
         to: [CONTACT_TO],
         reply_to: email,
-        subject: `Portfolio message from ${safeName}`,
+        subject: 'Tin nhắn mới từ hoangquocviet.id.vn',
         text: `Name: ${name}\nEmail: ${email}\n\n${message}`
       })
     });
