@@ -80,7 +80,10 @@ module.exports = async function contact(request, response) {
   const ipHashSecret = process.env.CONTACT_IP_HASH_SECRET;
   const resendKey = process.env.RESEND_API_KEY;
   const fromEmail = process.env.RESEND_FROM_EMAIL;
-  if (!supabaseUrl || !serviceKey || !ipHashSecret || !resendKey || !fromEmail) {
+  const missingConfig = Object.entries({ SUPABASE_URL: supabaseUrl, SUPABASE_SERVICE_ROLE_KEY: serviceKey, CONTACT_IP_HASH_SECRET: ipHashSecret, RESEND_API_KEY: resendKey, RESEND_FROM_EMAIL: fromEmail })
+    .filter(([, value]) => !value).map(([name]) => name);
+  if (missingConfig.length) {
+    console.error('Contact service configuration is incomplete. Missing:', missingConfig.join(', '));
     return sendJson(response, 503, { code: 'contact_service_not_configured' });
   }
 

@@ -338,10 +338,29 @@ $('#contactForm').addEventListener('submit', async event => {
     $('#contactRecoveryForm').hidden = true;
     showContactCelebration(fields.language);
   } catch (error) {
+    const errorMessages = {
+      contact_service_not_configured: currentLang === 'en'
+        ? 'The contact service is not configured on the server yet. Please use the direct email address for now.'
+        : 'Dịch vụ gửi tin trên máy chủ chưa được cấu hình đầy đủ. Tạm thời vui lòng liên hệ qua email trực tiếp.',
+      contact_rate_limit_unavailable: currentLang === 'en'
+        ? 'The anti-spam service is temporarily unavailable. Please try again later.'
+        : 'Dịch vụ chống spam đang tạm thời không khả dụng. Vui lòng thử lại sau.',
+      client_ip_unavailable: currentLang === 'en'
+        ? 'The server could not identify this connection. Please try again later.'
+        : 'Máy chủ chưa xác định được kết nối này. Vui lòng thử lại sau.',
+      email_delivery_failed: currentLang === 'en'
+        ? 'The email provider could not accept the message. Please try again later or use direct email.'
+        : 'Dịch vụ email chưa nhận được tin nhắn. Vui lòng thử lại sau hoặc liên hệ trực tiếp.',
+      origin_not_allowed: currentLang === 'en'
+        ? 'This page is not allowed to submit the contact form.'
+        : 'Tên miền hiện tại chưa được cho phép gửi biểu mẫu liên hệ.'
+    };
+    console.error('Contact form request failed:', error.message || 'unknown_error');
     state.className = 'form-state err';
+    state.dataset.errorCode = error.message || 'unknown_error';
     state.textContent = error.message === 'validation_failed'
       ? (currentLang === 'en' ? 'Please check the highlighted field limits.' : 'Vui lòng kiểm tra giới hạn ký tự của các trường.')
-      : (currentLang === 'en' ? '✗ Could not send. Please try again or use a direct contact channel.' : '✗ Chưa gửi được. Vui lòng thử lại hoặc dùng kênh liên hệ trực tiếp.');
+      : errorMessages[error.message] || (currentLang === 'en' ? '✗ Could not send. Please try again or use a direct contact channel.' : '✗ Chưa gửi được. Vui lòng thử lại hoặc dùng kênh liên hệ trực tiếp.');
     state.style.display = 'block';
   } finally {
     button.disabled = false;
