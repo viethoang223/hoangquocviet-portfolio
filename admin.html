@@ -75,7 +75,8 @@
 .media-library-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:20px 22px;border-bottom:1px solid rgba(255,255,255,.08)}
 .media-library-head h3{margin:0 0 5px;font-size:18px}
 .media-library-head p{margin:0;color:rgba(255,255,255,.58);font-size:12px}
-.media-library-toolbar{display:grid;grid-template-columns:minmax(220px,1fr) 150px 150px auto;gap:10px;padding:14px 22px;border-bottom:1px solid rgba(255,255,255,.08)}
+.media-library-toolbar{display:grid;grid-template-columns:minmax(220px,1fr) 130px 150px auto auto;gap:10px;padding:14px 22px;border-bottom:1px solid rgba(255,255,255,.08)}
+.media-library-toolbar [data-media-delete]:disabled{opacity:.28;filter:grayscale(1)}
 .media-library-toolbar input,.media-library-toolbar select{min-width:0}
 .media-library-body{display:grid;grid-template-columns:minmax(0,1fr) 280px;min-height:0;flex:1}
 .media-library-grid{min-width:0;overflow:auto;padding:18px 22px;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));align-content:start;gap:12px}
@@ -553,7 +554,7 @@
     if (loadPromise) return loadPromise;
     loadPromise = new Promise((resolve, reject) => {
       const script = document.createElement('script');
-      script.src = './admin.js?v=20261017';
+      script.src = './admin.js?v=20261018-reference';
       script.onload = resolve;
       script.onerror = () => reject(new Error('admin_script_load_failed'));
       document.body.append(script);

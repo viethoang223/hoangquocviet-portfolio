@@ -12,10 +12,14 @@ let globalAdminTab='home';
 
 let projectDrafts=new Map();
 let projectDraftLoadState='pending';
+let projectDraftLoadError=null;
 let INSIGHTS_ADMIN=[];
 let insightAdminLoadState='pending';
+let insightSchemaMissing=false;
+let insightAdminLoadError=null;
 let insightDrafts=new Map();
 let insightDraftLoadState='pending';
+let insightDraftLoadError=null;
 let activeInsightAdminSlug='';
 
 const INSIGHT_ADMIN_MARKUP=`<section class="admin-project-management insight-management" id="insightManagement">
@@ -69,9 +73,9 @@ function renderGlobalEditor(){
 }
 
 function mergeEditorInputs(){
-  $$('#globalContentEditor [data-global-field]').forEach(el=>{const path=el.dataset.globalField,lang=el.dataset.globalLang;const node=getPath(globalAdminContent,path);const pair=node&&typeof node==='object'&&'vi' in node&&'en' in node?node:{vi:'',en:''};pair[lang]=el.value;setPath(globalAdminContent,path,pair)});
-  $$('#globalContentEditor [data-global-array]').forEach(el=>{const path=el.dataset.globalArray,lang=el.dataset.globalLang;const node=getPath(globalAdminContent,path)||{vi:[],en:[]};node[lang]=el.value.split(/\n+/).map(x=>x.trim()).filter(Boolean);setPath(globalAdminContent,path,node)});
-  $$('#globalContentEditor [data-cert-meta]').forEach(el=>{const [id,field]=el.dataset.certMeta.split('|'),item=findCertAdminItem(id);if(item)item[field]=el.value});
+  $$('#globalContentEditor [data-global-field]').forEach(el=>{if(!el.value.trim())return;const path=el.dataset.globalField,lang=el.dataset.globalLang;const node=getPath(globalAdminContent,path);const pair=node&&typeof node==='object'&&'vi' in node&&'en' in node?node:{vi:'',en:''};pair[lang]=el.value;setPath(globalAdminContent,path,pair)});
+  $$('#globalContentEditor [data-global-array]').forEach(el=>{const values=el.value.split(/\n+/).map(x=>x.trim()).filter(Boolean);if(!values.length)return;const path=el.dataset.globalArray,lang=el.dataset.globalLang,node=getPath(globalAdminContent,path)||{vi:[],en:[]};node[lang]=values;setPath(globalAdminContent,path,node)});
+  $$('#globalContentEditor [data-cert-meta]').forEach(el=>{if(!el.value.trim())return;const [id,field]=el.dataset.certMeta.split('|'),item=findCertAdminItem(id);if(item)item[field]=el.value});
   return globalAdminContent;
 }
 
@@ -134,7 +138,8 @@ function safeStorageRemove(storage,key){try{storage?.removeItem(key)}catch(_){} 
 
 async function uploadAsset(input){return uploadAssetBatch(input)}
 
-const mediaLibraryState={query:'',filter:'all',projectId:'',ownerType:'project',mode:'single',accept:'image',selectedId:null,selectedIds:new Set(),title:'',onConfirm:null,browseOnly:false};
+const mediaLibraryState={query:'',filter:'all',projectId:'',ownerType:'project',mode:'single',accept:'image',selectedId:null,selectedIds:new Set(),title:'',onConfirm:null,browseOnly:false,allowEmptySelection:false};
+let pendingMediaDeleteId=null;
 
 const MAX_ASSET_FILE_BYTES=50*1024*1024;
 
@@ -220,9 +225,15 @@ function blockAssetReferences(sections,assetId,label){
 
 function mediaUsage(assetId){
   const refs=[],blockRefs=[];
-  const known=assetLoadState==='ready'&&projectDraftLoadState==='ready'&&insightAdminLoadState==='ready'&&insightDraftLoadState==='ready'&&PROJECTS.every(project=>Array.isArray(project.sections));
-  if(!assetId)return {count:0,refs,blockRefs,known};
-  if(!known)return {count:0,refs,blockRefs,known:false};
+  const missingSources=[];
+  if(assetLoadState!=='ready')missingSources.push({name:'assets',state:assetLoadState});
+  if(projectDraftLoadState!=='ready')missingSources.push({name:'project drafts',state:projectDraftLoadState,error:projectDraftLoadError});
+  if(insightAdminLoadState!=='ready'&&!(insightAdminLoadState==='missing'&&insightSchemaMissing))missingSources.push({name:insightAdminLoadError?.referenceSource||'insights',state:insightAdminLoadState,error:insightAdminLoadError});
+  if(insightDraftLoadState!=='ready')missingSources.push({name:'insight drafts',state:insightDraftLoadState,error:insightDraftLoadError});
+  if(!PROJECTS.every(project=>Array.isArray(project.sections)))missingSources.push({name:'project sections',state:'not loaded'});
+  const known=missingSources.length===0;
+  if(!assetId)return {count:0,refs,blockRefs,known,missingSources};
+  if(!known)return {count:0,refs,blockRefs,known:false,missingSources};
   for(const project of PROJECTS){
     const cover=projectCovers.get(project.id);
     if(cover?.id===assetId)refs.push(`${project.id} — Project cover`);
@@ -240,6 +251,21 @@ function mediaUsage(assetId){
   return {count:refs.length,refs,blockRefs,known:true};
 }
 
+function isMissingInsightSchemaError(error){
+  const status=Number(error?.status)||0,detail=String(error?.detail||error?.message||'');
+  return (status===404||status===400&&/PGRST205/i.test(detail))&&/portfolio_insights|portfolio_insight_sections|PGRST205|does not exist|schema cache/i.test(detail);
+}
+
+function referenceSourceDetail(source){
+  const error=source.error,status=Number(error?.status)||Number(String(error?.message||'').match(/(?:supabase_)?(\d{3})/)?.[1]||0);
+  return `${source.name} (${status?`HTTP ${status}`:`${source.state||'request failed'}; HTTP status unavailable`})`;
+}
+
+function referenceGuardMessage(sources){
+  const detail=sources.map(referenceSourceDetail).join(', ');
+  return currentLang==='en'?`Cannot verify reference sources: ${detail}. Operation blocked.`:`Không xác minh được nguồn tham chiếu: ${detail}. Đã chặn thao tác.`;
+}
+
 async function insightAssetReferences(assetId){
   try{
     const response=await sbFetch('/rest/v1/portfolio_insight_sections?select=id,insight_id,sort_order,blocks',{method:'GET'});
@@ -248,6 +274,8 @@ async function insightAssetReferences(assetId){
   }catch(error){
     const detail=String(error?.detail||error?.message||'');
     if((error?.status===400||error?.status===404)&&/portfolio_insight_sections|pgrst205|does not exist|schema cache/i.test(detail))return [];
+      if(isMissingInsightSchemaError(error))return [];
+    async function loadProjectDrafts(){projectDrafts=new Map();projectDraftLoadState='pending';projectDraftLoadError=null;if(!HQVShared.auth?.isAuthed()||!sbReady()){projectDraftLoadState='ready';return}try{const r=await sbFetch('/rest/v1/portfolio_content?select=content_key,value_vi,updated_at&content_key=like.project.draft.%25&order=updated_at.desc',{method:'GET'});const rows=await r.json();(Array.isArray(rows)?rows:[]).forEach(r=>{const slug=String(r.content_key||'').slice('project.draft.'.length);const payload=parseContentJSON(r.value_vi,{});if(slug&&payload&&typeof payload==='object')projectDrafts.set(slug,payload)});projectDraftLoadState='ready'}catch(error){projectDraftLoadState='failed';projectDraftLoadError=error}if(adminDialog?.open)refreshAdminProjectList()}
     throw error;
   }
 }
@@ -281,7 +309,7 @@ function renderMediaLibrary(){
       ${sel?'<span class="media-library-check">✓</span>':''}
     </button>`;
   }).join(''):`<div class="media-library-empty">${esc(t('admin.noImageAssets'))}</div>`;
-  const current=mediaLibraryState.mode==='single'?getAsset(mediaLibraryState.selectedId):getAsset(mediaLibraryState.selectedId||[...mediaLibraryState.selectedIds][0]);
+  const current=getAsset(mediaLibraryState.selectedId)||getAsset([...mediaLibraryState.selectedIds][0]);
   detail.innerHTML=mediaDetailHtml(current);
   const detailImage=detail.querySelector('[data-media-detail-image]');
   const dimensions=detail.querySelector('[data-media-dimensions]');
@@ -293,12 +321,14 @@ function renderMediaLibrary(){
     if(detailImage.complete)applyDimensions();
     else detailImage.addEventListener('load',applyDimensions,{once:true,signal:controller.signal});
   }
-  const confirm=$('[data-media-confirm]');if(confirm){const ids=mediaSelectionIds();confirm.disabled=mediaLibraryState.browseOnly||ids.length===0||mediaLibraryState.mode==='multi'&&ids.some(id=>!getAsset(id));confirm.textContent=mediaLibraryState.browseOnly?t('admin.mediaCancel'):mediaLibraryState.mode==='single'?t('admin.mediaSelect'):t('admin.mediaInsert')}
+  const confirm=$('[data-media-confirm]');if(confirm){const ids=mediaSelectionIds();confirm.disabled=mediaLibraryState.browseOnly||!ids.length&&!mediaLibraryState.allowEmptySelection||mediaLibraryState.mode==='multi'&&ids.some(id=>!getAsset(id));confirm.textContent=mediaLibraryState.browseOnly?t('admin.mediaCancel'):mediaLibraryState.mode==='single'?t('admin.mediaSelect'):t('admin.mediaInsert')}
+  const remove=$('[data-media-delete]');if(remove){remove.disabled=mediaLibraryState.browseOnly||!mediaLibraryState.selectedId||!getAsset(mediaLibraryState.selectedId);remove.textContent=currentLang==='en'?'Delete permanently':'Xóa vĩnh viễn'}
 }
 
-function openMediaLibrary({mode='single',accept='image',selectedId=null,selectedIds=[],projectId='',ownerType='project',title='',onConfirm,browseOnly=false}={}){
+function openMediaLibrary({mode='single',accept='image',selectedId=null,selectedIds=[],projectId='',ownerType='project',title='',onConfirm,browseOnly=false,allowEmptySelection=false}={}){
   if(!HQVShared.auth?.isAuthed()){setAdminStatus('#projectStatus','err',t('admin.loginRequired'));return}
-  Object.assign(mediaLibraryState,{mode,accept,projectId,ownerType,title,selectedId:selectedId||null,selectedIds:new Set(selectedIds||[]),query:'',filter:'all',onConfirm,browseOnly});
+  const selection=new Set(selectedIds||[]);
+  Object.assign(mediaLibraryState,{mode,accept,projectId,ownerType,title,selectedId:selectedId||[...selection][0]||null,selectedIds:selection,query:'',filter:'all',onConfirm,browseOnly,allowEmptySelection});
   const dlg=$('#mediaLibraryDialog');if(!dlg)return;
   $('[data-media-title]').textContent=title||t('admin.mediaLibrary');$('[data-media-copy]').textContent=t('admin.mediaLibraryCopy');
   $('[data-media-query]').value='';$('[data-media-filter]').value='all';
@@ -310,10 +340,37 @@ function openMediaLibrary({mode='single',accept='image',selectedId=null,selected
 
 function closeMediaLibrary(){const dlg=$('#mediaLibraryDialog');closeModalDialog(dlg);mediaLibraryState.onConfirm=null;}
 
-function confirmMediaLibrary(){
-  const ids=mediaSelectionIds();if(!ids.length)return;
-  const cb=mediaLibraryState.onConfirm;if(typeof cb==='function')cb(mediaLibraryState.mode==='single'?ids[0]:ids.slice());
-  closeMediaLibrary();
+async function confirmMediaLibrary(){
+  const ids=mediaSelectionIds();if(!ids.length&&!mediaLibraryState.allowEmptySelection)return;
+  const button=$('[data-media-confirm]'),cb=mediaLibraryState.onConfirm;if(button)button.disabled=true;
+  try{const result=typeof cb==='function'?await cb(mediaLibraryState.mode==='single'?ids[0]:ids.slice()):true;if(result!==false)closeMediaLibrary()}
+  catch(error){const status=$('[data-media-status]');if(status){status.className='admin-status show err';status.textContent=formatAssetUploadError(error)}}
+  finally{if($('#mediaLibraryDialog')?.open)renderMediaLibrary()}
+}
+
+function setMediaLibraryStatus(type,message){const status=$('[data-media-status]');if(status){status.className=`admin-status show ${type}`;status.textContent=message}}
+
+function openMediaDeleteConfirmation(){
+  const row=getAsset(mediaLibraryState.selectedId);if(!row)return;
+  const group=row.asset_type==='gallery'&&row.gallery_id?[...assetRegistry.values()].filter(item=>item.asset_type==='gallery'&&item.gallery_id===row.gallery_id):[row];
+  const message=currentLang==='en'?`Permanently delete ${group.length===1?'this file':`these ${group.length} gallery files`}? This cannot be undone.`:`Xóa vĩnh viễn ${group.length===1?'file này':`${group.length} file trong gallery này`}? Thao tác này không thể hoàn tác.`;
+  pendingMediaDeleteId=row.id;
+  if(window.confirm(message))permanentlyDeleteMediaSelection();
+  else pendingMediaDeleteId=null;
+}
+
+async function permanentlyDeleteMediaSelection(){
+  const id=pendingMediaDeleteId,row=id&&assetRegistry.get(id);if(!row)return;
+  try{
+    if(!await assertAssetUnused(id,'[data-media-status]'))return;
+    const rows=row.asset_type==='gallery'&&row.gallery_id?[...assetRegistry.values()].filter(item=>item.asset_type==='gallery'&&item.gallery_id===row.gallery_id):[row];
+    const result=await removeAssetRows(rows);await loadAssets();refreshAdminList();
+    rows.forEach(item=>mediaLibraryState.selectedIds.delete(item.id));
+    mediaLibraryState.selectedId=mediaLibraryState.selectedIds.values().next().value||null;
+    setMediaLibraryStatus(result?.storageCleanupFailed?'warn':'ok',currentLang==='en'?(result?.storageCleanupFailed?'Metadata deleted, but some storage files could not be removed.':'Media permanently deleted.'):(result?.storageCleanupFailed?'Đã xóa metadata nhưng chưa dọn được một số file Storage.':'Đã xóa media vĩnh viễn.'));
+    renderMediaLibrary();
+  }catch(error){setMediaLibraryStatus('err',formatAssetUploadError(error))}
+  finally{pendingMediaDeleteId=null}
 }
 
 function galleryItemsHtml(ids){
@@ -492,25 +549,31 @@ function validateProjectPayload(payload,{creating=false}={}){
 }
 
 function projectFormPayload(){
+  const originalSlug=$('#projectSlug').dataset.originalSlug||'';
+  const existing=originalSlug?projectAdminSource(projectBySlug(originalSlug)):null;
+  const vi=existing?.content?.vi||{},en=existing?.content?.en||{};
+  const keepExisting=(value,previous)=>String(value??'').trim()?value:(previous??value);
   let stats=[];
-  try{stats=JSON.parse($('#projectStats').value.trim()||'[]')}catch(_){throw new Error('invalid_stats_json')}
+  try{stats=JSON.parse($('#projectStats').value.trim()||JSON.stringify(vi.stats||[]))}catch(_){throw new Error('invalid_stats_json')}
   if(!Array.isArray(stats))throw new Error('invalid_stats_json');
+  const categories=$('#projectCategories').value.split(',').map(x=>x.trim()).filter(Boolean);
+  const tone=existing?.tone||[];
   return {
     id:$('#projectDbId').value.trim()||null,
-    slug:$('#projectSlug').value.trim(),
-    sort_order:Number($('#projectSortOrder').value),
+    slug:$('#projectSlug').value.trim()||originalSlug,
+    sort_order:Number($('#projectSortOrder').value||existing?.index||0),
     published:projectBySlug($('#projectSlug').dataset.originalSlug||$('#projectSlug').value)?.published!==false,
-    title_vi:$('#projectTitleVi').value.trim(),
-    title_en:$('#projectTitleEn').value.trim(),
-    hook_vi:$('#projectHookVi').value,
-    hook_en:$('#projectHookEn').value,
-    intro_vi:$('#projectIntroVi').value,
-    intro_en:$('#projectIntroEn').value,
-    categories:$('#projectCategories').value.split(',').map(x=>x.trim()).filter(Boolean),
+    title_vi:keepExisting($('#projectTitleVi').value,vi.title),
+    title_en:keepExisting($('#projectTitleEn').value,en.title),
+    hook_vi:keepExisting($('#projectHookVi').value,vi.hook),
+    hook_en:keepExisting($('#projectHookEn').value,en.hook),
+    intro_vi:keepExisting($('#projectIntroVi').value,vi.intro),
+    intro_en:keepExisting($('#projectIntroEn').value,en.intro),
+    categories:categories.length?categories:(vi.category||[]),
     stats,
-    visual_type:$('#projectVisualType').value.trim()||'web',
-    tone_a:$('#projectToneA').value.trim()||null,
-    tone_b:$('#projectToneB').value.trim()||null
+    visual_type:$('#projectVisualType').value.trim()||existing?.visual||'web',
+    tone_a:$('#projectToneA').value.trim()||tone[0]||null,
+    tone_b:$('#projectToneB').value.trim()||tone[1]||null
   };
 }
 
@@ -769,11 +832,27 @@ function legacyBodyFromBlocks(doc,lang){
   return doc.items.filter(b=>b.type==='paragraph'||b.type==='richtext').map(b=>b.type==='richtext'?richTextToPlainText(b.content?.[`text_${lang}`]):String(b.content?.[`text_${lang}`]||'').trim()).filter(Boolean).join('\n\n');
 }
 
+function preserveBlankBlockText(blocks,original){
+  const previous=new Map((original?.items||[]).map(block=>[block.id,block]));
+  blocks.items.forEach(block=>{
+    const old=previous.get(block.id);if(!old)return;
+    block.content=block.content||{};
+    Object.entries(block.content).forEach(([key,value])=>{
+      const prior=old.content?.[key];
+      if(typeof value==='string'&&!value.trim()&&typeof prior==='string'&&prior.trim())block.content[key]=prior;
+      else if(Array.isArray(value)&&!value.length&&Array.isArray(prior)&&prior.length)block.content[key]=deepClone(prior);
+    });
+  });
+  return blocks;
+}
+
 function projectSectionPayloads(host='#projectSectionsEditor'){
   const root=typeof host==='string'?$(host):host;
   return [...(root?.querySelectorAll('.admin-section-row')||[])].map((row,i)=>{
-    const doc=readSectionBlockEditors(row);
-    return {id:row.dataset.sectionId||null,sort_order:i,title_vi:row.querySelector('[data-section-title-vi]').value,title_en:row.querySelector('[data-section-title-en]').value,body_vi:legacyBodyFromBlocks(doc,'vi'),body_en:legacyBodyFromBlocks(doc,'en'),blocks:doc};
+    const doc=readSectionBlockEditors(row),original=JSON.parse(row.dataset.originalBlocks||'{"version":1,"items":[]}');
+    preserveBlankBlockText(doc,original);
+    const titleVi=row.querySelector('[data-section-title-vi]').value,titleEn=row.querySelector('[data-section-title-en]').value;
+    return {id:row.dataset.sectionId||null,sort_order:i,title_vi:titleVi.trim()?titleVi:row.dataset.originalTitleVi||'',title_en:titleEn.trim()?titleEn:row.dataset.originalTitleEn||'',body_vi:legacyBodyFromBlocks(doc,'vi'),body_en:legacyBodyFromBlocks(doc,'en'),blocks:doc};
   });
 }
 
@@ -783,7 +862,7 @@ function renderProjectSectionEditor(sections=[],langs=null,hostArg='#projectSect
   host.innerHTML=sections.map((s,i)=>{
     const doc=normalizeBlockDocument(s.blocks,s.body_vi,s.body_en);
     const lang=((langs&&langs[i])||(currentLang==='en'?'en':'vi'))==='en'?'en':'vi';
-    return `<section class="admin-section-row admin-editorial-section" data-section-id="${esc(s.id||'')}" data-blocks="${esc(JSON.stringify(doc))}" data-editorial-lang="${lang}">
+    return `<section class="admin-section-row admin-editorial-section" data-section-id="${esc(s.id||'')}" data-blocks="${esc(JSON.stringify(doc))}" data-original-blocks="${esc(JSON.stringify(doc))}" data-original-title-vi="${esc(s.title_vi||'')}" data-original-title-en="${esc(s.title_en||'')}" data-editorial-lang="${lang}">
       <div class="admin-editorial-section-head">
         <div><div class="admin-editorial-section-id">SECTION ${String(i+1).padStart(2,'0')}</div></div>
         <div class="admin-editorial-section-actions">
@@ -1231,22 +1310,27 @@ async function uploadMediaLibraryFiles(files){
 }
 
 async function doProofUpload(e){
-  e.preventDefault();const projectId=$('#adminProject').value,titleVi=$('#proofTitleVi').value.trim(),titleEn=$('#proofTitleEn').value.trim(),files=[...$('#proofFiles').files],btn=$('#uploadBtn');if(!files.length){setAdminStatus('#adminUploadStatus','err',t('admin.assetRequired'));return}if(!HQVShared.auth?.isAuthed()){setAdminStatus('#adminUploadStatus','err',t('admin.loginRequired'));return}btn.disabled=true;setAdminStatus('#adminUploadStatus','ok',t('admin.uploading'));
+  e.preventDefault();const projectId=$('#adminProject').value,titleVi=$('#proofTitleVi').value.trim(),titleEn=$('#proofTitleEn').value.trim(),files=[...$('#proofFiles').files],btn=$('#uploadBtn');if(!files.length){setAdminStatus('#adminUploadStatus','err',t('admin.assetRequired'));return}if(!projectId){setAdminStatus('#adminUploadStatus','err',t('admin.projectMissing'));return}if(!HQVShared.auth?.isAuthed()){setAdminStatus('#adminUploadStatus','err',t('admin.loginRequired'));return}btn.disabled=true;setAdminStatus('#adminUploadStatus','ok',t('admin.uploading'));
   try{const insightId=projectId.startsWith('insight:')?projectId.slice(8):'';await uploadAssetBatch({assetType:'proof',ownerType:insightId?'insight':'project',ownerId:insightId||projectId,projectId:insightId?null:projectId,titleVi,titleEn,files});$('#proofUploadForm').reset();await loadAssets();refreshAdminList();if($('#mediaLibraryDialog')?.open)renderMediaLibrary();const editingSlug=$('#projectSlug')?.dataset.originalSlug;const editing=editingSlug?projectBySlug(editingSlug):null;if(editing)renderProjectMediaManager(editing);setAdminStatus('#adminUploadStatus','ok',t('admin.uploaded'))}catch(err){setAdminStatus('#adminUploadStatus','err',formatAssetUploadError(err))}finally{btn.disabled=false}
 }
 
 async function assertAssetUnused(id,statusTarget='#adminUploadStatus',includeInsights=true){
   const usage=mediaUsage(id);
-  if(!usage.known){setAdminStatus(statusTarget,'err',currentLang==='en'?'Cannot verify asset references safely. Delete has been blocked.':'Không thể xác minh reference của asset một cách an toàn. Đã chặn xóa.');return false}
+  if(!usage.known){setAdminStatus(statusTarget,'err',referenceGuardMessage(usage.missingSources?.length?usage.missingSources:[{name:'reference data',state:'unknown'}]));return false}
   const blockingRefs=[...usage.blockRefs];
+  let source='project drafts';
   try{
     const response=await sbFetch('/rest/v1/portfolio_content?select=content_key,value_vi&content_key=like.project.draft.%25',{method:'GET'});
     const drafts=await response.json();
     (Array.isArray(drafts)?drafts:[]).forEach(row=>{const payload=parseContentJSON(row.value_vi,{});blockingRefs.push(...blockAssetReferences(payload.sections,id,`${String(row.content_key).slice('project.draft.'.length)} — Draft`))});
-    if(includeInsights)blockingRefs.push(...await insightAssetReferences(id));
   }catch(error){
-    setAdminStatus(statusTarget,'err',currentLang==='en'?'Cannot verify draft/Insight references safely. Delete has been blocked.':'Không thể xác minh tham chiếu bản nháp/Insight an toàn. Đã chặn xóa.');
+    setAdminStatus(statusTarget,'err',referenceGuardMessage([{name:source,error,state:'request failed'}]));
     return false;
+  }
+  if(includeInsights){
+    source='insight sections';
+    try{blockingRefs.push(...await insightAssetReferences(id))}
+    catch(error){setAdminStatus(statusTarget,'err',referenceGuardMessage([{name:error.referenceSource||source,error,state:'request failed'}]));return false}
   }
   const uniqueRefs=[...new Set(blockingRefs)];
   if(uniqueRefs.length){
@@ -1311,14 +1395,14 @@ Object.assign(I18N.en,{'admin.insightsManagement':'Insights Management','admin.i
 async function loadGlobalDrafts(){try{const rows=await fetchGlobalPrefixRows('global.draft.');globalDraftContent=rows.length?buildGlobalFromRows(rows,'global.draft.'):null;globalAdminContent=HQVShared.composeGlobalContent(globalFallbackContent(),globalPublishedContent||{},globalDraftContent||{});globalContentLoadState='ready';renderGlobalEditor();refreshGlobalBadge();refreshGlobalControls()}catch(error){globalContentLoadState='failed';refreshGlobalBadge();refreshGlobalControls();setAdminStatus('#globalContentStatus','err',currentLang==='en'?'Could not load live or draft content. Writes are blocked to prevent overwriting it.':'Không tải được nội dung live hoặc bản nháp, đã chặn ghi để tránh ghi đè.')}}
 function insightSectionEditorRows(){return projectSectionPayloads('#insightSectionsEditor')}
 function renderInsightSectionEditor(sections=[],langs=null){const host=$('#insightSectionsEditor');if(!host)return;const slug=$('#insightSlug')?.value||'';host.dataset.ownerId=slug;renderProjectSectionEditor(sections,langs,host)}
-function insightFormPayload(){const slug=$('#insightSlug').value.trim();if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)||['cert','insight','admin'].includes(slug))throw new Error('invalid_slug');const title_vi=$('#insightTitleVi').value.trim(),title_en=$('#insightTitleEn').value.trim(),excerpt_vi=$('#insightExcerptVi').value.trim(),excerpt_en=$('#insightExcerptEn').value.trim(),sections=insightSectionEditorRows();if(!title_vi||!title_en||!excerpt_vi||!excerpt_en)throw new Error('insight_required');if(!sections.length||sections.some(section=>!section.body_vi.trim()||!section.body_en.trim()))throw new Error('insight_sections_required');const tone_a=$('#insightToneA').value.trim(),tone_b=$('#insightToneB').value.trim();if(!/^#[0-9a-fA-F]{3,8}$/.test(tone_a)||!/^#[0-9a-fA-F]{3,8}$/.test(tone_b))throw new Error('invalid_tone');return {version:1,insight:{id:$('#insightDbId').value.trim()||null,slug,sort_order:Number($('#insightSortOrder').value)||0,published:false,title_vi,title_en,excerpt_vi,excerpt_en,intro_vi:$('#insightIntroVi').value,intro_en:$('#insightIntroEn').value,categories:$('#insightCategories').value.split(',').map(x=>x.trim()).filter(Boolean),tone_a,tone_b,read_minutes:Math.max(1,Number($('#insightReadMinutes').value)||1),published_at:$('#insightPublishedAt').value||null},sections}}
+function insightFormPayload(){const slug=$('#insightSlug').value.trim()||activeInsightAdminSlug;const draft=insightDrafts.get(activeInsightAdminSlug||slug),existing=draft?.insight||INSIGHTS_ADMIN.find(item=>item.id===(activeInsightAdminSlug||slug))||null,vi=existing?.content?.vi||{},en=existing?.content?.en||{},keep=(value,previous)=>String(value??'').trim()?value:(previous??value);if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)||['cert','insight','admin'].includes(slug))throw new Error('invalid_slug');const title_vi=keep($('#insightTitleVi').value,existing?.title_vi||vi.title),title_en=keep($('#insightTitleEn').value,existing?.title_en||en.title),excerpt_vi=keep($('#insightExcerptVi').value,existing?.excerpt_vi||vi.hook),excerpt_en=keep($('#insightExcerptEn').value,existing?.excerpt_en||en.hook),sections=insightSectionEditorRows();if(!sections.length||sections.some(section=>!section.body_vi.trim()||!section.body_en.trim()))throw new Error('insight_sections_required');const tone_a=$('#insightToneA').value.trim()||existing?.tone_a||existing?.tone?.[0]||'#22d3ee',tone_b=$('#insightToneB').value.trim()||existing?.tone_b||existing?.tone?.[1]||'#a78bfa';if(!/^#[0-9a-fA-F]{3,8}$/.test(tone_a)||!/^#[0-9a-fA-F]{3,8}$/.test(tone_b))throw new Error('invalid_tone');const categories=$('#insightCategories').value.split(',').map(x=>x.trim()).filter(Boolean);return {version:1,insight:{id:$('#insightDbId').value.trim()||existing?.dbId||existing?.id||null,slug,sort_order:Number($('#insightSortOrder').value)||existing?.sort_order||0,published:false,title_vi,title_en,excerpt_vi,excerpt_en,intro_vi:keep($('#insightIntroVi').value,existing?.intro_vi||vi.intro),intro_en:keep($('#insightIntroEn').value,existing?.intro_en||en.intro),categories:categories.length?categories:(existing?.categories||vi.category||[]),tone_a,tone_b,read_minutes:Math.max(1,Number($('#insightReadMinutes').value)||existing?.read_minutes||existing?.readMinutes||1),published_at:$('#insightPublishedAt').value||existing?.published_at||existing?.publishedAt||null},sections}}
 function validateInsightForPublish(payload){const slug=payload.insight.slug;if(Number(payload.insight.read_minutes)<=0)throw new Error('Insight read time must be greater than zero.');if(INSIGHTS_ADMIN.some(item=>item.id===slug&&item.dbId!==payload.insight.id))throw new Error('Insight slug already exists.');const owned=asset=>asset&&asset.owner_type==='insight'&&asset.owner_id===slug;payload.sections.forEach((section,sectionIndex)=>{const blocks=normalizeBlockDocument(section.blocks,section.body_vi,section.body_en).items;let contentFound=false;blocks.forEach((block,blockIndex)=>{const label=`Section ${sectionIndex+1}, Block ${blockIndex+1}`;const c=block.content||{},settings=block.settings||{},text=Object.values(c).flatMap(value=>Array.isArray(value)?value:[value]).some(value=>typeof value==='string'&&richTextToPlainText(value).trim());if(text)contentFound=true;if(block.type==='image'){const asset=assetRegistry.get(settings.asset_id);if(!asset||!owned(asset)||!String(asset.mime_type||'').startsWith('image/'))throw new Error(`${label}: image must reference an image asset owned by this Insight.`)}if(block.type==='gallery'){const assets=(settings.asset_ids||[]).map(id=>assetRegistry.get(id));if(!assets.length||assets.some(asset=>!owned(asset)||!String(asset.mime_type||'').startsWith('image/')))throw new Error(`${label}: gallery must reference Insight-owned image assets.`)}if(block.type==='proof'||block.type==='file'){const asset=assetRegistry.get(settings.asset_id);if(!asset||!owned(asset)||!['proof','gallery'].includes(asset.asset_type))throw new Error(`${label}: referenced proof/file must belong to this Insight.`)}if(block.type==='video'){const url=settings.url||c.url;if(url&&!safeEmbedUrl(url))throw new Error(`${label}: video URL is not allowed.`);if(!url&&settings.asset_id){const asset=assetRegistry.get(settings.asset_id);if(!asset||!owned(asset)||!String(asset.mime_type||'').startsWith('video/'))throw new Error(`${label}: video asset must belong to this Insight.`)}}});if(!contentFound)throw new Error(`Section ${sectionIndex+1}: add at least one content block.`)})}
 function recalculateInsightMinutes(){const sections=insightSectionEditorRows(),count=lang=>sections.map(section=>richTextToPlainText(section[`body_${lang}`]||'')).join(' ').trim().split(/\s+/).filter(Boolean).length;$('#insightReadMinutes').value=Math.max(1,Math.ceil(Math.max(count('vi'),count('en'))/200))}
 function setInsightStatus(type,message){setAdminStatus('#insightStatus',type,message)}
 function insightErrorText(error){if(error.message==='invalid_slug')return currentLang==='en'?'Invalid or reserved Insight slug.':'Slug Insight không hợp lệ hoặc bị dành riêng.';if(error.message==='insight_required')return currentLang==='en'?'Title and excerpt are required in both languages.':'Cần đủ tiêu đề và excerpt ở cả hai ngôn ngữ.';if(error.message==='insight_sections_required')return currentLang==='en'?'Add at least one non-empty section in both languages.':'Cần ít nhất một section có nội dung ở cả hai ngôn ngữ.';if(error.message==='invalid_tone')return currentLang==='en'?'Tone colors must be valid hex colors.':'Tone A/B phải là mã màu hex.';return projectErrorText(error)}
 function refreshAdminInsightList(){const host=$('#insightManagementList');if(!host)return;const rows=[...INSIGHTS_ADMIN.map(item=>({item,draft:insightDrafts.get(item.id)})),...[...insightDrafts.entries()].filter(([slug])=>!INSIGHTS_ADMIN.some(item=>item.id===slug)).map(([slug,draft])=>({item:{id:slug,dbId:null,published:false,content:{vi:{title:draft.insight.title_vi},en:{title:draft.insight.title_en}}},draft}))];host.innerHTML=rows.length?rows.map(({item,draft})=>{const live=item.dbId&&item.published!==false,status=live&&!draft?'PUBLISHED':live&&draft?'DRAFT · LIVE VERSION PRESERVED':'DRAFT';return `<article class="admin-project-row"><div><strong>${esc(item.content?.[currentLang]?.title||item.id)}</strong><span class="admin-project-meta">${esc(item.id)} · ${status}</span></div><div class="admin-project-actions"><button class="admin-btn" type="button" data-edit-insight="${esc(item.id)}">Edit</button>${item.dbId?`<button class="admin-btn danger" type="button" data-delete-insight="${esc(item.id)}">Delete</button>`:''}</div></article>`}).join(''):`<div class="admin-empty">${esc(currentLang==='en'?'No Insights yet.':'Chưa có Insight nào.')}</div>`}
-async function loadAdminInsights(){if(!HQVShared.auth?.isAuthed()){insightAdminLoadState='failed';return}try{const response=await sbFetch('/rest/v1/portfolio_insights?select=id,slug,sort_order,published,title_vi,title_en,excerpt_vi,excerpt_en,intro_vi,intro_en,categories,tone_a,tone_b,read_minutes,published_at&order=sort_order.asc,id.asc',{method:'GET'});const rows=await response.json();const sectionsResponse=await sbFetch('/rest/v1/portfolio_insight_sections?select=id,insight_id,sort_order,title_vi,body_vi,title_en,body_en,blocks&order=sort_order.asc,id.asc',{method:'GET'});const sections=await sectionsResponse.json();const grouped=new Map();(Array.isArray(sections)?sections:[]).forEach(row=>{if(!grouped.has(row.insight_id))grouped.set(row.insight_id,[]);grouped.get(row.insight_id).push(row)});INSIGHTS_ADMIN.splice(0,INSIGHTS_ADMIN.length,...(Array.isArray(rows)?rows:[]).map(row=>insightRuntimeFromDb(row,grouped.get(row.id)||[])));insightAdminLoadState='ready';refreshAdminInsightList();populateAdminProjects()}catch(error){insightAdminLoadState='failed';setInsightStatus('err',insightErrorText(error))}}
-async function loadInsightDrafts(){if(!HQVShared.auth?.isAuthed()){insightDraftLoadState='failed';return}try{const response=await sbFetch('/rest/v1/portfolio_content?select=content_key,value_vi&content_key=like.insight.draft.%25&order=updated_at.desc',{method:'GET'});const rows=await response.json();insightDrafts=new Map();(Array.isArray(rows)?rows:[]).forEach(row=>{const payload=parseContentJSON(row.value_vi,{}),slug=String(row.content_key||'').slice('insight.draft.'.length);if(slug&&payload?.insight)insightDrafts.set(slug,payload)});insightDraftLoadState='ready';refreshAdminInsightList()}catch(_){insightDraftLoadState='failed'}}
+async function loadAdminInsights(){insightSchemaMissing=false;insightAdminLoadError=null;if(!HQVShared.auth?.isAuthed()){insightAdminLoadState='failed';return}let source='insights';try{const response=await sbFetch('/rest/v1/portfolio_insights?select=id,slug,sort_order,published,title_vi,title_en,excerpt_vi,excerpt_en,intro_vi,intro_en,categories,tone_a,tone_b,read_minutes,published_at&order=sort_order.asc,id.asc',{method:'GET'});const rows=await response.json();source='insight sections';const sectionsResponse=await sbFetch('/rest/v1/portfolio_insight_sections?select=id,insight_id,sort_order,title_vi,body_vi,title_en,body_en,blocks&order=sort_order.asc,id.asc',{method:'GET'});const sections=await sectionsResponse.json();const grouped=new Map();(Array.isArray(sections)?sections:[]).forEach(row=>{if(!grouped.has(row.insight_id))grouped.set(row.insight_id,[]);grouped.get(row.insight_id).push(row)});INSIGHTS_ADMIN.splice(0,INSIGHTS_ADMIN.length,...(Array.isArray(rows)?rows:[]).map(row=>insightRuntimeFromDb(row,grouped.get(row.id)||[])));insightAdminLoadState='ready';refreshAdminInsightList();populateAdminProjects()}catch(error){error.referenceSource=source;insightAdminLoadError=error;if(isMissingInsightSchemaError(error)){insightSchemaMissing=true;insightAdminLoadState='missing';INSIGHTS_ADMIN.splice(0,INSIGHTS_ADMIN.length);refreshAdminInsightList();populateAdminProjects();return}insightAdminLoadState='failed';setInsightStatus('err',insightErrorText(error))}}
+async function loadInsightDrafts(){insightDraftLoadError=null;if(!HQVShared.auth?.isAuthed()){insightDraftLoadState='failed';return}try{const response=await sbFetch('/rest/v1/portfolio_content?select=content_key,value_vi&content_key=like.insight.draft.%25&order=updated_at.desc',{method:'GET'});const rows=await response.json();insightDrafts=new Map();(Array.isArray(rows)?rows:[]).forEach(row=>{const payload=parseContentJSON(row.value_vi,{}),slug=String(row.content_key||'').slice('insight.draft.'.length);if(slug&&payload?.insight)insightDrafts.set(slug,payload)});insightDraftLoadState='ready';refreshAdminInsightList()}catch(error){insightDraftLoadState='failed';insightDraftLoadError=error}}
 function previewCurrentInsight(){try{const payload=insightFormPayload(),runtime=insightRuntimeFromDb({...payload.insight,id:payload.insight.id||`draft-${payload.insight.slug}`,published:false},payload.sections),win=window.open(new URL('index.html#draft-preview',location.href).href,'_blank');if(!win){setInsightStatus('err',currentLang==='en'?'Popup blocked.':'Trình duyệt đã chặn popup.');return}win.opener=window;globalPreviewWindow=win;globalPreviewSnapshot=runtime;setInsightStatus('ok',currentLang==='en'?'Draft preview opened.':'Đã mở xem trước bản nháp.')}catch(error){setInsightStatus('err',insightErrorText(error))}}
 function previewCurrentProject(){try{const base=projectBySlug($('#projectSlug')?.dataset.originalSlug||$('#projectSlug')?.value);if(!base)return;const payload=projectFormPayload(),runtime=projectFromDraftPayload(base,{project:payload,sections:projectSectionPayloads()}),win=window.open(new URL('index.html#draft-preview',location.href).href,'_blank');if(!win){setProjectStatus('err',currentLang==='en'?'Popup blocked.':'Trình duyệt đã chặn popup.');return}win.opener=window;globalPreviewWindow=win;globalPreviewSnapshot=runtime;setProjectStatus('ok',currentLang==='en'?'Draft preview opened.':'Đã mở xem trước bản nháp.')}catch(error){setProjectStatus('err',projectErrorText(error))}}
 function resetInsightEditor(){activeInsightAdminSlug='';const editor=$('#insightEditor');if(editor)editor.hidden=true;$('#insightForm')?.reset();$('#insightSectionsEditor').innerHTML='';$('#insightMediaList').innerHTML=''}
@@ -1372,33 +1456,32 @@ async function loadAdminProjects(){const response=await sbFetch('/rest/v1/portfo
 function applyAdminStatic(){if(!adminDialog)return;document.documentElement.lang=currentLang;adminDialog.setAttribute('aria-label',currentLang==='en'?'Portfolio CMS':'Quản trị portfolio');adminDialog.querySelectorAll('[data-i18n]').forEach(element=>{const value=I18N[currentLang][element.dataset.i18n];if(value)element.textContent=value});adminDialog.querySelectorAll('[data-admin-lang]').forEach(button=>button.classList.toggle('active',button.dataset.adminLang===currentLang));populateAdminProjects()}
 function renderAdmin(){applyAdminStatic();renderGlobalEditor();renderAvatar();refreshAdminProjectList();refreshAdminList();loadGlobalDrafts();loadProjectDrafts()}
 function bindAdminEvents(){
+const mediaToolbar=$('.media-library-toolbar');
+if(mediaToolbar&&!mediaToolbar.querySelector('[data-media-delete]'))mediaToolbar.insertAdjacentHTML('beforeend','<button class="admin-btn danger" type="button" data-media-delete disabled>Delete permanently</button>');
 const projectSectionHost=$('#projectSectionsEditor');if(projectSectionHost)projectSectionHost.dataset.sectionHost='project';
 document.addEventListener('click',async e=>{
   const insightMediaOpen=e.target.closest('[data-insight-media-open]');if(insightMediaOpen){const row=assetRegistry.get(insightMediaOpen.dataset.insightMediaOpen);openAdminAsset(insightMediaOpen.dataset.insightMediaOpen,row?.asset_type==='gallery'?'viewGallery':'open');return}
   const insightCoverReplace=e.target.closest('[data-insight-cover-replace]');if(insightCoverReplace){$('#insightSlug').value=insightCoverReplace.dataset.insightCoverReplace;$('#uploadInsightCoverBtn').click();return}
   const insightMediaDelete=e.target.closest('[data-insight-media-delete]');if(insightMediaDelete){const row=assetRegistry.get(insightMediaDelete.dataset.insightMediaDelete);if(!row||!await assertAssetUnused(row.id,'#insightStatus'))return;try{await removeAssetRows([row]);await loadAssets();renderInsightMediaManager($('#insightSlug').value.trim());setInsightStatus('ok',t('admin.deleted'))}catch(error){setInsightStatus('err',formatAssetUploadError(error))}return}
+  const deleteMedia=e.target.closest('[data-media-delete]');if(deleteMedia){openMediaDeleteConfirmation();return}
   const editInsightButton=e.target.closest('[data-edit-insight]');if(editInsightButton){const slug=editInsightButton.dataset.editInsight,draft=insightDrafts.get(slug),item=INSIGHTS_ADMIN.find(row=>row.id===slug)||(draft?insightRuntimeFromDb({...draft.insight,id:null,published:false},draft.sections):null)||INSIGHT_FALLBACK.find(row=>row.id===slug);if(item)editInsight(item);return}
   const deleteInsightButton=e.target.closest('[data-delete-insight]');if(deleteInsightButton){deleteInsight(INSIGHTS_ADMIN.find(row=>row.id===deleteInsightButton.dataset.deleteInsight));return}
   const move=e.target.closest('[data-cert-move]');
   if(move){const [id,index,direction]=move.dataset.certMove.split('|');await reorderCertificateAssets(id,Number(index),direction);return}
   const choose=e.target.closest('[data-cert-choose]');
   if(choose){
-    openMediaLibrary({mode:'single',accept:'all',title:currentLang==='en'?'Choose certificate evidence':'Chọn minh chứng chứng chỉ',onConfirm:async assetId=>{
-      const usage=mediaUsage(assetId);
-      if(!usage.known||usage.count>0){
-        setAdminStatus('#globalContentStatus','err',currentLang==='en'?'This asset is already referenced and cannot be reassigned. Existing case-study references were preserved.':'Asset này đang được tham chiếu hoặc chưa thể xác minh an toàn, không thể gán lại. Các tham chiếu case study được giữ nguyên.');
-        return;
-      }
+    const id=choose.dataset.certChoose;
+    openMediaLibrary({mode:'multi',accept:'all',selectedIds:certAssetList(id).map(asset=>asset.id),allowEmptySelection:true,title:currentLang==='en'?'Choose certificate evidence':'Chọn minh chứng chứng chỉ',onConfirm:async assetIds=>{
+      const item=findCertAdminItem(id);if(!item)return false;
+      const selected=new Set(assetIds),current=certAssetList(id),updates=[];
+      for(const assetId of selected){if(!assetRegistry.has(assetId)||!await assertAssetUnused(assetId,'[data-media-status]'))return false}
+      current.filter(asset=>!selected.has(asset.id)).forEach(asset=>updates.push({asset,body:{project_id:null,owner_type:null,owner_id:null,asset_type:'proof',gallery_id:null,sort_order:0}}));
+      [...selected].forEach((assetId,index)=>{const asset=assetRegistry.get(assetId);updates.push({asset,body:{project_id:null,owner_type:certificateOwnerType(id),owner_id:id,asset_type:'proof',type:assetKindOf(asset),gallery_id:null,title_vi:item.title.vi,title_en:item.title.en,sort_order:index}})});
+      const changed=[];
       try{
-        const id=choose.dataset.certChoose,item=findCertAdminItem(id),asset=assetRegistry.get(assetId);
-        if(!item||!asset||!await assertAssetUnused(assetId,'#globalContentStatus',false))return;
-        const sortOrder=certAssetList(id).length;
-        await sbFetch(`/rest/v1/${encodeURIComponent(CONFIG.supabase.assetTable)}?id=eq.${encodeURIComponent(assetId)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({project_id:null,owner_type:certificateOwnerType(id),owner_id:id,asset_type:'proof',type:assetKindOf(asset),gallery_id:null,title_vi:item.title.vi,title_en:item.title.en,sort_order:sortOrder})});
-        await loadAssets();
-        mergeEditorInputs();
-        renderGlobalEditor();
-        
-      }catch(err){setAdminStatus('#globalContentStatus','err',formatAssetUploadError(err))}
+        for(const update of updates){await sbFetch(`/rest/v1/${encodeURIComponent(CONFIG.supabase.assetTable)}?id=eq.${encodeURIComponent(update.asset.id)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify(update.body)});changed.push(update.asset)}
+      }catch(error){for(const asset of changed.reverse()){try{await sbFetch(`/rest/v1/${encodeURIComponent(CONFIG.supabase.assetTable)}?id=eq.${encodeURIComponent(asset.id)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({project_id:asset.project_id??null,owner_type:asset.owner_type??null,owner_id:asset.owner_id??null,asset_type:asset.asset_type,type:asset.type??null,title_vi:asset.title_vi??null,title_en:asset.title_en??null,gallery_id:asset.gallery_id??null,sort_order:asset.sort_order??0})})}catch(_){error.rollbackError=true}}throw error}
+      await loadAssets();mergeEditorInputs();renderGlobalEditor();setAdminStatus('#globalContentStatus','ok',currentLang==='en'?'Certificate evidence updated.':'Đã cập nhật minh chứng chứng chỉ.');return true;
     }});
     return;
   }
@@ -1415,8 +1498,11 @@ document.addEventListener('click',async e=>{
   const coverRemove=e.target.closest('[data-cert-cover-remove]');
   if(coverRemove){const row=assetRegistry.get(coverRemove.dataset.certCoverRemove);if(!row||!await assertAssetUnused(row.id,'#globalContentStatus',false))return;try{await removeAssetRows([row]);await loadAssets();mergeEditorInputs();renderGlobalEditor();setAdminStatus('#globalContentStatus','ok',t('admin.deleted'))}catch(err){setAdminStatus('#globalContentStatus','err',formatAssetUploadError(err))}return}
   const rm=e.target.closest('[data-cert-remove]');
-  if(rm){const row=assetRegistry.get(rm.dataset.certRemove);if(!row||!await assertAssetUnused(row.id,'#globalContentStatus',false))return;try{await removeAssetRows([row]);await loadAssets();mergeEditorInputs();renderGlobalEditor();setAdminStatus('#globalContentStatus','ok',t('admin.deleted'))}catch(err){setAdminStatus('#globalContentStatus','err',formatAssetUploadError(err))}}
+  if(rm){const row=assetRegistry.get(rm.dataset.certRemove);if(!row)return;try{await sbFetch(`/rest/v1/${encodeURIComponent(CONFIG.supabase.assetTable)}?id=eq.${encodeURIComponent(row.id)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({project_id:null,owner_type:null,owner_id:null,sort_order:0})});await loadAssets();mergeEditorInputs();renderGlobalEditor();setAdminStatus('#globalContentStatus','ok',currentLang==='en'?'Evidence removed from this certificate; the file remains in Media Library.':'Đã bỏ minh chứng khỏi chứng chỉ; file vẫn còn trong Media Library.')}catch(err){setAdminStatus('#globalContentStatus','err',formatAssetUploadError(err))}}
 },{signal:controller.signal});
+$('#proofUploadForm').noValidate=true;
+$('#projectForm').noValidate=true;
+$('#insightForm').noValidate=true;
 $('#proofUploadForm').addEventListener('submit',doProofUpload,{signal:controller.signal});
 $('#avatarUploadForm').addEventListener('submit',doAvatarUpload,{signal:controller.signal});
 $('#coverUploadForm').addEventListener('submit',doCoverUpload,{signal:controller.signal});
@@ -1511,7 +1597,7 @@ document.addEventListener('click',async e=>{
   if(card){
     const id=card.dataset.mediaId,row=getAsset(id);if(!row)return;
     if(mediaLibraryState.mode==='single')mediaLibraryState.selectedId=id;
-    else {if(mediaLibraryState.selectedIds.has(id))mediaLibraryState.selectedIds.delete(id);else mediaLibraryState.selectedIds.add(id);}
+    else {if(mediaLibraryState.selectedIds.has(id))mediaLibraryState.selectedIds.delete(id);else mediaLibraryState.selectedIds.add(id);mediaLibraryState.selectedId=mediaLibraryState.selectedIds.has(id)?id:mediaLibraryState.selectedIds.values().next().value||null;}
     renderMediaLibrary();return;
   }
   if(e.target.closest('[data-media-confirm]')){confirmMediaLibrary();return}
