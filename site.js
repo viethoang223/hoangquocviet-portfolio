@@ -74,6 +74,34 @@ function viewerExtraBody(it){
 function renderProjects(){
   const visible=PROJECTS.filter(p=>p.published!==false);
   $('#projectList').innerHTML=visible.map(p=>{const c=contentFor(p);return `<article class="project-card reveal visible" style="--card-a:${esc(safeCssColor(p.tone[0]))};--card-b:${esc(safeCssColor(p.tone[1],'#5b7cfa'))}"><div class="project-copy"><span class="project-index">CASE ${esc(p.index)}</span><div class="project-tags">${c.category.map(tag).join('')}</div><h3 class="project-title">${esc(c.title)}</h3><p class="project-hook">${esc(c.hook)}</p>${statsH(c.stats)}<div class="project-foot"><a class="case-btn" href="#/${p.id}">${esc(t('project.open'))} <span>↗</span></a><span class="muted" style="font-size:10px">Marketing × Technology</span></div></div><div class="project-visual">${visualH(p)}</div></div></article>`}).join('');
+  observeProjectCoverVideos();
+}
+
+let projectCoverVideoObserver=null;
+function observeProjectCoverVideos(){
+  projectCoverVideoObserver?.disconnect();
+  const videos=[...document.querySelectorAll('[data-project-cover-video]')];
+  if(!videos.length)return;
+  const reduceMotion=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches||false;
+  const activate=video=>{
+    if(video.parentElement?.dataset.coverRatio==='auto'&&!video.dataset.ratioDetection){
+      video.dataset.ratioDetection='pending';
+      video.addEventListener('loadedmetadata',()=>{
+        const aspect=video.videoWidth/Math.max(1,video.videoHeight);
+        const ratio=aspect<0.85?'portrait':aspect>1.2?'landscape':'square';
+        video.parentElement.classList.remove('mock-video-cover--portrait','mock-video-cover--square','mock-video-cover--landscape');
+        video.parentElement.classList.add(`mock-video-cover--${ratio}`);
+      },{once:true});
+    }
+    if(!video.src){video.src=video.dataset.src;video.load()}
+    if(!reduceMotion)video.play().catch(()=>{});
+  };
+  if(!('IntersectionObserver'in window)){videos.forEach(activate);return}
+  projectCoverVideoObserver=new IntersectionObserver(entries=>entries.forEach(entry=>{
+    if(entry.isIntersecting)activate(entry.target);
+    else entry.target.pause();
+  }),{rootMargin:'120px 0px'});
+  videos.forEach(video=>projectCoverVideoObserver.observe(video));
 }
 
 function renderInsights(){

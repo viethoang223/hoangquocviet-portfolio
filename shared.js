@@ -585,10 +585,29 @@ function safeCssColor(value,fallback='#22d3ee'){
   return /^#[0-9a-fA-F]{3,8}$/.test(raw)?raw:fallback;
 }
 
+function projectVideoCover(project){
+  const ratios=new Set(['auto','portrait','square','landscape']);
+  for(const section of project.sections||[]){
+    const blocks=normalizeBlockDocument(section.blocks,section.body_vi,section.body_en).items;
+    for(const block of blocks){
+      const settings=block.settings||{},ratio=settings.cover_ratio;
+      if(block.type!=='video'||!ratios.has(ratio))continue;
+      const asset=assetForBlock(settings.asset_id);
+      const directUrl=safeDirectVideoUrl(settings.url||'')||(asset&&String(asset.mime_type||'').toLowerCase().startsWith('video/')?safeDirectVideoUrl(asset.url):'');
+      if(!directUrl)continue;
+      const poster=assetForBlock(settings.poster_asset_id);
+      return {url:directUrl,ratio,poster:poster&&String(poster.mime_type||'').toLowerCase().startsWith('image/')?poster.url:''};
+    }
+  }
+  return null;
+}
+
 function visualH(p){
   const c=contentFor(p),isInsight=p.kind==='insight';
   const cover=isInsight?insightCovers.get(p.id):projectCovers.get(p.id);
+  const videoCover=isInsight?null:projectVideoCover(p);
   const shell=inner=>`<div class="mock-window"><div class="mock-top"><div class="window-dots"><span class="window-dot"></span><span class="window-dot"></span><span class="window-dot"></span></div><div class="window-label">${isInsight?'INSIGHT':'CASE'} ${esc(p.index)} · ${esc(p.id)}</div></div><div class="mock-body">${inner}</div></div>`;
+  if(videoCover){const initialRatio=videoCover.ratio==='auto'?'landscape':videoCover.ratio;return shell(`<div class="mock-video-cover mock-video-cover--${initialRatio}" data-cover-ratio="${videoCover.ratio}"><video data-project-cover-video data-src="${esc(videoCover.url)}"${videoCover.poster||cover?.url?` poster="${esc(videoCover.poster||cover.url)}"`:''} muted loop playsinline preload="none" aria-hidden="true"></video></div>`)}
   if(cover)return shell(`<div class="mock-cover"><img src="${esc(cover.url)}" alt="${esc(c.title)} ${isInsight?'insight':'project'} cover" loading="lazy"><div class="mock-cover-label"><span><b>${isInsight?'INSIGHT COVER':'PROJECT COVER'}</b> · ${isInsight?'INSIGHT':'CASE'} ${esc(p.index)}</span><span>${esc(c.category[0]||(isInsight?'Insight':'Project'))}</span></div></div>`);
   if(p.visual==='workflow')return shell(`<div class="workflow"><div class="node cold">DATA SOURCE</div><div class="arrow">→</div><div class="node">EXTRACTION</div><div class="arrow">→</div><div class="node hot">AI PROCESSING</div><div class="arrow">→</div><div class="node hot">INTENT</div><div class="arrow">→</div><div class="node">JSON</div><div class="arrow">→</div><div class="node cold">TELEGRAM</div></div>`);
   if(p.visual==='research')return shell(`<div class="data-panel"><div class="metric-box"><div class="metric"><strong style="color:var(--lime)">0.849</strong><span>KMO</span></div><div class="metric"><strong style="color:var(--cyan)">68.7%</strong><span>Variance</span></div><div class="metric"><strong>0.694</strong><span>R²</span></div><div class="metric"><strong>0.679</strong><span>Adjusted R²</span></div></div><div class="bars"><div class="bar"><span>responses</span><i style="--w:88%"></i><b>193</b></div><div class="bar"><span>hypotheses</span><i style="--w:57%"></i><b>4/7</b></div></div></div>`);

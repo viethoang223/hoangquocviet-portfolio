@@ -43,7 +43,7 @@ Migrations `20261014180200_certificate_owner_ids.sql` và `20261014180300_portfo
 
 1. Tạo R2 bucket và kết nối custom domain để dùng public trong production. `r2.dev` chỉ phù hợp thử nghiệm và bị giới hạn tốc độ; bucket public làm video truy cập được với bất kỳ ai có URL.
 2. Upload MP4 (H.264) qua Cloudflare Dashboard. Đảm bảo object được phục vụ với `Content-Type: video/mp4`, rồi sao chép URL HTTPS của object.
-3. Trong admin, thêm block Video cho section của Project hoặc Insight và dán URL vào trường Video URL. URL được lưu cùng nội dung section trong Supabase; không cần tạo bảng `videos` và video không đi qua giới hạn 50 MB của Supabase Storage.
+3. Trong admin, thêm block Video cho section của Project, dán URL vào trường Video URL, rồi chọn `Tự động` hoặc ép tỷ lệ cover index `Dọc 9:16`, `Vuông 1:1`, `Ngang 16:9`. Tự động sẽ đọc kích thước video và quy về tỷ lệ gần nhất. Video nằm trong vùng media riêng cạnh nội dung; ảnh cover hiện có được dùng làm poster. Để trống tỷ lệ nếu chỉ muốn video trong nội dung case. URL và tỷ lệ được lưu trong block JSON của section trên Supabase; không cần tạo bảng mới và video không đi qua giới hạn 50 MB của Supabase Storage.
 
 Website phát URL HTTPS trực tiếp có đuôi MP4, M4V, WebM, OGV hoặc OGG bằng native video player. R2 Dashboard cho phép upload object tới giới hạn single-upload 5 GiB; multipart phù hợp hơn cho file lớn hoặc khi cần resume. Xem [Cloudflare R2 upload docs](https://developers.cloudflare.com/r2/objects/upload-objects/) và [public bucket docs](https://developers.cloudflare.com/r2/buckets/public-buckets/).
 
