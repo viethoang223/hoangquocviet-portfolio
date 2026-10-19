@@ -143,9 +143,9 @@ let pendingMediaDeleteId=null;
 
 const MAX_ASSET_FILE_BYTES=50*1024*1024;
 
-const EXT_KIND={jpg:['image/jpeg','image'],jpeg:['image/jpeg','image'],png:['image/png','image'],webp:['image/webp','image'],gif:['image/gif','image'],avif:['image/avif','image'],svg:['image/svg+xml','image'],pdf:['application/pdf','pdf'],mp4:['video/mp4','video'],webm:['video/webm','video'],mov:['video/quicktime','video'],mp3:['audio/mpeg','audio'],wav:['audio/wav','audio'],ogg:['audio/ogg','audio'],m4a:['audio/mp4','audio'],aac:['audio/aac','audio'],flac:['audio/flac','audio'],json:['application/json','json'],csv:['text/csv','file'],txt:['text/plain','file'],zip:['application/zip','file'],docx:['application/vnd.openxmlformats-officedocument.wordprocessingml.document','file'],xlsx:['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','file'],pptx:['application/vnd.openxmlformats-officedocument.presentationml.presentation','file']};
+const EXT_KIND={jpg:['image/jpeg','image'],jpeg:['image/jpeg','image'],png:['image/png','image'],webp:['image/webp','image'],gif:['image/gif','image'],avif:['image/avif','image'],svg:['image/svg+xml','image'],pdf:['application/pdf','pdf'],mp4:['video/mp4','video'],webm:['video/webm','video'],mov:['video/quicktime','video'],mp3:['audio/mpeg','audio'],wav:['audio/wav','audio'],ogg:['audio/ogg','audio'],m4a:['audio/mp4','audio'],aac:['audio/aac','audio'],flac:['audio/flac','audio'],json:['application/json','json'],csv:['text/csv','file'],txt:['text/plain','file'],html:['text/plain','file'],htm:['text/plain','file'],zip:['application/zip','file'],'7z':['application/x-7z-compressed','file'],rar:['application/vnd.rar','file'],docx:['application/vnd.openxmlformats-officedocument.wordprocessingml.document','file'],xlsx:['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','file'],pptx:['application/vnd.openxmlformats-officedocument.presentationml.presentation','file']};
 
-const ACCEPTED_ASSET_INPUT=[...new Set(Object.values(EXT_KIND).map(x=>x[0]))].join(',')+','+Object.keys(EXT_KIND).map(e=>'.'+e).join(',');
+const ACCEPTED_ASSET_INPUT=[...new Set(Object.values(EXT_KIND).map(x=>x[0]))].join(',')+','+Object.keys(EXT_KIND).map(e=>'.'+e).join(',')+','+Array.from({length:99},(_,index)=>`.z${String(index+1).padStart(2,'0')}`).join(',');
 
 async function sniffMatches(file,ext){
   const sig={pdf:[[0,'%PDF']],png:[[1,'PNG']],gif:[[0,'GIF8']],jpg:[[0,'\xff\xd8\xff']],jpeg:[[0,'\xff\xd8\xff']],webp:[[0,'RIFF'],[8,'WEBP']],mp4:[[4,'ftyp']],m4a:[[4,'ftyp']],zip:[[0,'PK']],docx:[[0,'PK']],xlsx:[[0,'PK']],pptx:[[0,'PK']]}[ext];
@@ -156,7 +156,7 @@ async function sniffMatches(file,ext){
 }
 
 async function inspectUploadFile(file){
-  const m=String(file?.name||'').toLowerCase().match(/\.([a-z0-9]+)$/),ext=m?m[1]:'',def=EXT_KIND[ext];
+  const m=String(file?.name||'').toLowerCase().match(/\.([a-z0-9]+)$/),ext=m?m[1]:'',def=EXT_KIND[ext]||(/^z\d{2,}$/.test(ext)?['application/zip','file']:null);
   if(!def)throw new Error('asset_required');
   const raw=String(file.type||'').toLowerCase();
   if(raw&&raw!=='application/octet-stream'&&raw.split('/')[0]!==def[0].split('/')[0]&&!(def[1]==='file'||def[1]==='json'))throw new Error('asset_required');
