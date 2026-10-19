@@ -398,7 +398,17 @@ function safeEmbedUrl(value){
     const u=new URL(raw,window.location.href), host=u.hostname.toLowerCase();
     if(!['https:','http:'].includes(u.protocol))return '';
     const allowedHosts=new Set(['youtube.com','www.youtube.com','m.youtube.com','youtube-nocookie.com','www.youtube-nocookie.com','youtu.be','www.youtu.be','vimeo.com','www.vimeo.com','player.vimeo.com']);
-    return allowedHosts.has(host)?u.href:'';
+    return allowedHosts.has(host)?u.href:safeDirectVideoUrl(u.href);
+  }catch(_){return ''}
+}
+
+function safeDirectVideoUrl(value){
+  const raw=String(value||'').trim();
+  if(!raw)return '';
+  try{
+    const url=new URL(raw);
+    if(url.protocol!=='https:'||url.username||url.password)return '';
+    return /\.(?:mp4|m4v|webm|ogv|ogg)$/i.test(url.pathname)?url.href:'';
   }catch(_){return ''}
 }
 
@@ -490,7 +500,7 @@ function renderBlock(block,lang,context={}){
     case 'divider': return `<hr class="case-block-divider">`;
     case 'image': { const a=assetForBlock(s.asset_id); if(!a)return `<div class="article-media-placeholder">${esc(title|| (lang==='en'?'Image placeholder':'Vị trí hình ảnh'))}</div>`; const alt=String(c[`alt_${lang}`]||c.alt||a.original_name||''); const caption=esc(String(c[`caption_${lang}`]??c[`caption_${lang==='en'?'vi':'en'}`]??'')); return `<figure class="article-media"><img src="${esc(a.url)}" alt="${esc(alt)}" loading="lazy" style="width:auto;height:auto;max-width:100%;object-fit:contain"><figcaption>${caption}</figcaption></figure>`; }
     case 'gallery': { const ids=Array.isArray(s.asset_ids)?s.asset_ids:[]; const assets=ids.map(assetForBlock).filter(Boolean); return assets.length?`<figure class="article-media"><div class="gallery">${assets.map(a=>`<img src="${esc(a.url)}" alt="${esc(a.original_name||'')}" loading="lazy">`).join('')}</div><figcaption>${title}</figcaption></figure>`:`<div class="article-media-placeholder">${esc(title||(lang==='en'?'Gallery placeholder':'Vị trí gallery'))}</div>`; }
-    case 'video': { const url=safeEmbedUrl(s.url||c.url||''); if(url)return `<figure class="article-media"><div class="case-video"><iframe src="${esc(url)}" title="${esc(title||'Video')}" loading="lazy" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div><figcaption>${title}</figcaption></figure>`; const va=assetForBlock(s.asset_id),poster=assetForBlock(s.poster_asset_id); if(va&&String(va.mime_type||'').toLowerCase().startsWith('video/'))return `<figure class="article-media"><video src="${esc(va.url)}"${poster&&String(poster.mime_type||'').toLowerCase().startsWith('image/')?` poster="${esc(poster.url)}"`:''} controls playsinline preload="metadata"></video><figcaption>${title}</figcaption></figure>`; return ''; }
+    case 'video': { const url=safeEmbedUrl(s.url||c.url||''),directUrl=safeDirectVideoUrl(url),va=assetForBlock(s.asset_id),poster=assetForBlock(s.poster_asset_id),posterAttr=poster&&String(poster.mime_type||'').toLowerCase().startsWith('image/')?` poster="${esc(poster.url)}"`:''; if(directUrl)return `<figure class="article-media"><video src="${esc(directUrl)}"${posterAttr} controls playsinline preload="metadata"></video><figcaption>${title}</figcaption></figure>`; if(url)return `<figure class="article-media"><div class="case-video"><iframe src="${esc(url)}" title="${esc(title||'Video')}" loading="lazy" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div><figcaption>${title}</figcaption></figure>`; if(va&&String(va.mime_type||'').toLowerCase().startsWith('video/'))return `<figure class="article-media"><video src="${esc(va.url)}"${posterAttr} controls playsinline preload="metadata"></video><figcaption>${title}</figcaption></figure>`; return ''; }
     case 'workflow': { const items=Array.isArray(c[`items_${lang}`])?c[`items_${lang}`]:Array.isArray(c.items)?c.items:[]; return items.length?`<figure class="article-media"><div class="case-flow">${items.map((x,i)=>`<div class="case-flow-step"><span>${String(i+1).padStart(2,'0')}</span><strong>${esc(String(x))}</strong></div>`).join('')}</div><figcaption>${title}</figcaption></figure>`:''; }
     case 'proof': { const a=assetForBlock(s.asset_id); return a?`<div class="proof-actions"><button class="proof-action-btn" type="button" data-open-asset="${esc(a.id)}" data-action="open">${esc(lang==='en'?'Open evidence':'Mở bằng chứng')}</button></div>`:''; }
     case 'file': { const a=assetForBlock(s.asset_id); if(!a)return `<div class="article-media-placeholder">${esc(title||(lang==='en'?'File placeholder':'Vị trí file'))}</div>`; const name=String(a.original_name||a.file_name||title||'file'); const download=proofDownloadUrl(a.url,name); return `<div class="case-file-card"><strong>${esc(name)}</strong><a href="${esc(download)}" download="${esc(name)}" data-proof-download="${esc(a.url)}" data-proof-download-name="${esc(name)}">${esc(lang==='en'?'Download':'Tải xuống')} ↓</a></div>`; }

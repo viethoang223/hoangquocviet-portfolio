@@ -3,7 +3,7 @@
 ## 1. Chuẩn bị
 
 1. Backup metadata trước khi chạy SQL: `portfolio_proofs`, `portfolio_content`, `portfolio_projects` và `portfolio_project_sections`.
-2. Deploy code cùng cache version hiện tại `20261018-contact-recovery-celebration`.
+2. Deploy code cùng cache-busting query versions hiện có trong `index.html` và `admin.html`.
 3. Không điền email, domain hoặc nội dung Insight thay cho chủ sở hữu.
 
 ## 2. Thứ tự SQL
@@ -38,6 +38,14 @@ Migrations `20261014180200_certificate_owner_ids.sql` và `20261014180300_portfo
 	- `CONTACT_ADMIN_TOTP_SECRET` (khóa Base32 ngẫu nhiên tối thiểu 160 bit, chỉ lưu trong Vercel)
 	Tin nhắn được gửi tới `viet.hq.work@gmail.com`.
 	Sau khi tạo khóa TOTP bằng trình tạo secret an toàn trên máy riêng, thêm cùng khóa vào Google Authenticator bằng tùy chọn nhập setup key. Không gửi khóa hoặc mã OTP qua chat, source code hay commit. Khi contact bị chặn, form recovery xác minh email admin + mã 6 số; xác minh thành công chỉ reset ban của IP hiện tại. Năm lần nhập sai sẽ khóa recovery của IP đó 15 phút.
+
+### Video dung lượng lớn qua Cloudflare R2
+
+1. Tạo R2 bucket và kết nối custom domain để dùng public trong production. `r2.dev` chỉ phù hợp thử nghiệm và bị giới hạn tốc độ; bucket public làm video truy cập được với bất kỳ ai có URL.
+2. Upload MP4 (H.264) qua Cloudflare Dashboard. Đảm bảo object được phục vụ với `Content-Type: video/mp4`, rồi sao chép URL HTTPS của object.
+3. Trong admin, thêm block Video cho section của Project hoặc Insight và dán URL vào trường Video URL. URL được lưu cùng nội dung section trong Supabase; không cần tạo bảng `videos` và video không đi qua giới hạn 50 MB của Supabase Storage.
+
+Website phát URL HTTPS trực tiếp có đuôi MP4, M4V, WebM, OGV hoặc OGG bằng native video player. R2 Dashboard cho phép upload object tới giới hạn single-upload 5 GiB; multipart phù hợp hơn cho file lớn hoặc khi cần resume. Xem [Cloudflare R2 upload docs](https://developers.cloudflare.com/r2/objects/upload-objects/) và [public bucket docs](https://developers.cloudflare.com/r2/buckets/public-buckets/).
 
 ## 4. Quyết định của chủ sở hữu
 
