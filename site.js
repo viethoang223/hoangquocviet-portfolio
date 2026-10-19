@@ -93,7 +93,7 @@ function observeProjectCoverVideos(){
     button.setAttribute('aria-pressed',String(!video.muted));
   };
   const activate=video=>{
-    if(video.hasAttribute('data-project-cover-video')&&document.querySelector('#caseDialog')?.open){video.dataset.visibilityState='covered';video.muted=true;video.pause();updateSoundToggle(video);return}
+    if(video.hasAttribute('data-project-cover-video')&&!isProjectCoverPlaybackAllowed()){stopProjectCoverVideo(video);return}
     if(video.parentElement?.dataset.coverRatio==='auto'&&!video.dataset.ratioDetection){
       video.dataset.ratioDetection='pending';
       video.addEventListener('loadedmetadata',()=>{
@@ -107,10 +107,11 @@ function observeProjectCoverVideos(){
     if(reduceMotion)return;
     video.muted=false;
     video.play().then(()=>{
-      if(video.hasAttribute('data-project-cover-video')&&(document.querySelector('#caseDialog')?.open||video.dataset.visibilityState!=='visible')){video.dataset.visibilityState='covered';video.muted=true;video.pause();updateSoundToggle(video);return}
+      if(video.hasAttribute('data-project-cover-video')&&(!isProjectCoverPlaybackAllowed()||video.dataset.visibilityState!=='visible')){stopProjectCoverVideo(video);return}
       if(video.dataset.visibilityState==='visible')updateSoundToggle(video);
       else video.pause();
     }).catch(()=>{
+      if(video.hasAttribute('data-project-cover-video')&&(!isProjectCoverPlaybackAllowed()||video.dataset.visibilityState!=='visible')){stopProjectCoverVideo(video);return}
       if(video.dataset.visibilityState!=='visible')return;
       video.muted=true;
       updateSoundToggle(video);
@@ -134,16 +135,18 @@ function observeProjectCoverVideos(){
   });
 }
 
-function pauseProjectCoverVideos(){
-  document.querySelectorAll('[data-project-cover-video]').forEach(video=>{video.dataset.visibilityState='covered';video.muted=true;video.pause();const button=video.parentElement?.querySelector('[data-video-sound-toggle]');if(button){const label=button.dataset.enableLabel;button.textContent=label;button.setAttribute('aria-label',label);button.setAttribute('aria-pressed','false')}});
-}
+function stopProjectCoverVideo(video){video.dataset.visibilityState='covered';video.muted=true;video.pause();if(video.hasAttribute('src')){video.removeAttribute('src');video.load();delete video.dataset.ratioDetection}const button=video.parentElement?.querySelector('[data-video-sound-toggle]');if(button){const label=button.dataset.enableLabel;button.textContent=label;button.setAttribute('aria-label',label);button.setAttribute('aria-pressed','false')}}
+
+function pauseProjectCoverVideos(){document.querySelectorAll('[data-project-cover-video]').forEach(stopProjectCoverVideo)}
+
+function isProjectCoverPlaybackAllowed(){const route=parseHash();return !caseDialog.open&&!viewerDialog.open&&!route?.project&&!route?.certificateId&&!isGlobalPreview&&!isDraftPreview}
 
 document.addEventListener('click',event=>{
   const button=event.target.closest('[data-video-sound-toggle]');
   if(!button)return;
   const video=button.parentElement?.querySelector('video[data-visibility-video]');
   if(!video)return;
-  if(document.querySelector('#caseDialog')?.open||video.dataset.visibilityState!=='visible'){video.dataset.visibilityState='covered';video.muted=true;video.pause();const label=button.dataset.enableLabel;button.textContent=label;button.setAttribute('aria-label',label);button.setAttribute('aria-pressed','false');return}
+  if(!isProjectCoverPlaybackAllowed()||video.dataset.visibilityState!=='visible'){stopProjectCoverVideo(video);return}
   video.muted=!video.muted;
   const playback=video.play();
   if(playback)playback.then(()=>{
@@ -200,6 +203,9 @@ const caseDialog=$('#caseDialog');
 caseDialog.addEventListener('close',()=>observeProjectCoverVideos());
 
 const viewerDialog=$('#viewerDialog');
+
+const projectCoverDialogObserver=new MutationObserver(records=>{if(records.some(record=>record.target.open))pauseProjectCoverVideos()});
+[caseDialog,viewerDialog].forEach(dialog=>projectCoverDialogObserver.observe(dialog,{attributes:true,attributeFilter:['open']}));
 
 const caseContent=$('#caseContent');
 
@@ -500,7 +506,7 @@ HQVShared.on('lang',()=>{applyStatic();renderProjects();renderInsights();renderG
 window.addEventListener('message', event => {
   if (event.origin !== location.origin || event.source !== window.opener) return;
   if(event.data?.type==='hqv-draft-preview'){
-    draftPreviewRuntime=deepClone(event.data.runtime||{});isDraftPreview=true;caseContent.innerHTML=caseHtml(draftPreviewRuntime);if(!caseDialog.open)openModalDialog(caseDialog);$('#globalPreviewBanner').hidden=false;return;
+    draftPreviewRuntime=deepClone(event.data.runtime||{});isDraftPreview=true;pauseProjectCoverVideos();caseContent.innerHTML=caseHtml(draftPreviewRuntime);if(!caseDialog.open)openModalDialog(caseDialog);$('#globalPreviewBanner').hidden=false;return;
   }
   if (event.data?.type !== 'hqv-global-preview') return;
   globalPreviewContent = deepClone(event.data.content || {});
