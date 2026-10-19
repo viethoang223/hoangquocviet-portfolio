@@ -90,20 +90,30 @@ function normalizeCertGroups(raw){
     return Array.from({length},(_,index)=>({title:{vi:vi[index]||en[index]||'',en:en[index]||vi[index]||''}}));
   };
   return CERT_GROUP_DEFAULTS.map(definition=>{
-    const source=sourceFor(definition),sourceItems=itemsFor(source),groupTitle=certLocalized(source?.title||source?.label,definition.title);
-    const items=definition.items.map(defaultItem=>{
+    const source=sourceFor(definition),sourceItems=itemsFor(source),groupTitle=certLocalized(source?.title||source?.label,definition.title),removedIds=new Set(Array.isArray(source?.removedIds)?source.removedIds.map(String):[]),usedItems=new Set();
+    const items=definition.items.filter(defaultItem=>!removedIds.has(defaultItem.id)).map(defaultItem=>{
       const match=sourceItems.find(candidate=>{
+        if(usedItems.has(candidate))return false;
         if(candidate?.id===defaultItem.id)return true;
         const title=candidate?.title||{vi:candidate?.title_vi||candidate?.vi||candidate,en:candidate?.title_en||candidate?.en||candidate};
         const candidates=[title.vi,title.en];
         return candidates.some(value=>defaultItem.legacyTitles.some(known=>certMatchText(value)===certMatchText(known)));
       });
       if(!match)return {...defaultItem,title:{...defaultItem.title},description:{...defaultItem.description}};
+      usedItems.add(match);
       const title=match.title||{vi:match.title_vi||match.vi||'',en:match.title_en||match.en||''};
       const description=match.description||{vi:match.description_vi||'',en:match.description_en||''};
       return {...defaultItem,title:certLocalized(title,defaultItem.title),issuer:String(match.issuer??defaultItem.issuer),date:String(match.date??defaultItem.date),credentialUrl:String(match.credentialUrl??match.credential_url??defaultItem.credentialUrl),description:certLocalized(description,defaultItem.description)};
     });
-    return {id:definition.id,title:groupTitle,items};
+    sourceItems.forEach((candidate,index)=>{
+      if(usedItems.has(candidate))return;
+      const item=candidate&&typeof candidate==='object'?candidate:{title:{vi:String(candidate||''),en:String(candidate||'')}};
+      const id=String(item.id||`custom-${definition.id}-${index+1}`);
+      if(removedIds.has(id))return;
+      const rawTitle=item.title||{vi:item.title_vi||item.vi||'',en:item.title_en||item.en||''},rawDescription=item.description||{vi:item.description_vi||'',en:item.description_en||''};
+      items.push({...item,id,title:certLocalized(rawTitle),issuer:String(item.issuer||''),date:String(item.date||''),credentialUrl:String(item.credentialUrl||item.credential_url||''),description:certLocalized(rawDescription)});
+    });
+    return {id:definition.id,title:groupTitle,items,removedIds:[...removedIds]};
   });
 }
 
@@ -132,7 +142,7 @@ let globalDbState='fallback';
 
 function deepClone(v){return JSON.parse(JSON.stringify(v));}
 
-function composeGlobalContent(...layers){const isObject=value=>value&&typeof value==='object'&&!Array.isArray(value);const merge=(target,source)=>{if(Array.isArray(source)){if(!Array.isArray(target))return deepClone(source);if(!source.length&&target.length)return deepClone(target);return source.map((value,index)=>{if(typeof value==='string'&&!value.trim()&&typeof target[index]==='string'&&target[index].trim())return target[index];return isObject(value)&&isObject(target[index])||Array.isArray(value)&&Array.isArray(target[index])?merge(target[index],value):deepClone(value)})}if(!isObject(source))return source;const out=isObject(target)?{...target}:{};for(const [key,value] of Object.entries(source)){if(typeof value==='string'&&!value.trim()&&typeof out[key]==='string'&&out[key].trim())continue;out[key]=isObject(value)||Array.isArray(value)?merge(out[key],value):value}return out};return layers.filter(layer=>layer!=null).reduce((result,layer)=>merge(result,layer),{})}
+function composeGlobalContent(...layers){const isObject=value=>value&&typeof value==='object'&&!Array.isArray(value);const merge=(target,source)=>{if(Array.isArray(source)){if(!Array.isArray(target))return deepClone(source);if(!source.length&&target.length)return deepClone(target);return source.map((value,index)=>{if(typeof value==='string'&&!value.trim()&&typeof target[index]==='string'&&target[index].trim())return target[index];return isObject(value)&&isObject(target[index])||Array.isArray(value)&&Array.isArray(target[index])?merge(target[index],value):deepClone(value)})}if(!isObject(source))return source;const out=isObject(target)?{...target}:{};for(const [key,value] of Object.entries(source)){if(typeof value==='string'&&!value.trim()&&typeof out[key]==='string'&&out[key].trim())continue;out[key]=isObject(value)||Array.isArray(value)?merge(out[key],value):value}return out};const content=layers.filter(layer=>layer!=null).reduce((result,layer)=>merge(result,layer),{});if(layers.some(layer=>Array.isArray(layer?.experience?.entries)&&layer.experience.entries.length===0&&(layer.experience.entriesManaged?.vi===true||layer.experience.entriesManaged?.en===true)))content.experience.entries=[];return content}
 
 function legacyGlobalFallbackContent(){
   const mk=(vi,en)=>({vi,en});
@@ -149,6 +159,8 @@ function legacyGlobalFallbackContent(){
 
 function globalFallbackContent(){
   const content=legacyGlobalFallbackContent();
+  content.experience.entries=[];
+  content.experience.entriesManaged={vi:false,en:false};
   content.experience.certGroups=normalizeCertGroups(content.experience.certGroups);
   return content;
 }
@@ -189,6 +201,7 @@ function isCertificateGroupsShape(shape){return Array.isArray(shape)&&shape[0]?.
 
 function globalContentForStorage(node,lang,shape){
   if(isCertificateGroupsShape(shape))return normalizeCertGroups(node);
+  if(Array.isArray(shape)&&shape.length===0)return deepClone(Array.isArray(node)?node:[]);
   if(isLocalizedLeafShape(shape)){
     const raw=node&&typeof node==='object'&&!Array.isArray(node)?node[lang]:undefined;
     return deepClone(raw===undefined||raw===null?'':raw);
@@ -218,6 +231,7 @@ function globalCanonicalFromStored(viValue,enValue,shape){
   }
   if(Array.isArray(shape)){
     if(shape[0]?.id==='communications'&&(!Array.isArray(viValue)||!Array.isArray(enValue)))return legacyCertGroupsFromStored(viValue,enValue);
+    if(shape.length===0)return deepClone(Array.isArray(viValue)?viValue:Array.isArray(enValue)?enValue:[]);
     const va=Array.isArray(viValue)?viValue:[];const ea=Array.isArray(enValue)?enValue:[];
     return shape.map((item,i)=>globalCanonicalFromStored(va[i],ea[i],item));
   }
@@ -607,7 +621,7 @@ function visualH(p){
   const cover=isInsight?insightCovers.get(p.id):projectCovers.get(p.id);
   const videoCover=isInsight?null:projectVideoCover(p);
   const shell=inner=>`<div class="mock-window"><div class="mock-top"><div class="window-dots"><span class="window-dot"></span><span class="window-dot"></span><span class="window-dot"></span></div><div class="window-label">${isInsight?'INSIGHT':'CASE'} ${esc(p.index)} · ${esc(p.id)}</div></div><div class="mock-body">${inner}</div></div>`;
-  if(videoCover){const initialRatio=videoCover.ratio==='auto'?'landscape':videoCover.ratio,enableSound=currentLang==='en'?'Enable sound':'Bật âm thanh',muteVideo=currentLang==='en'?'Mute video':'Tắt tiếng video';return shell(`<div class="mock-video-cover mock-video-cover--${initialRatio}" data-cover-ratio="${videoCover.ratio}"><video data-visibility-video data-project-cover-video data-src="${esc(videoCover.url)}"${videoCover.poster||cover?.url?` poster="${esc(videoCover.poster||cover.url)}"`:''} loop playsinline preload="none" aria-hidden="true"></video><button class="mock-video-sound" type="button" data-video-sound-toggle data-enable-label="${enableSound}" data-mute-label="${muteVideo}" aria-label="${enableSound}" aria-pressed="false">${enableSound}</button></div>`)}
+  if(videoCover){const initialRatio=videoCover.ratio==='auto'?'landscape':videoCover.ratio,enableSound=currentLang==='en'?'Enable sound':'Bật âm thanh',muteVideo=currentLang==='en'?'Mute video':'Tắt tiếng video';return `<div class="project-video-stage project-video-stage--${initialRatio}" data-cover-ratio="${videoCover.ratio}"><video data-visibility-video data-project-cover-video data-src="${esc(videoCover.url)}"${videoCover.poster||cover?.url?` poster="${esc(videoCover.poster||cover.url)}"`:''} loop playsinline preload="none" aria-hidden="true"></video><button class="mock-video-sound" type="button" data-video-sound-toggle data-enable-label="${enableSound}" data-mute-label="${muteVideo}" aria-label="${enableSound}" aria-pressed="false">${enableSound}</button></div>`}
   if(cover)return shell(`<div class="mock-cover"><img src="${esc(cover.url)}" alt="${esc(c.title)} ${isInsight?'insight':'project'} cover" loading="lazy"><div class="mock-cover-label"><span><b>${isInsight?'INSIGHT COVER':'PROJECT COVER'}</b> · ${isInsight?'INSIGHT':'CASE'} ${esc(p.index)}</span><span>${esc(c.category[0]||(isInsight?'Insight':'Project'))}</span></div></div>`);
   if(p.visual==='workflow')return shell(`<div class="workflow"><div class="node cold">DATA SOURCE</div><div class="arrow">→</div><div class="node">EXTRACTION</div><div class="arrow">→</div><div class="node hot">AI PROCESSING</div><div class="arrow">→</div><div class="node hot">INTENT</div><div class="arrow">→</div><div class="node">JSON</div><div class="arrow">→</div><div class="node cold">TELEGRAM</div></div>`);
   if(p.visual==='research')return shell(`<div class="data-panel"><div class="metric-box"><div class="metric"><strong style="color:var(--lime)">0.849</strong><span>KMO</span></div><div class="metric"><strong style="color:var(--cyan)">68.7%</strong><span>Variance</span></div><div class="metric"><strong>0.694</strong><span>R²</span></div><div class="metric"><strong>0.679</strong><span>Adjusted R²</span></div></div><div class="bars"><div class="bar"><span>responses</span><i style="--w:88%"></i><b>193</b></div><div class="bar"><span>hypotheses</span><i style="--w:57%"></i><b>4/7</b></div></div></div>`);

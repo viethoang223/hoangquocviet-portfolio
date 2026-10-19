@@ -56,8 +56,35 @@ function globalItemsField(path,label,vi,en){return `<div class="global-field"><s
 
 const globalFieldBase=globalField;
 
+function ensureExperienceEntries(){
+  const experience=globalAdminContent.experience;
+  if(experience.entriesManaged?.vi!==true&&experience.entriesManaged?.en!==true){
+    experience.entries=[{id:'umc-communications',title:deepClone(experience.title),role:deepClone(experience.role),description:deepClone(experience.description),tags:deepClone(experience.tags)}];
+    experience.entriesManaged={vi:true,en:true};
+  }else if(!Array.isArray(experience.entries))experience.entries=[];
+  return experience.entries;
+}
+
+function experienceEntriesAdminHtml(){
+  const entries=ensureExperienceEntries(),vi=currentLang==='vi';
+  return `<div class="global-group"><div class="admin-project-head"><div><h4>${vi?'Kinh nghiệm làm việc':'Experience records'}</h4><p class="admin-note">${vi?'Thêm hoặc xóa các mục kinh nghiệm. Nội dung hiện tại được giữ nguyên.':'Add or remove experience entries. Existing content is preserved.'}</p></div><button class="admin-btn primary" type="button" data-experience-add>${vi?'Thêm kinh nghiệm':'Add experience'}</button></div><div class="global-repeat">${entries.map((entry,index)=>`<div class="global-repeat-item"><div class="global-repeat-head"><strong>${esc(getLocalizedContent(entry.title,currentLang)||`${vi?'Kinh nghiệm':'Experience'} ${index+1}`)}</strong><button class="admin-btn danger" type="button" data-experience-remove="${esc(entry.id)}">${vi?'Xóa mục':'Remove entry'}</button></div>${globalField(`experience.entries.${index}.title`,vi?'Tổ chức / đơn vị':'Organization')}${globalField(`experience.entries.${index}.role`,vi?'Vai trò':'Role')}${globalField(`experience.entries.${index}.description`,vi?'Mô tả':'Description',null,null,'textarea')}${globalItemsField(`experience.entries.${index}.tags`,vi?'Kỹ năng / tags':'Skills / tags')}</div>`).join('')}</div></div>`;
+}
+
+function decorateCertificateAdminControls(host){
+  const groups=globalAdminContent.experience.certGroups||[];
+  host.querySelectorAll('.cert-admin-group').forEach((section,groupIndex)=>{
+    const group=groups[groupIndex];if(!group)return;
+    const add=document.createElement('button');add.type='button';add.className='admin-btn primary';add.dataset.certItemAdd=group.id;add.textContent=currentLang==='en'?'+ Add certificate':'+ Thêm chứng chỉ';
+    section.querySelector('h4')?.insertAdjacentElement('afterend',add);
+    section.querySelectorAll('.cert-admin-row[data-cert-id]').forEach(row=>{
+      const remove=document.createElement('button');remove.type='button';remove.className='admin-btn danger';remove.dataset.certItemRemove=row.dataset.certId;remove.textContent=currentLang==='en'?'Remove':'Xóa';row.querySelector('.cert-admin-row-head')?.append(remove);
+    });
+  });
+}
+
 function renderGlobalEditor(){
   const host=$('#globalContentEditor');if(!host)return;const c=globalAdminContent;
+  if(globalAdminTab==='experience')ensureExperienceEntries();
   let html='';
   if(globalAdminTab==='home')html=`<div class="global-pane">
     <div class="global-group"><h4>Home / Hero</h4>${globalField('home.name','Headline')}${globalField('home.role','Role')}${globalField('home.description','Description',null,null,'textarea')}${globalField('home.status','Status')}${globalField('home.ctaProjects','Projects CTA')}${globalField('home.ctaProjectsTarget','Projects CTA target')}${globalField('home.ctaContact','Contact CTA')}${globalField('home.ctaContactTarget','Contact CTA target')}</div>
@@ -66,10 +93,11 @@ function renderGlobalEditor(){
   </div>`;
   if(globalAdminTab==='approach')html=`<div class="global-pane"><div class="global-group"><h4>Approach</h4>${globalField('approach.eyebrow','Eyebrow')}${globalField('approach.resultTitle','Result title')}${globalField('approach.lead','Lead',null,null,'textarea')}${c.approach.formula.map((_,i)=>globalField(`approach.formula.${i}.label`,`Formula ${i+1} label`)+globalField(`approach.formula.${i}.micro`,`Formula ${i+1} description`,null,null,'textarea')).join('')}${globalField('approach.result','Result text',null,null,'textarea')}${globalField('approach.processKicker','Process kicker')}${c.approach.process.map((_,i)=>globalField(`approach.process.${i}`,`Process ${i+1}`)).join('')}</div></div>`;
   if(globalAdminTab==='skills')html=`<div class="global-pane"><div class="global-group"><h4>Skills / Capabilities</h4>${globalField('skills.eyebrow','Eyebrow')}${globalField('skills.heading','Heading')}${globalField('skills.headingAccent','Heading accent')}${globalField('skills.lead','Lead',null,null,'textarea')}<div class="global-repeat">${c.skills.cards.map((card,i)=>`<div class="global-repeat-item"><div class="global-repeat-head"><strong>${esc(card.num)} · Capability ${i+1}</strong><span class="global-inline-tags">Content only · layout stays code-owned</span></div>${globalField(`skills.cards.${i}.title`,'Card title')}${globalField(`skills.cards.${i}.copy`,'Card description',null,null,'textarea')}${globalField(`skills.cards.${i}.items`,'Card items',null,null,'textarea')}</div>`).join('')}</div></div></div>`;
-  if(globalAdminTab==='experience')html=`<div class="global-pane"><div class="global-group"><h4>Experience</h4>${globalField('experience.eyebrow','Eyebrow')}${globalField('experience.heading','Heading')}${globalField('experience.headingAccent','Heading accent')}${globalField('experience.lead','Lead',null,null,'textarea')}${globalField('experience.title','Experience title')}${globalField('experience.role','Role')}${globalField('experience.description','Description',null,null,'textarea')}${globalItemsField('experience.tags','Tags')}</div><div class="global-group"><h4>Minh chứng chứng chỉ</h4>${certAdminPanelHtml()}</div><div class="global-group"><h4>Supporting profile</h4>${globalField('experience.creative.label','Creative label')}${globalField('experience.creative.text','Creative text',null,null,'textarea')}${globalField('experience.direction.label','Direction label')}${globalField('experience.direction.text','Direction text',null,null,'textarea')}</div></div>`;
+  if(globalAdminTab==='experience')html=`<div class="global-pane"><div class="global-group"><h4>Experience</h4>${globalField('experience.eyebrow','Eyebrow')}${globalField('experience.heading','Heading')}${globalField('experience.headingAccent','Heading accent')}${globalField('experience.lead','Lead',null,null,'textarea')}</div>${experienceEntriesAdminHtml()}<div class="global-group"><h4>Certificates &amp; achievements</h4>${certAdminPanelHtml()}</div><div class="global-group"><h4>Supporting profile</h4>${globalField('experience.creative.label','Creative label')}${globalField('experience.creative.text','Creative text',null,null,'textarea')}${globalField('experience.direction.label','Direction label')}${globalField('experience.direction.text','Direction text',null,null,'textarea')}</div></div>`;
   if(globalAdminTab==='contact')html=`<div class="global-pane"><div class="global-group"><h4>Contact</h4>${globalField('contact.eyebrow','Eyebrow')}${globalField('contact.heading','Heading')}${globalField('contact.headingAccent','Heading accent')}${globalField('contact.intro','Lead',null,null,'textarea')}${globalField('contact.flow','Flow text',null,null,'textarea')}${globalField('contact.submit','CTA')}${globalField('contact.nameLabel','Name label')}${globalField('contact.emailLabel','Email label')}${globalField('contact.messageLabel','Message label')}${globalField('contact.namePlaceholder','Name placeholder')}${globalField('contact.messagePlaceholder','Message placeholder',null,null,'textarea')}</div></div>`;
   if(globalAdminTab==='footer')html=`<div class="global-pane"><div class="global-group"><h4>Footer</h4>${globalField('footer.copyright','Copyright')}${globalField('footer.supporting','Supporting text')}</div></div>`;
   host.innerHTML=html;
+  if(globalAdminTab==='experience')decorateCertificateAdminControls(host);
 }
 
 function mergeEditorInputs(){
@@ -172,6 +200,23 @@ function certAdminPanelHtml(){
 }
 
 function findCertAdminItem(id){return globalAdminContent?.experience?.certGroups?.flatMap(group=>group.items||[]).find(item=>item.id===id)||null}
+
+async function detachCertificateMedia(id){
+  const rows=[...new Map([...certAssetList(id),certCoverAsset(id)].filter(Boolean).map(row=>[row.id,row])).values()];
+  for(const row of rows)if(!await assertAssetUnused(row.id,'#globalContentStatus',false))return false;
+  const changed=[];
+  try{
+    for(const row of rows){
+      await sbFetch(`/rest/v1/${encodeURIComponent(CONFIG.supabase.assetTable)}?id=eq.${encodeURIComponent(row.id)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({project_id:null,owner_type:null,owner_id:null,sort_order:0})});
+      changed.push(row);
+    }
+    return true;
+  }catch(error){
+    for(const row of changed.reverse())try{await sbFetch(`/rest/v1/${encodeURIComponent(CONFIG.supabase.assetTable)}?id=eq.${encodeURIComponent(row.id)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({project_id:row.project_id??null,owner_type:row.owner_type??null,owner_id:row.owner_id??null,sort_order:row.sort_order??0})})}catch(_){error.rollbackError=true}
+    setAdminStatus('#globalContentStatus','err',formatAssetUploadError(error));
+    return false;
+  }
+}
 
 async function reorderCertificateAssets(id,index,direction){
   const list=certAssetList(id),next=index+(direction==='up'?-1:1);
@@ -1639,7 +1684,11 @@ $('#globalPublishBtn').addEventListener('click',publishGlobal,{signal:controller
 $('#globalUnpublishBtn')?.addEventListener('click',unpublishGlobal,{signal:controller.signal});
 $$('[data-global-tab]').forEach(btn=>btn.addEventListener('click',()=>{mergeEditorInputs();globalAdminTab=btn.dataset.globalTab;$$('[data-global-tab]').forEach(x=>{x.classList.toggle('is-active',x===btn);x.setAttribute('aria-selected',x===btn?'true':'false')});renderGlobalEditor()},{signal:controller.signal}));
 document.addEventListener('input',e=>{const field=e.target.closest('[data-global-field],[data-global-array]');if(field)mergeEditorInputs()},{signal:controller.signal});
-document.addEventListener('click',e=>{
+document.addEventListener('click',async e=>{
+  const experienceAdd=e.target.closest('[data-experience-add]');if(experienceAdd){mergeEditorInputs();const experience=globalAdminContent.experience;experience.entriesManaged={vi:true,en:true};experience.entries.push({id:newId(),title:{vi:'',en:''},role:{vi:'',en:''},description:{vi:'',en:''},tags:{vi:[],en:[]}});renderGlobalEditor();return}
+  const experienceRemove=e.target.closest('[data-experience-remove]');if(experienceRemove){mergeEditorInputs();const experience=globalAdminContent.experience;if(!confirm(currentLang==='en'?'Remove this experience entry?':'Xóa mục kinh nghiệm này?'))return;experience.entries=experience.entries.filter(entry=>entry.id!==experienceRemove.dataset.experienceRemove);experience.entriesManaged={vi:true,en:true};renderGlobalEditor();return}
+  const certAdd=e.target.closest('[data-cert-item-add]');if(certAdd){mergeEditorInputs();const group=globalAdminContent.experience.certGroups.find(item=>item.id===certAdd.dataset.certItemAdd);if(!group)return;group.items.push({id:newId(),title:{vi:'',en:''},issuer:'',date:'',credentialUrl:'',description:{vi:'',en:''}});renderGlobalEditor();return}
+  const certRemove=e.target.closest('[data-cert-item-remove]');if(certRemove){mergeEditorInputs();const id=certRemove.dataset.certItemRemove,group=globalAdminContent.experience.certGroups.find(item=>item.items.some(cert=>cert.id===id));if(!group||!confirm(currentLang==='en'?'Remove this certificate or achievement? Its files will remain in Media Library.':'Xóa chứng chỉ/thành tựu này? Các file sẽ được giữ trong Media Library.'))return;if(!await detachCertificateMedia(id))return;group.items=group.items.filter(cert=>cert.id!==id);group.removedIds=Array.isArray(group.removedIds)?group.removedIds:[];if(!group.removedIds.includes(id))group.removedIds.push(id);renderGlobalEditor();await loadAssets();renderGlobalEditor();setAdminStatus('#globalContentStatus','ok',currentLang==='en'?'Certificate or achievement removed.':'Đã xóa chứng chỉ/thành tựu.');return}
   const edit=e.target.closest('[data-edit-project]');if(edit){const p=projectBySlug(edit.dataset.editProject);if(p)editProject(p);return}
   const del=e.target.closest('[data-delete-project]');if(del){const p=projectBySlug(del.dataset.deleteProject);if(p)deleteProject(p);return}
   const remove=e.target.closest('[data-remove-section],[data-remove-project-section]');if(remove){remove.closest('.admin-section-row')?.remove();return}

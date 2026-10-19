@@ -22,7 +22,7 @@ function applyGlobalContentToDOM(content,lang=currentLang){
 
 function renderSkillsFromGlobal(content,lang){const cards=content.skills.cards||[];$('#skillsGrid').innerHTML=cards.map(s=>`<article class="skill-card reveal visible" style="--skill-accent:${esc(s.accent||'#22d3ee')}"><div class="skill-num">${esc(s.num||'')}</div><div class="skill-orbit"></div><h3 class="skill-title">${esc(getLocalizedContent(s.title,lang))}</h3><p class="skill-copy">${esc(getLocalizedContent(s.copy,lang))}</p><div class="skill-items">${String(getLocalizedContent(s.items,lang)||'').split(/\n+/).map(x=>x.trim()).filter(Boolean).map(x=>`<span class="skill-item"><strong>•</strong> ${esc(x)}</span>`).join('')}</div></article>`).join('')}
 
-function renderGlobalContent(lang=currentLang){applyGlobalContentToDOM(globalPreviewContent||getGlobalContent(lang),lang)}
+function renderGlobalContent(lang=currentLang){const content=globalPreviewContent||getGlobalContent(lang);applyGlobalContentToDOM(content,lang);renderExperienceEntries(content.experience,lang)}
 
 function renderCerts(groups){
   const normalized=normalizeCertGroups(groups||getGlobalContent().experience.certGroups);
@@ -73,7 +73,7 @@ function viewerExtraBody(it){
 
 function renderProjects(){
   const visible=PROJECTS.filter(p=>p.published!==false);
-  $('#projectList').innerHTML=visible.map(p=>{const c=contentFor(p);return `<article class="project-card reveal visible" style="--card-a:${esc(safeCssColor(p.tone[0]))};--card-b:${esc(safeCssColor(p.tone[1],'#5b7cfa'))}"><div class="project-copy"><span class="project-index">CASE ${esc(p.index)}</span><div class="project-tags">${c.category.map(tag).join('')}</div><h3 class="project-title">${esc(c.title)}</h3><p class="project-hook">${esc(c.hook)}</p>${statsH(c.stats)}<div class="project-foot"><a class="case-btn" href="#/${p.id}">${esc(t('project.open'))} <span>↗</span></a><span class="muted" style="font-size:10px">Marketing × Technology</span></div></div><div class="project-visual">${visualH(p)}</div></div></article>`}).join('');
+  $('#projectList').innerHTML=visible.map(p=>{const c=contentFor(p),videoCover=p.kind==='insight'?null:projectVideoCover(p),imageCover=projectCovers.get(p.id),copyCover=imageCover?.url||videoCover?.poster;return `<article class="project-card reveal visible${videoCover?' project-card--video-cover':''}" style="--card-a:${esc(safeCssColor(p.tone[0]))};--card-b:${esc(safeCssColor(p.tone[1],'#5b7cfa'))}"><div class="project-copy"><span class="project-index">CASE ${esc(p.index)}</span><div class="project-tags">${c.category.map(tag).join('')}</div><h3 class="project-title">${esc(c.title)}</h3><p class="project-hook">${esc(c.hook)}</p>${videoCover&&copyCover?`<img class="project-copy-cover" src="${esc(copyCover)}" alt="${esc(c.title)} cover" loading="lazy">`:''}${statsH(c.stats)}<div class="project-foot"><a class="case-btn" href="#/${p.id}">${esc(t('project.open'))} <span>↗</span></a><span class="muted" style="font-size:10px">Marketing × Technology</span></div></div><div class="project-visual">${visualH(p)}</div></div></article>`}).join('');
   observeProjectCoverVideos();
 }
 
@@ -93,19 +93,21 @@ function observeProjectCoverVideos(){
     button.setAttribute('aria-pressed',String(!video.muted));
   };
   const activate=video=>{
+    if(video.hasAttribute('data-project-cover-video')&&document.querySelector('#caseDialog')?.open){video.dataset.visibilityState='covered';video.muted=true;video.pause();updateSoundToggle(video);return}
     if(video.parentElement?.dataset.coverRatio==='auto'&&!video.dataset.ratioDetection){
       video.dataset.ratioDetection='pending';
       video.addEventListener('loadedmetadata',()=>{
         const aspect=video.videoWidth/Math.max(1,video.videoHeight);
         const ratio=aspect<0.85?'portrait':aspect>1.2?'landscape':'square';
-        video.parentElement.classList.remove('mock-video-cover--portrait','mock-video-cover--square','mock-video-cover--landscape');
-        video.parentElement.classList.add(`mock-video-cover--${ratio}`);
+        video.parentElement.classList.remove('project-video-stage--portrait','project-video-stage--square');
+        video.parentElement.classList.add(`project-video-stage--${ratio}`);
       },{once:true});
     }
     if(!video.src){video.src=video.dataset.src;video.load()}
     if(reduceMotion)return;
     video.muted=false;
     video.play().then(()=>{
+      if(video.hasAttribute('data-project-cover-video')&&(document.querySelector('#caseDialog')?.open||video.dataset.visibilityState!=='visible')){video.dataset.visibilityState='covered';video.muted=true;video.pause();updateSoundToggle(video);return}
       if(video.dataset.visibilityState==='visible')updateSoundToggle(video);
       else video.pause();
     }).catch(()=>{
@@ -132,11 +134,16 @@ function observeProjectCoverVideos(){
   });
 }
 
+function pauseProjectCoverVideos(){
+  document.querySelectorAll('[data-project-cover-video]').forEach(video=>{video.dataset.visibilityState='covered';video.muted=true;video.pause();const button=video.parentElement?.querySelector('[data-video-sound-toggle]');if(button){const label=button.dataset.enableLabel;button.textContent=label;button.setAttribute('aria-label',label);button.setAttribute('aria-pressed','false')}});
+}
+
 document.addEventListener('click',event=>{
   const button=event.target.closest('[data-video-sound-toggle]');
   if(!button)return;
   const video=button.parentElement?.querySelector('video[data-visibility-video]');
   if(!video)return;
+  if(document.querySelector('#caseDialog')?.open||video.dataset.visibilityState!=='visible'){video.dataset.visibilityState='covered';video.muted=true;video.pause();const label=button.dataset.enableLabel;button.textContent=label;button.setAttribute('aria-label',label);button.setAttribute('aria-pressed','false');return}
   video.muted=!video.muted;
   const playback=video.play();
   if(playback)playback.then(()=>{
@@ -161,6 +168,15 @@ function renderSkills(){
 
 function setLang(next){HQVShared.setLang(next)}
 
+function renderExperienceEntries(experience,lang){
+  const panel=document.querySelector('.exp-panel');if(!panel)return;
+  const managed=experience.entriesManaged?.[lang]===true;
+  const entries=managed?(Array.isArray(experience.entries)?experience.entries:[]):[{id:'legacy-experience',title:experience.title,role:experience.role,description:experience.description,tags:experience.tags}];
+  panel.hidden=!entries.length;
+  panel.parentElement?.classList.toggle('is-no-experience',!entries.length);
+  panel.innerHTML=entries.map(entry=>`<article class="exp-entry"><div class="exp-code">${esc(String(getLocalizedContent(entry.title,lang)||''))}</div><h3 class="exp-title">${esc(String(getLocalizedContent(entry.role,lang)||''))}</h3><p>${esc(String(getLocalizedContent(entry.description,lang)||''))}</p><div class="exp-tags">${(entry.tags?.[lang]||[]).map(tag=>`<span class="exp-tag">${esc(tag)}</span>`).join('')}</div></article>`).join('');
+}
+
 function applyStatic(){
   document.documentElement.lang=currentLang;
   $('.nav').setAttribute('aria-label',currentLang==='en'?'Main navigation':'Điều hướng chính');
@@ -180,6 +196,8 @@ function applyStatic(){
 }
 
 const caseDialog=$('#caseDialog');
+
+caseDialog.addEventListener('close',()=>observeProjectCoverVideos());
 
 const viewerDialog=$('#viewerDialog');
 
@@ -228,7 +246,7 @@ function refreshActiveCertificate(){if(!activeCertificateId||!caseDialog.open)re
 
 function closeNative(d){try{closeModalDialog(d)}catch(_){}}
 
-async function route(){if(location.hash.startsWith('#cert/'))history.replaceState(history.state,'',`#/${location.hash.slice(1)}`);if(location.hash.startsWith('#insight/'))history.replaceState(history.state,'',`#/${location.hash.slice(1)}`);const state=parseHash();if(state?.certificateId){const item=certificateItemById(state.certificateId);activeProject=null;closeNative(viewerDialog);if(!item){activeCertificateId=null;closeNative(caseDialog);return}activeCertificateId=item.id;caseDialog.setAttribute('aria-label',currentLang==='en'?'Certificate details':'Chi tiết chứng chỉ');renderCertificateDetail(item);if(!caseDialog.open)openModalDialog(caseDialog);return}activeCertificateId=null;if(!state){activeProject=null;closeNative(viewerDialog);closeNative(caseDialog);return}if(activeProject!==state.project){activeProject=state.project;caseDialog.setAttribute('aria-label',state.project.kind==='insight'?(currentLang==='en'?'Insight article':'Bài viết Insight'):(currentLang==='en'?'Project case study':'Chi tiết case study'));caseContent.innerHTML=caseHtml(state.project);openModalDialog(caseDialog);caseContent.scrollTop=0}else if(!caseDialog.open)openModalDialog(caseDialog);const proof=state.index!=null?state.project.proof[state.index]:null;if(proof&&validProof(proof)&&['pdf','image','gallery','video','audio','file','json'].includes(proof.type)){viewerHtml(proof);if(!viewerDialog.open)openModalDialog(viewerDialog)}else closeNative(viewerDialog);loadProofsForProject(state.project).then(()=>{if(activeProject===state.project&&parseHash()?.index==null)caseContent.innerHTML=caseHtml(state.project)}).catch(()=>{})}
+async function route(){if(location.hash.startsWith('#cert/'))history.replaceState(history.state,'',`#/${location.hash.slice(1)}`);if(location.hash.startsWith('#insight/'))history.replaceState(history.state,'',`#/${location.hash.slice(1)}`);const state=parseHash();if(state?.certificateId){const item=certificateItemById(state.certificateId);activeProject=null;closeNative(viewerDialog);if(!item){activeCertificateId=null;closeNative(caseDialog);return}activeCertificateId=item.id;caseDialog.setAttribute('aria-label',currentLang==='en'?'Certificate details':'Chi tiết chứng chỉ');renderCertificateDetail(item);if(!caseDialog.open){pauseProjectCoverVideos();openModalDialog(caseDialog)}return}activeCertificateId=null;if(!state){activeProject=null;closeNative(viewerDialog);closeNative(caseDialog);return}if(activeProject!==state.project){activeProject=state.project;caseDialog.setAttribute('aria-label',state.project.kind==='insight'?(currentLang==='en'?'Insight article':'Bài viết Insight'):(currentLang==='en'?'Project case study':'Chi tiết case study'));caseContent.innerHTML=caseHtml(state.project);pauseProjectCoverVideos();openModalDialog(caseDialog);caseContent.scrollTop=0}else if(!caseDialog.open){pauseProjectCoverVideos();openModalDialog(caseDialog)}const proof=state.index!=null?state.project.proof[state.index]:null;if(proof&&validProof(proof)&&['pdf','image','gallery','video','audio','file','json'].includes(proof.type)){viewerHtml(proof);if(!viewerDialog.open)openModalDialog(viewerDialog)}else closeNative(viewerDialog);loadProofsForProject(state.project).then(()=>{if(activeProject===state.project&&parseHash()?.index==null)caseContent.innerHTML=caseHtml(state.project)}).catch(()=>{})}
 
 function navigateHash(h){history.pushState({hqv:true},'',h);route()}
 

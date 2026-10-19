@@ -445,7 +445,7 @@
     <noscript>Trang quản trị cần JavaScript để đăng nhập.</noscript>
   </form>
 </main>
-<script src="./shared.js?v=20261020-visibility-video-audio"></script>
+<script src="./shared.js?v=20261020-video-cover-experience-editor-2"></script>
 <script>(() => {
   const root = document.querySelector('#adminRoot');
   const form = document.querySelector('#adminLoginForm');
@@ -569,7 +569,7 @@
     if (loadPromise) return loadPromise;
     loadPromise = new Promise((resolve, reject) => {
       const script = document.createElement('script');
-      script.src = './admin.js?v=20261020-visibility-video-audio';
+      script.src = './admin.js?v=20261020-video-cover-experience-editor-2';
       script.onload = resolve;
       script.onerror = () => reject(new Error('admin_script_load_failed'));
       document.body.append(script);
