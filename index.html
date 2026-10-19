@@ -202,7 +202,7 @@ h2{font-size:clamp(34px,5.6vw,66px);line-height:.98;letter-spacing:-.05em;font-w
 .exp-panel{position:relative;padding:25px}.exp-panel::after{content:"";position:absolute;inset:auto -10% -26% 18%;height:180px;background:radial-gradient(circle,rgba(212,160,23,.15),transparent 67%);filter:blur(18px);pointer-events:none}.exp-code{font:10px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--gold);letter-spacing:.10em}.exp-title{margin-top:12px;font-size:25px;font-weight:930;letter-spacing:-.03em}.exp-role{margin-top:6px;color:#ffb76d;font-weight:850;font-size:12px}.exp-panel p{margin-top:16px;color:var(--muted);line-height:1.72;font-size:13px}.exp-tags{display:flex;flex-wrap:wrap;gap:7px;margin-top:17px}.exp-tag{padding:6px 8px;border-radius:999px;background:rgba(212,160,23,.07);border:1px solid rgba(212,160,23,.12);font-size:9px;color:#edcf8a}
 .exp-entry+.exp-entry{margin-top:22px;padding-top:22px;border-top:1px solid rgba(255,255,255,.10)}
 .experience-grid.is-no-experience .cert-panel{grid-column:1/-1}
-.cert-panel{padding:24px;display:grid;gap:19px}.cert-group h3{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}.cert-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:10px}.cert-badge{position:relative;padding:12px;border:1px solid rgba(255,255,255,.09);border-radius:14px;background:rgba(255,255,255,.025);font-size:11px;line-height:1.4;overflow:hidden}.cert-badge::after{content:"";position:absolute;inset:auto -20% -55%;height:80px;background:radial-gradient(circle,rgba(34,211,238,.08),transparent 68%)}.cert-badge strong{display:block;color:#fff}.cert-badge span{color:var(--lime);font-size:9px;text-transform:uppercase;letter-spacing:.06em}.extra-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:1px}.mini-panel{padding:14px;border:1px solid rgba(255,255,255,.08);border-radius:15px;background:rgba(255,255,255,.02)}.mini-panel h4{font-size:10px;color:var(--cyan);text-transform:uppercase;letter-spacing:.1em}.mini-panel p{margin-top:7px;font-size:10px;line-height:1.6;color:var(--dim)}
+.cert-panel{padding:24px;display:grid;gap:19px}.cert-group-list{display:grid;gap:19px}.cert-group h3{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}.cert-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:10px}.cert-badge{position:relative;padding:12px;border:1px solid rgba(255,255,255,.09);border-radius:14px;background:rgba(255,255,255,.025);font-size:11px;line-height:1.4;overflow:hidden}.cert-badge::after{content:"";position:absolute;inset:auto -20% -55%;height:80px;background:radial-gradient(circle,rgba(34,211,238,.08),transparent 68%)}.cert-badge strong{display:block;color:#fff}.cert-badge span{color:var(--lime);font-size:9px;text-transform:uppercase;letter-spacing:.06em}.extra-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:1px}.mini-panel{padding:14px;border:1px solid rgba(255,255,255,.08);border-radius:15px;background:rgba(255,255,255,.02)}.mini-panel h4{font-size:10px;color:var(--cyan);text-transform:uppercase;letter-spacing:.1em}.mini-panel p{margin-top:7px;font-size:10px;line-height:1.6;color:var(--dim)}
 @media(max-width:880px){.experience-grid{grid-template-columns:1fr}}
 @media(max-width:540px){.cert-grid{grid-template-columns:1fr}.extra-row{grid-template-columns:1fr}}
 .contact-grid{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:32px;margin-top:46px;align-items:start}
@@ -683,10 +683,7 @@ dialog.contact-success{position:fixed;inset:0;width:100vw;height:100dvh;max-widt
     <div class="experience-grid">
       <article class="exp-panel reveal"><div class="exp-code">UMC — UTT MC &amp; Events Club</div><h3 class="exp-title">Vice Head of Communications</h3><p data-i18n="experience.copy">Trực tiếp điều phối đội ngũ thiết kế, video và nội dung; biến các chiến dịch truyền thông đa kênh từ ý tưởng thành hiện thực.</p><div class="exp-tags"><span class="exp-tag" data-i18n="exp.communication">Communication</span><span class="exp-tag" data-i18n="exp.design">Design</span><span class="exp-tag" data-i18n="exp.video">Video</span><span class="exp-tag" data-i18n="exp.trends">Trends &amp; Analysis</span><span class="exp-tag" data-i18n="exp.campaign">Campaign Execution</span><span class="exp-tag" data-i18n="exp.coordination">Coordination</span></div></article>
       <div class="cert-panel reveal">
-        <div class="cert-group"><h3 data-i18n="experience.roleProof">Communications role</h3><div class="cert-grid" id="experienceProofs"></div></div>
-        <div class="cert-group"><h3 data-i18n="cert.anthropic">Anthropic</h3><div class="cert-grid" id="anthropicCerts"></div></div>
-        <div class="cert-group"><h3 data-i18n="cert.marketing">Marketing &amp; Analytics</h3><div class="cert-grid" id="marketingCerts"></div></div>
-        <div class="cert-group"><h3 data-i18n="cert.english">English</h3><div class="cert-grid" id="englishCerts"></div></div>
+        <div class="cert-group-list" id="certificateGroups"></div>
         <div class="extra-row"><div class="mini-panel"><h4 data-i18n="extra.creative">Creative</h4><p data-i18n="extra.creativeCopy">Canva ~5 years · CapCut ~4 years · Presentation design · Visual communication · Video editing</p></div><div class="mini-panel"><h4 data-i18n="extra.direction">Working direction</h4><p>Marketing Operations · MarTech · CRM Operations · Lifecycle Marketing · Growth Operations · AI-enabled Marketing</p></div></div>
       </div>
     </div>
@@ -749,8 +746,8 @@ dialog.contact-success{position:fixed;inset:0;width:100vw;height:100dvh;max-widt
 
 
 
-<script src="./shared.js?v=20261020-video-cover-experience-editor-2"></script>
-<script src="./site.js?v=20261020-cover-home-only-4"></script>
+<script src="./shared.js?v=20261020-editable-certificate-groups-7"></script>
+<script src="./site.js?v=20261020-editable-certificate-groups-7"></script>
 
 
 

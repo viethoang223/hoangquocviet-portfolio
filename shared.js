@@ -79,9 +79,10 @@ function certLocalized(value,fallback={vi:'',en:''}){
   if(typeof value==='string')return {vi:value,en:value};
   return {vi:String(fallback.vi||''),en:String(fallback.en||'')};
 }
-function normalizeCertGroups(raw){
+function normalizeCertGroups(raw,removedGroupIds=[]){
   const legacy=raw&&typeof raw==='object'&&!Array.isArray(raw)?raw:{};
   const groups=Array.isArray(raw)?raw:[];
+  const removedGroups=new Set(Array.isArray(removedGroupIds)?removedGroupIds.map(String):[]),defaultIds=new Set(CERT_GROUP_DEFAULTS.map(definition=>definition.id));
   const sourceFor=definition=>groups.find(group=>group?.id===definition.id)||definition.legacyKeys.map(key=>legacy[key]).find(Boolean)||null;
   const itemsFor=group=>{
     if(Array.isArray(group?.items))return group.items;
@@ -89,7 +90,7 @@ function normalizeCertGroups(raw){
     const vi=certItemList(items.vi),en=certItemList(items.en),length=Math.max(vi.length,en.length);
     return Array.from({length},(_,index)=>({title:{vi:vi[index]||en[index]||'',en:en[index]||vi[index]||''}}));
   };
-  return CERT_GROUP_DEFAULTS.map(definition=>{
+  const defaults=CERT_GROUP_DEFAULTS.filter(definition=>!removedGroups.has(definition.id)).map(definition=>{
     const source=sourceFor(definition),sourceItems=itemsFor(source),groupTitle=certLocalized(source?.title||source?.label,definition.title),removedIds=new Set(Array.isArray(source?.removedIds)?source.removedIds.map(String):[]),usedItems=new Set();
     const items=definition.items.filter(defaultItem=>!removedIds.has(defaultItem.id)).map(defaultItem=>{
       const match=sourceItems.find(candidate=>{
@@ -115,9 +116,18 @@ function normalizeCertGroups(raw){
     });
     return {id:definition.id,title:groupTitle,items,removedIds:[...removedIds]};
   });
+  const custom=groups.filter(group=>group&&typeof group.id==='string'&&!defaultIds.has(group.id)&&!removedGroups.has(group.id)).map(group=>{
+    const removedIds=new Set(Array.isArray(group.removedIds)?group.removedIds.map(String):[]),items=itemsFor(group).map((candidate,index)=>{
+      const item=candidate&&typeof candidate==='object'?candidate:{title:{vi:String(candidate||''),en:String(candidate||'')}},id=String(item.id||`custom-${group.id}-${index+1}`);
+      const title=item.title||{vi:item.title_vi||item.vi||'',en:item.title_en||item.en||''},description=item.description||{vi:item.description_vi||'',en:item.description_en||''};
+      return {...item,id,title:certLocalized(title),issuer:String(item.issuer||''),date:String(item.date||''),credentialUrl:String(item.credentialUrl||item.credential_url||''),description:certLocalized(description)};
+    }).filter(item=>!removedIds.has(item.id));
+    return {...group,id:group.id,title:certLocalized(group.title||group.label,{vi:'Mục khác',en:'Other'}),items,removedIds:[...removedIds]};
+  });
+  return [...defaults,...custom];
 }
 
-function certificateItemById(id,groups=normalizeCertGroups(getGlobalContent().experience.certGroups)){
+function certificateItemById(id,groups=getGlobalContent().experience.certGroups){
   for(const group of groups)for(const item of group.items)if(item.id===id)return item;
   return null;
 }
@@ -142,7 +152,7 @@ let globalDbState='fallback';
 
 function deepClone(v){return JSON.parse(JSON.stringify(v));}
 
-function composeGlobalContent(...layers){const isObject=value=>value&&typeof value==='object'&&!Array.isArray(value);const merge=(target,source)=>{if(Array.isArray(source)){if(!Array.isArray(target))return deepClone(source);if(!source.length&&target.length)return deepClone(target);return source.map((value,index)=>{if(typeof value==='string'&&!value.trim()&&typeof target[index]==='string'&&target[index].trim())return target[index];return isObject(value)&&isObject(target[index])||Array.isArray(value)&&Array.isArray(target[index])?merge(target[index],value):deepClone(value)})}if(!isObject(source))return source;const out=isObject(target)?{...target}:{};for(const [key,value] of Object.entries(source)){if(typeof value==='string'&&!value.trim()&&typeof out[key]==='string'&&out[key].trim())continue;out[key]=isObject(value)||Array.isArray(value)?merge(out[key],value):value}return out};const content=layers.filter(layer=>layer!=null).reduce((result,layer)=>merge(result,layer),{});if(layers.some(layer=>Array.isArray(layer?.experience?.entries)&&layer.experience.entries.length===0&&(layer.experience.entriesManaged?.vi===true||layer.experience.entriesManaged?.en===true)))content.experience.entries=[];return content}
+function composeGlobalContent(...layers){const isObject=value=>value&&typeof value==='object'&&!Array.isArray(value);const merge=(target,source)=>{if(Array.isArray(source)){if(!Array.isArray(target))return deepClone(source);if(!source.length&&target.length)return deepClone(target);return source.map((value,index)=>{if(typeof value==='string'&&!value.trim()&&typeof target[index]==='string'&&target[index].trim())return target[index];return isObject(value)&&isObject(target[index])||Array.isArray(value)&&Array.isArray(target[index])?merge(target[index],value):deepClone(value)})}if(!isObject(source))return source;const out=isObject(target)?{...target}:{};for(const [key,value] of Object.entries(source)){if(typeof value==='string'&&!value.trim()&&typeof out[key]==='string'&&out[key].trim())continue;out[key]=isObject(value)||Array.isArray(value)?merge(out[key],value):value}return out};const content=layers.filter(layer=>layer!=null).reduce((result,layer)=>merge(result,layer),{});if(layers.some(layer=>Array.isArray(layer?.experience?.entries)&&layer.experience.entries.length===0&&(layer.experience.entriesManaged?.vi===true||layer.experience.entriesManaged?.en===true)))content.experience.entries=[];const certGroupsLayer=[...layers].reverse().find(layer=>Array.isArray(layer?.experience?.certGroups));if(certGroupsLayer)content.experience.certGroups=deepClone(certGroupsLayer.experience.certGroups);return content}
 
 function legacyGlobalFallbackContent(){
   const mk=(vi,en)=>({vi,en});
@@ -161,7 +171,8 @@ function globalFallbackContent(){
   const content=legacyGlobalFallbackContent();
   content.experience.entries=[];
   content.experience.entriesManaged={vi:false,en:false};
-  content.experience.certGroups=normalizeCertGroups(content.experience.certGroups);
+  content.experience.certGroupRemovedIds=[];
+  content.experience.certGroups=normalizeCertGroups(content.experience.certGroups,content.experience.certGroupRemovedIds);
   return content;
 }
 
@@ -173,7 +184,7 @@ function getLocalizedContent(value,lang=currentLang){
   return '';
 }
 
-function getGlobalContent(){const content=composeGlobalContent(globalFallbackContent(),globalPublishedContent||{});content.experience.certGroups=normalizeCertGroups(content.experience.certGroups);return content}
+function getGlobalContent(){const content=composeGlobalContent(globalFallbackContent(),globalPublishedContent||{});content.experience.certGroups=normalizeCertGroups(content.experience.certGroups,content.experience.certGroupRemovedIds);return content}
 
 function getProfileContent(lang=currentLang){return getGlobalContent(lang).home||{};}
 
@@ -199,8 +210,8 @@ function legacyCertGroupsFromStored(viValue,enValue){
 
 function isCertificateGroupsShape(shape){return Array.isArray(shape)&&shape[0]?.id==='communications'}
 
-function globalContentForStorage(node,lang,shape){
-  if(isCertificateGroupsShape(shape))return normalizeCertGroups(node);
+function globalContentForStorage(node,lang,shape,removedGroupIds=[]){
+  if(isCertificateGroupsShape(shape))return normalizeCertGroups(node,removedGroupIds);
   if(Array.isArray(shape)&&shape.length===0)return deepClone(Array.isArray(node)?node:[]);
   if(isLocalizedLeafShape(shape)){
     const raw=node&&typeof node==='object'&&!Array.isArray(node)?node[lang]:undefined;
@@ -212,15 +223,15 @@ function globalContentForStorage(node,lang,shape){
   }
   if(shape&&typeof shape==='object'){
     const src=node&&typeof node==='object'&&!Array.isArray(node)?node:{};
-    const out={};Object.keys(shape).forEach(k=>{out[k]=globalContentForStorage(src[k],lang,shape[k])});return out;
+    const out={};Object.keys(shape).forEach(k=>{out[k]=globalContentForStorage(src[k],lang,shape[k],k==='certGroups'?src.certGroupRemovedIds:[])});return out;
   }
   return node===undefined||node===null?'':node;
 }
 
-function globalCanonicalFromStored(viValue,enValue,shape){
+function globalCanonicalFromStored(viValue,enValue,shape,removedGroupIds=[]){
   if(isCertificateGroupsShape(shape)){
     const stored=[viValue,enValue].find(value=>Array.isArray(value)&&value.some(group=>typeof group?.id==='string'));
-    return stored?normalizeCertGroups(stored):legacyCertGroupsFromStored(viValue,enValue);
+    return stored?normalizeCertGroups(stored,removedGroupIds):legacyCertGroupsFromStored(viValue,enValue);
   }
   if(isLocalizedLeafShape(shape)){
     const extract=(raw,lang)=>raw&&typeof raw==='object'&&!Array.isArray(raw)&&Object.prototype.hasOwnProperty.call(raw,'vi')&&Object.prototype.hasOwnProperty.call(raw,'en')?raw[lang]:raw;
@@ -237,7 +248,7 @@ function globalCanonicalFromStored(viValue,enValue,shape){
   }
   if(shape&&typeof shape==='object'){
     const vo=viValue&&typeof viValue==='object'&&!Array.isArray(viValue)?viValue:{};const eo=enValue&&typeof enValue==='object'&&!Array.isArray(enValue)?enValue:{};
-    const out={};const keys=new Set([...Object.keys(shape),...Object.keys(vo),...Object.keys(eo)]);keys.forEach(k=>{out[k]=globalCanonicalFromStored(vo[k],eo[k],shape[k]||{})});return out;
+    const out={};const keys=new Set([...Object.keys(shape),...Object.keys(vo),...Object.keys(eo)]);keys.forEach(k=>{const removed=k==='certGroups'?(Array.isArray(vo.certGroupRemovedIds)?vo.certGroupRemovedIds:eo.certGroupRemovedIds):[];out[k]=globalCanonicalFromStored(vo[k],eo[k],shape[k]||{},removed)});return out;
   }
   return {vi:viValue??'',en:enValue??''};
 }
@@ -480,7 +491,7 @@ function certDetailHtml(item,lang=currentLang){
   return `<article class="case-article cert-detail"><header class="case-article-header"><button class="modal-close" type="button" data-close="case" aria-label="${esc(t('modal.close'))}">✕</button><div class="case-hero-meta"><span>${esc(getLocalizedContent(normalizedCertGroupTitle(item.id),lang))}</span><span>${esc(String(item.issuer||''))}</span></div><h1 class="case-hero-title">${esc(title)}</h1>${cover?`<figure class="cert-detail-cover"><img src="${esc(getAssetUrl(cover))}" alt="${esc(title)}" loading="eager"></figure>`:''}${description?`<p class="case-hero-lead">${esc(description)}</p>`:''}<div class="cert-detail-meta">${item.issuer?`<div><span>${esc(t('cert.issuer'))}</span><strong>${esc(item.issuer)}</strong></div>`:''}${item.date?`<div><span>${esc(t('cert.date'))}</span><strong>${esc(item.date)}</strong></div>`:''}${safeCredential?`<a href="${esc(safeCredential)}" target="_blank" rel="noopener noreferrer">${esc(t('cert.verify'))} ↗</a>`:''}</div></header><section class="case-article-body cert-detail-evidence"><h2>${esc(t('cert.evidence'))}</h2>${evidence||`<p class="case-copy">${esc(t('cert.noEvidence'))}</p>`}</section></article>`;
 }
 
-function normalizedCertGroupTitle(id){return normalizeCertGroups(getGlobalContent().experience.certGroups).find(group=>group.items.some(item=>item.id===id))?.title||{vi:'Chứng chỉ & Thành tựu',en:'Certificates & Achievements'}}
+function normalizedCertGroupTitle(id){return getGlobalContent().experience.certGroups.find(group=>group.items.some(item=>item.id===id))?.title||{vi:'Chứng chỉ & Thành tựu',en:'Certificates & Achievements'}}
 
 
 
