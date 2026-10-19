@@ -77,12 +77,21 @@ function renderProjects(){
   observeProjectCoverVideos();
 }
 
-let projectCoverVideoObserver=null;
+let projectCoverVideoObservers=[];
 function observeProjectCoverVideos(){
-  projectCoverVideoObserver?.disconnect();
-  const videos=[...document.querySelectorAll('[data-project-cover-video]')];
+  projectCoverVideoObservers.forEach(observer=>observer.disconnect());
+  projectCoverVideoObservers=[];
+  const videos=[...document.querySelectorAll('[data-visibility-video]')];
   if(!videos.length)return;
   const reduceMotion=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches||false;
+  const updateSoundToggle=video=>{
+    const button=video.parentElement?.querySelector('[data-video-sound-toggle]');
+    if(!button)return;
+    const label=video.muted?button.dataset.enableLabel:button.dataset.muteLabel;
+    button.textContent=label;
+    button.setAttribute('aria-label',label);
+    button.setAttribute('aria-pressed',String(!video.muted));
+  };
   const activate=video=>{
     if(video.parentElement?.dataset.coverRatio==='auto'&&!video.dataset.ratioDetection){
       video.dataset.ratioDetection='pending';
@@ -94,15 +103,50 @@ function observeProjectCoverVideos(){
       },{once:true});
     }
     if(!video.src){video.src=video.dataset.src;video.load()}
-    if(!reduceMotion)video.play().catch(()=>{});
+    if(reduceMotion)return;
+    video.muted=false;
+    video.play().then(()=>{
+      if(video.dataset.visibilityState==='visible')updateSoundToggle(video);
+      else video.pause();
+    }).catch(()=>{
+      if(video.dataset.visibilityState!=='visible')return;
+      video.muted=true;
+      updateSoundToggle(video);
+      video.play().catch(()=>{});
+    });
   };
-  if(!('IntersectionObserver'in window)){videos.forEach(activate);return}
-  projectCoverVideoObserver=new IntersectionObserver(entries=>entries.forEach(entry=>{
-    if(entry.isIntersecting)activate(entry.target);
-    else entry.target.pause();
-  }),{rootMargin:'120px 0px'});
-  videos.forEach(video=>projectCoverVideoObserver.observe(video));
+  if(!('IntersectionObserver'in window))return;
+  const groups=new Map();
+  videos.forEach(video=>{
+    const root=video.closest('#caseContent')||null;
+    if(!groups.has(root))groups.set(root,[]);
+    groups.get(root).push(video);
+  });
+  groups.forEach((group,root)=>{
+    const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{
+      if(entry.isIntersecting&&entry.intersectionRatio>=0.25){entry.target.dataset.visibilityState='visible';activate(entry.target)}
+      else{entry.target.dataset.visibilityState='hidden';entry.target.pause()}
+    }),{root,threshold:0.25});
+    group.forEach(video=>observer.observe(video));
+    projectCoverVideoObservers.push(observer);
+  });
 }
+
+document.addEventListener('click',event=>{
+  const button=event.target.closest('[data-video-sound-toggle]');
+  if(!button)return;
+  const video=button.parentElement?.querySelector('video[data-visibility-video]');
+  if(!video)return;
+  video.muted=!video.muted;
+  const playback=video.play();
+  if(playback)playback.then(()=>{
+    const label=video.muted?button.dataset.enableLabel:button.dataset.muteLabel;
+    button.textContent=label;button.setAttribute('aria-label',label);button.setAttribute('aria-pressed',String(!video.muted));
+  }).catch(()=>{
+    video.muted=true;video.pause();
+    const label=button.dataset.enableLabel;button.textContent=label;button.setAttribute('aria-label',label);button.setAttribute('aria-pressed','false');
+  });
+});
 
 function renderInsights(){
   const host=$('#insightsList');if(!host)return;
@@ -140,6 +184,9 @@ const caseDialog=$('#caseDialog');
 const viewerDialog=$('#viewerDialog');
 
 const caseContent=$('#caseContent');
+
+const caseVideoMutationObserver=new MutationObserver(()=>observeProjectCoverVideos());
+caseVideoMutationObserver.observe(caseContent,{childList:true,subtree:true});
 
 const viewerHead=$('#viewerHead');
 
