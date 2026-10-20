@@ -174,6 +174,14 @@ async function loadProjectDrafts(){projectDrafts=new Map();projectDraftLoadState
 
 function projectAdminSource(project){const d=projectDrafts.get(project.id);return d?projectFromDraftPayload(project,d):project}
 
+function projectForEditing(slug){
+  const project=projectBySlug(slug),draft=projectDrafts.get(slug);
+  if(project)return project;
+  if(!draft)return null;
+  const data=draft.project||{};
+  return projectFromDraftPayload({id:slug,published:false,content:{vi:{title:data.title_vi||slug},en:{title:data.title_en||slug}}},draft);
+}
+
 function setProjectLifecycleUI(project){const live=!!project?.dbId&&project.published!==false;const hasDraft=!!projectDrafts.get(project?.id||'');const badge=$('#projectLifecycleBadge');if(badge){badge.className=`project-lifecycle-badge ${live&&!hasDraft?'published':'draft'}`;badge.textContent=live&&!hasDraft?'PUBLISHED':(live&&hasDraft?'DRAFT · LIVE VERSION PRESERVED':'DRAFT')}const unpublish=$('#unpublishProjectBtn');if(unpublish)unpublish.disabled=!live;const publish=$('#publishProjectBtn');if(publish)publish.disabled=false}
 
 function safeStorageRemove(storage,key){try{storage?.removeItem(key)}catch(_){} }
@@ -1754,7 +1762,7 @@ document.addEventListener('click',async e=>{
   const certGroupRemove=e.target.closest('[data-cert-group-remove]');if(certGroupRemove){mergeEditorInputs();const experience=globalAdminContent.experience,group=experience.certGroups.find(item=>item.id===certGroupRemove.dataset.certGroupRemove);if(!group||!confirm(currentLang==='en'?'Remove this group and its certificate entries? Files will remain in Media Library.':'Xóa nhóm và các chứng chỉ bên trong? File vẫn được giữ trong Media Library.'))return;for(const item of group.items||[])if(!await detachCertificateMedia(item.id))return;if(CERT_GROUP_DEFAULTS.some(item=>item.id===group.id)){experience.certGroupRemovedIds=Array.isArray(experience.certGroupRemovedIds)?experience.certGroupRemovedIds:[];if(!experience.certGroupRemovedIds.includes(group.id))experience.certGroupRemovedIds.push(group.id)}experience.certGroups=experience.certGroups.filter(item=>item.id!==group.id);await loadAssets();renderGlobalEditor();setAdminStatus('#globalContentStatus','ok',currentLang==='en'?'Certificate group removed.':'Đã xóa nhóm chứng chỉ.');return}
   const certAdd=e.target.closest('[data-cert-item-add]');if(certAdd){mergeEditorInputs();const group=globalAdminContent.experience.certGroups.find(item=>item.id===certAdd.dataset.certItemAdd);if(!group)return;group.items.push({id:newId(),title:{vi:'',en:''},issuer:'',date:'',credentialUrl:'',description:{vi:'',en:''}});renderGlobalEditor();return}
   const certRemove=e.target.closest('[data-cert-item-remove]');if(certRemove){mergeEditorInputs();const id=certRemove.dataset.certItemRemove,group=globalAdminContent.experience.certGroups.find(item=>item.items.some(cert=>cert.id===id));if(!group||!confirm(currentLang==='en'?'Remove this certificate or achievement? Its files will remain in Media Library.':'Xóa chứng chỉ/thành tựu này? Các file sẽ được giữ trong Media Library.'))return;if(!await detachCertificateMedia(id))return;group.items=group.items.filter(cert=>cert.id!==id);group.removedIds=Array.isArray(group.removedIds)?group.removedIds:[];if(!group.removedIds.includes(id))group.removedIds.push(id);renderGlobalEditor();await loadAssets();renderGlobalEditor();setAdminStatus('#globalContentStatus','ok',currentLang==='en'?'Certificate or achievement removed.':'Đã xóa chứng chỉ/thành tựu.');return}
-  const edit=e.target.closest('[data-edit-project]');if(edit){const p=projectBySlug(edit.dataset.editProject);if(p)editProject(p);return}
+  const edit=e.target.closest('[data-edit-project]');if(edit){const p=projectForEditing(edit.dataset.editProject);if(p)editProject(p);return}
   const del=e.target.closest('[data-delete-project]');if(del){const p=projectBySlug(del.dataset.deleteProject);if(p)deleteProject(p);return}
   const remove=e.target.closest('[data-remove-section],[data-remove-project-section]');if(remove){remove.closest('.admin-section-row')?.remove();return}
   const sectionUp=e.target.closest('[data-section-up]');if(sectionUp){const row=sectionUp.closest('.admin-section-row'),host=sectionEditorHost(row);if(row?.previousElementSibling){row.parentElement.insertBefore(row,row.previousElementSibling);renderProjectSectionEditor(projectSectionPayloads(host),projectSectionLangs(host),host);}return}
