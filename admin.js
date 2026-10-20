@@ -1295,7 +1295,16 @@ async function loadVisitorAdminList(){
 
 function setUploadProgress(percent){const value=Math.max(0,Math.min(100,Math.round(Number(percent)||0)));const label=currentLang==='en'?`Uploading… ${value}%`:`Đang upload… ${value}%`;setAdminStatus('#adminUploadStatus','ok',label);setAdminStatus('#globalContentStatus','ok',label)}
 
-function populateAdminProjects(){const html=PROJECTS.map(p=>`<option value="${esc(p.id)}">${esc(p.content[currentLang].title)}</option>`).join('')+INSIGHTS_ADMIN.map(p=>`<option value="insight:${esc(p.id)}">Insights · ${esc(p.content[currentLang].title)}</option>`).join('');$('#adminProject').innerHTML=html;$('#coverProject').innerHTML=PROJECTS.map(p=>`<option value="${esc(p.id)}">${esc(p.content[currentLang].title)}</option>`).join('');refreshAdminProjectList();refreshAdminInsightList()}
+function populateAdminProjects(){
+  const proofSelect=$('#adminProject'),coverSelect=$('#coverProject');
+  const proofValue=proofSelect.value,coverValue=coverSelect.value;
+  const projectOptions=PROJECTS.map(p=>`<option value="${esc(p.id)}">${esc(p.content[currentLang].title)}</option>`).join('');
+  proofSelect.innerHTML=projectOptions+INSIGHTS_ADMIN.map(p=>`<option value="insight:${esc(p.id)}">Insights · ${esc(p.content[currentLang].title)}</option>`).join('');
+  coverSelect.innerHTML=projectOptions;
+  if([...proofSelect.options].some(option=>option.value===proofValue))proofSelect.value=proofValue;
+  if([...coverSelect.options].some(option=>option.value===coverValue))coverSelect.value=coverValue;
+  refreshAdminProjectList();refreshAdminInsightList()
+}
 
 
 
@@ -1651,7 +1660,7 @@ async function deleteInsight(item){
     setInsightStatus('err',insightErrorText(error));
   }
 }
-async function loadAdminProjects(){const response=await sbFetch('/rest/v1/portfolio_projects?select=id,slug,sort_order,published,title_vi,title_en,hook_vi,hook_en,intro_vi,intro_en,categories,stats,visual_type,tone_a,tone_b&order=sort_order.asc,id.asc',{method:'GET'});const rows=await response.json();if(!Array.isArray(rows))throw new Error('project_rows_invalid');const sectionsResponse=await sbFetch('/rest/v1/portfolio_project_sections?select=id,project_id,sort_order,title_vi,body_vi,title_en,body_en,blocks&order=sort_order.asc,id.asc',{method:'GET'});const sections=await sectionsResponse.json();const grouped=new Map();(Array.isArray(sections)?sections:[]).forEach(row=>{if(!grouped.has(row.project_id))grouped.set(row.project_id,[]);grouped.get(row.project_id).push(row)});PROJECTS.splice(0,PROJECTS.length,...rows.map(row=>projectRuntimeFromDb(row,grouped.get(row.id)||[])));refreshAdminProjectList()}
+async function loadAdminProjects(){const response=await sbFetch('/rest/v1/portfolio_projects?select=id,slug,sort_order,published,title_vi,title_en,hook_vi,hook_en,intro_vi,intro_en,categories,stats,visual_type,tone_a,tone_b&order=sort_order.asc,id.asc',{method:'GET'});const rows=await response.json();if(!Array.isArray(rows))throw new Error('project_rows_invalid');const sectionsResponse=await sbFetch('/rest/v1/portfolio_project_sections?select=id,project_id,sort_order,title_vi,body_vi,title_en,body_en,blocks&order=sort_order.asc,id.asc',{method:'GET'});const sections=await sectionsResponse.json();const grouped=new Map();(Array.isArray(sections)?sections:[]).forEach(row=>{if(!grouped.has(row.project_id))grouped.set(row.project_id,[]);grouped.get(row.project_id).push(row)});PROJECTS.splice(0,PROJECTS.length,...rows.map(row=>projectRuntimeFromDb(row,grouped.get(row.id)||[])));populateAdminProjects()}
 function applyAdminStatic(){if(!adminDialog)return;document.documentElement.lang=currentLang;adminDialog.setAttribute('aria-label',currentLang==='en'?'Portfolio CMS':'Quản trị portfolio');adminDialog.querySelectorAll('[data-i18n]').forEach(element=>{const value=I18N[currentLang][element.dataset.i18n];if(value)element.textContent=value});adminDialog.querySelectorAll('[data-admin-lang]').forEach(button=>button.classList.toggle('active',button.dataset.adminLang===currentLang));const visitorAdmin=$('#visitorAdmin');if(visitorAdmin){visitorAdmin.querySelector('h3').textContent=currentLang==='en'?'Visitor analytics':'Thống kê lượt truy cập';visitorAdmin.querySelector('.admin-note').textContent=currentLang==='en'?'Ranked by filtered visits per IP. Only the designated owner account can view IP addresses.':'Danh sách xếp theo số lượt ghi nhận trên mỗi IP. Chỉ tài khoản chủ sở hữu được xem địa chỉ IP.';$('#refreshVisitorsBtn').textContent=currentLang==='en'?'Refresh':'Làm mới'}populateAdminProjects()}
 function renderAdmin(){applyAdminStatic();renderGlobalEditor();renderAvatar();refreshAdminProjectList();refreshAdminList();loadGlobalDrafts();loadProjectDrafts()}
 function bindAdminEvents(){
