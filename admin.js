@@ -739,6 +739,7 @@ function newBlock(type='paragraph'){
   const content={};
   const settings={};
   if(type==='list'||type==='workflow'){content.items_vi=[];content.items_en=[]}
+  if(type==='table'||type==='chart'){content.text_vi='';content.text_en='';content.caption_vi='';content.caption_en=''}
   if(type==='image'){content.caption_vi='';content.caption_en='';content.alt_vi='';content.alt_en='';settings.asset_id=''}
   if(type==='gallery'){content.caption_vi='';content.caption_en='';settings.asset_ids=[]}
   if(type==='video'){content.caption_vi='';content.caption_en='';settings.url='';settings.poster_asset_id=''}
@@ -749,7 +750,7 @@ function newBlock(type='paragraph'){
 }
 
 function blockTypeLabel(type){
-  const map={heading:t('admin.blockHeading'),paragraph:t('admin.blockParagraph'),richtext:t('admin.blockRichtext'),quote:t('admin.blockQuote'),list:t('admin.blockList'),image:t('admin.blockImage'),gallery:t('admin.blockGallery'),video:t('admin.blockVideo'),workflow:t('admin.blockWorkflow'),divider:t('admin.blockDivider'),proof:t('admin.blockProof'),file:t('admin.blockFile'),cta:t('admin.blockCta')};
+  const map={heading:t('admin.blockHeading'),paragraph:t('admin.blockParagraph'),richtext:t('admin.blockRichtext'),quote:t('admin.blockQuote'),table:currentLang==='en'?'Table':'Bảng',chart:currentLang==='en'?'Bar chart':'Biểu đồ cột',list:t('admin.blockList'),image:t('admin.blockImage'),gallery:t('admin.blockGallery'),video:t('admin.blockVideo'),workflow:t('admin.blockWorkflow'),divider:t('admin.blockDivider'),proof:t('admin.blockProof'),file:t('admin.blockFile'),cta:t('admin.blockCta')};
   return map[type]||type;
 }
 
@@ -769,12 +770,18 @@ function blockEditorFields(block,lang){
   const cap=`${vi?'Chú thích':'Caption'} ${L}`;
   let inner='';
   if(block.type==='richtext'){
-    inner=`<div class="admin-block-field full"><span>${L}</span>${richTextEditorHtml(`text_${lang}`,blockText(block,lang),L)}</div>`;
+    inner=`<div class="admin-block-field full"><span>${L}</span>${richTextEditorHtml(`text_${lang}`,blockText(block,lang),L)}<small class="admin-note">${esc(vi?'Có thể dán trực tiếp bảng từ Word/Excel/Google Sheets; định dạng bảng sẽ được giữ lại.':'Paste a table directly from Word/Excel/Google Sheets; table structure will be preserved.')}</small></div>`;
   }else if(block.type==='heading'){
     inner=field(L,area('data-block-content',editorialTextKey(block,lang),editorialTextForLang(block,lang),' admin-block-textarea-heading',1),'full');
   }else if(block.type==='paragraph'||block.type==='quote'||block.type==='cta'){
     const v=blockText(block,lang);
     inner=field(L,area('data-block-content',`text_${lang}`,v,block.type==='paragraph'?' admin-block-textarea-para':'',rowsFor(v)),'full');
+  }else if(block.type==='table'||block.type==='chart'){
+    const value=blockText(block,lang),caption=c[`caption_${lang}`]||'';
+    const hint=block.type==='table'
+      ?(vi?'Dán bảng từ Excel/Sheets (các cột được phân tách bằng tab) hoặc dán bảng trực tiếp vào block Định dạng.':'Paste a table from Excel/Sheets (tab-separated columns), or paste a table directly into a Formatted block.')
+      :(vi?'Mỗi dòng: nhãn, sau đó tab hoặc |, rồi giá trị số. Ví dụ: Doanh thu<TAB>125':'One row per data point: label, then tab or |, then a number. Example: Revenue<TAB>125');
+    inner=field(`${L} · ${block.type==='table'?(vi?'dán dữ liệu dạng TSV':'paste TSV data'):(vi?'nhãn và giá trị':'label and value')}`,`${area('data-block-content',`text_${lang}`,value,'',rowsFor(value))}<small class="admin-note">${esc(hint)}</small>`,'full')+field(`${vi?'Chú thích':'Caption'} ${L}`,input(`caption_${lang}`,caption),'full');
   }else if(block.type==='list'||block.type==='workflow'){
     const items=Array.isArray(c[`items_${lang}`])?c[`items_${lang}`]:[];
     inner=field(`${vi?'Mục':'Items'} ${L} · ${vi?'mỗi dòng một mục':'one item per line'}`,area('data-block-items',`items_${lang}`,items.join('\n'),'',Math.min(12,Math.max(3,items.length+1))),'full')+field(cap,input(`caption_${lang}`,c[`caption_${lang}`]),'full');
@@ -855,7 +862,7 @@ function editorialAutosize(root){
   });
 }
 
-const EDITORIAL_ADD_MENU=[['paragraph','paragraph'],['heading','heading'],['image','image'],['video','video'],['gif','image'],['gallery','gallery'],['quote','quote'],['list','list'],['workflow','workflow'],['proof','proof'],['file','file'],['divider','divider'],['cta','cta'],['richtext','richtext']];
+const EDITORIAL_ADD_MENU=[['paragraph','paragraph'],['heading','heading'],['image','image'],['video','video'],['gif','image'],['gallery','gallery'],['table','table'],['chart','chart'],['quote','quote'],['list','list'],['workflow','workflow'],['proof','proof'],['file','file'],['divider','divider'],['cta','cta'],['richtext','richtext']];
 
 function editorialInserterHtml(at,total){
   const add=currentLang==='en'?'+ Add content':'+ Thêm nội dung';
@@ -1795,7 +1802,7 @@ document.addEventListener('click',async e=>{
     return;
   }
   const previewProject=e.target.closest('[data-preview-project]');if(previewProject){previewCurrentProject();return}
-  const preview=e.target.closest('[data-preview-section]');if(preview){const row=preview.closest('.admin-section-row');if(!row)return;const doc=readSectionBlockEditors(row);const lang=currentLang==='en'?'en':'vi';const title=lang==='en'?(row.querySelector('[data-section-title-en]')?.value||'Preview'):(row.querySelector('[data-section-title-vi]')?.value||'Xem trước');const w=window.open('','_blank','noopener');if(!w){alert(currentLang==='en'?'Popup blocked. Allow popups to preview.':'Trình duyệt đã chặn cửa sổ preview. Hãy cho phép popup.');return}w.document.write(`<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>body{margin:0;background:#0a0b10;color:#fff;font:15px/1.8 system-ui,sans-serif}.wrap{max-width:760px;margin:0 auto;padding:48px 20px}.k{color:#22d3ee;font:10px ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase}h1{font-size:38px;line-height:1.05} .case-copy{color:rgba(255,255,255,.76);margin:18px 0}.case-pull-quote{border-left:2px solid #ff6b35;padding-left:16px;color:rgba(255,255,255,.82)}ul{padding-left:22px}.article-media{margin:28px 0}.article-media img{display:block;width:auto;height:auto;max-width:100%;margin:auto}.case-flow{display:flex;overflow:auto}.case-flow-step{min-width:150px;padding:14px;border:1px solid rgba(34,211,238,.2)}.case-flow-step span{color:#22d3ee}.article-media-placeholder{padding:30px;border:1px dashed rgba(34,211,238,.2);color:#78808d}</style></head><body><main class="wrap"><div class="k">CASE STUDY · ${esc(title)}</div><h1>${esc(title)}</h1>${renderBlockDocument(doc,lang,{blocks:doc})}</main></body></html>`);w.document.close();return}
+  const preview=e.target.closest('[data-preview-section]');if(preview){const row=preview.closest('.admin-section-row');if(!row)return;const doc=readSectionBlockEditors(row);const lang=currentLang==='en'?'en':'vi';const title=lang==='en'?(row.querySelector('[data-section-title-en]')?.value||'Preview'):(row.querySelector('[data-section-title-vi]')?.value||'Xem trước');const w=window.open('','_blank','noopener');if(!w){alert(currentLang==='en'?'Popup blocked. Allow popups to preview.':'Trình duyệt đã chặn cửa sổ preview. Hãy cho phép popup.');return}w.document.write(`<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>body{margin:0;background:#0a0b10;color:#fff;font:15px/1.8 system-ui,sans-serif}.wrap{max-width:760px;margin:0 auto;padding:48px 20px}.k{color:#22d3ee;font:10px ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase}h1{font-size:38px;line-height:1.05} .case-copy{color:rgba(255,255,255,.76);margin:18px 0}.case-pull-quote{border-left:2px solid #ff6b35;padding-left:16px;color:rgba(255,255,255,.82)}ul{padding-left:22px}.article-media{margin:28px 0}.article-media img{display:block;width:auto;height:auto;max-width:100%;margin:auto}.case-richtext table,.case-table{width:100%;border-collapse:collapse;margin:18px 0}.case-richtext th,.case-richtext td,.case-table th,.case-table td{padding:9px 11px;border:1px solid rgba(255,255,255,.16);text-align:left}.case-richtext th,.case-table th{background:rgba(34,211,238,.08)}.case-table-wrap{overflow:auto}.case-table-caption{color:#9aa3b2;font-size:11px}.case-chart{display:grid;gap:10px;margin:20px 0}.case-chart-row{display:grid;grid-template-columns:minmax(80px,1fr) minmax(80px,2fr) auto;align-items:center;gap:10px}.case-chart-label{font-size:11px}.case-chart-track{height:9px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}.case-chart-bar{display:block;width:var(--chart-value);height:100%;background:linear-gradient(90deg,#22d3ee,#a78bfa)}.case-flow{display:flex;overflow:auto}.case-flow-step{min-width:150px;padding:14px;border:1px solid rgba(34,211,238,.2)}.case-flow-step span{color:#22d3ee}.article-media-placeholder{padding:30px;border:1px dashed rgba(34,211,238,.2);color:#78808d}</style></head><body><main class="wrap"><div class="k">CASE STUDY · ${esc(title)}</div><h1>${esc(title)}</h1>${renderBlockDocument(doc,lang,{blocks:doc})}</main></body></html>`);w.document.close();return}
 },{signal:controller.signal});
 document.addEventListener('click',async e=>{
   const add=e.target.closest('#projectAddMediaBtn');if(add){const slug=$('#projectSlug')?.dataset.originalSlug||$('#projectSlug')?.value;const p=projectBySlug(slug);if(p)openMediaLibrary({mode:'single',accept:'proof',projectId:p.id,title:t('admin.mediaLibrary'),browseOnly:true});return;}

@@ -314,7 +314,7 @@ function newId(){if(typeof crypto!=='undefined'&&typeof crypto.randomUUID==='fun
 
 const BLOCKS_VERSION=1;
 
-const BLOCK_TYPES=new Set(['heading','paragraph','richtext','quote','image','gallery','video','workflow','list','divider','proof','file','cta']);
+const BLOCK_TYPES=new Set(['heading','paragraph','richtext','quote','table','chart','image','gallery','video','workflow','list','divider','proof','file','cta']);
 
 function blockText(block,lang){
   const content=block?.content&&typeof block.content==='object'?block.content:{};
@@ -383,7 +383,7 @@ function safeLinkHref(value){
 }
 
 function sanitizeRichText(value){
-  const allowedTags=new Set(['P','BR','STRONG','B','EM','I','U','H2','H3','UL','OL','LI','A','BLOCKQUOTE']);
+  const allowedTags=new Set(['P','BR','STRONG','B','EM','I','U','H2','H3','UL','OL','LI','A','BLOCKQUOTE','TABLE','THEAD','TBODY','TFOOT','TR','TH','TD','CAPTION']);
   const html=String(value||'');
   if(!html)return '';
   if(typeof DOMParser==='undefined')return html.replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
@@ -394,6 +394,7 @@ function sanitizeRichText(value){
       if(child.nodeType===Node.TEXT_NODE)return;
       if(child.nodeType!==Node.ELEMENT_NODE){child.remove();return}
       const el=child;
+      if(['SCRIPT','STYLE','IFRAME','OBJECT','EMBED','SVG','MATH'].includes(el.tagName)){el.remove();return}
       if(!allowedTags.has(el.tagName)){el.replaceWith(...[...el.childNodes]);return}
       [...el.attributes].forEach(attr=>{
         const name=attr.name.toLowerCase();
@@ -406,7 +407,12 @@ function sanitizeRichText(value){
         el.setAttribute('target','_blank');
         el.setAttribute('rel','noopener noreferrer');
       }else{
-        [...el.attributes].forEach(attr=>el.removeAttribute(attr.name));
+        [...el.attributes].forEach(attr=>{
+          const name=attr.name.toLowerCase(),value=attr.value.trim();
+          if((name==='colspan'||name==='rowspan')&&['TD','TH'].includes(el.tagName)&&/^[1-9]\d?$/.test(value))el.setAttribute(name,String(Math.min(20,Number(value))));
+          else if(name==='scope'&&el.tagName==='TH'&&['row','col','rowgroup','colgroup'].includes(value))el.setAttribute(name,value);
+          else el.removeAttribute(attr.name);
+        });
       }
       cleanNode(el);
     });
@@ -442,6 +448,27 @@ function safeDirectVideoUrl(value){
     if(url.protocol!=='https:'||url.username||url.password)return '';
     return /\.(?:mp4|m4v|webm|ogv|ogg)$/i.test(url.pathname)?url.href:'';
   }catch(_){return ''}
+}
+
+function delimitedRows(value){
+  return String(value||'').split(/\r?\n/).map(line=>line.trim()).filter(Boolean).map(line=>{
+    const separator=line.includes('\t')?'\t':line.includes('|')?'|':',';
+    return line.split(separator).map(cell=>cell.trim());
+  });
+}
+
+function renderTableBlock(value){
+  const rows=delimitedRows(value).slice(0,50).map(row=>row.slice(0,12));
+  if(!rows.length)return '';
+  const headers=rows[0],body=rows.slice(1);
+  return `<div class="case-table-wrap"><table class="case-table"><thead><tr>${headers.map(cell=>`<th scope="col">${esc(cell)}</th>`).join('')}</tr></thead>${body.length?`<tbody>${body.map(row=>`<tr>${headers.map((_,index)=>`<td>${esc(row[index]||'')}</td>`).join('')}</tr>`).join('')}</tbody>`:''}</table></div>`;
+}
+
+function renderChartBlock(value,title=''){
+  const rows=delimitedRows(value).slice(0,20).map(([label,raw])=>({label:String(label||''),value:Number(String(raw||'').replace(/,/g,''))})).filter(row=>row.label&&Number.isFinite(row.value));
+  if(!rows.length)return '';
+  const max=Math.max(1,...rows.map(row=>Math.abs(row.value)));
+  return `<figure class="case-chart" role="img" aria-label="${esc(title||'Data chart')}">${rows.map(row=>`<div class="case-chart-row"><span class="case-chart-label">${esc(row.label)}</span><span class="case-chart-track"><span class="case-chart-bar" style="--chart-value:${Math.max(0,Math.min(100,Math.abs(row.value)/max*100))}%"></span></span><strong class="case-chart-value">${esc(row.value)}</strong></div>`).join('')}</figure>`;
 }
 
 function sanitizeBlockDocument(value){
@@ -528,6 +555,8 @@ function renderBlock(block,lang,context={}){
     case 'paragraph': return text?`<p class="case-copy">${text.replace(/\r?\n/g,'<br>')}</p>`:'';
     case 'richtext': { const html=sanitizeRichText(String(c[`text_${lang}`]??c.text??'')); return html?`<div class="case-copy case-richtext">${html}</div>`:''; }
     case 'quote': return `<blockquote class="case-pull-quote">${text}</blockquote>`;
+    case 'table': { const caption=String(c[`caption_${lang}`]||'');return `${renderTableBlock(c[`text_${lang}`]??c.text??'')}${caption?`<p class="case-table-caption">${esc(caption)}</p>`:''}`; }
+    case 'chart': { const caption=String(c[`caption_${lang}`]||'');return `${renderChartBlock(c[`text_${lang}`]??c.text??'',caption)}${caption?`<p class="case-table-caption">${esc(caption)}</p>`:''}`; }
     case 'list': { const items=Array.isArray(c[`items_${lang}`])?c[`items_${lang}`]:Array.isArray(c.items)?c.items:[]; return items.length?`<ul class="case-block-list">${items.map(x=>`<li>${esc(String(x))}</li>`).join('')}</ul>`:''; }
     case 'divider': return `<hr class="case-block-divider">`;
     case 'image': { const a=assetForBlock(s.asset_id); if(!a)return `<div class="article-media-placeholder">${esc(title|| (lang==='en'?'Image placeholder':'Vị trí hình ảnh'))}</div>`; const alt=String(c[`alt_${lang}`]||c.alt||a.original_name||''); const caption=esc(String(c[`caption_${lang}`]??c[`caption_${lang==='en'?'vi':'en'}`]??'')); return `<figure class="article-media"><img src="${esc(a.url)}" alt="${esc(alt)}" loading="lazy" style="width:auto;height:auto;max-width:100%;object-fit:contain"><figcaption>${caption}</figcaption></figure>`; }

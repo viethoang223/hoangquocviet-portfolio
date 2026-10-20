@@ -49,6 +49,10 @@ Migrations `20261014180200_certificate_owner_ids.sql` và `20261014180300_portfo
 
 Website phát URL HTTPS trực tiếp có đuôi MP4, M4V, WebM, OGV hoặc OGG bằng native video player. R2 Dashboard cho phép upload object tới giới hạn single-upload 5 GiB; multipart phù hợp hơn cho file lớn hoặc khi cần resume. Xem [Cloudflare R2 upload docs](https://developers.cloudflare.com/r2/objects/upload-objects/) và [public bucket docs](https://developers.cloudflare.com/r2/buckets/public-buckets/).
 
+### Bảng và biểu đồ trong nội dung case
+
+Trong rich text, có thể dán trực tiếp bảng từ Word, Excel hoặc Google Sheets; cấu trúc hàng/cột được giữ lại và định dạng nguy hiểm bị loại bỏ. Hoặc thêm block Bảng và dán dữ liệu TSV (tab giữa các cột, dòng đầu là tiêu đề). Block Biểu đồ cột nhận mỗi dòng theo dạng `Nhãn<TAB>Giá trị`; nội dung VI/EN được nhập riêng theo tab ngôn ngữ.
+
 ## 4. Quyết định của chủ sở hữu
 
 - Email nhận contact form được cố định là `viet.hq.work@gmail.com`; cần cấu hình Vercel environment variables và sender domain trước khi gửi thật.
