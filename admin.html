@@ -63,6 +63,17 @@
 .admin-textarea{width:100%;min-height:82px;margin-top:5px;padding:10px 11px;border-radius:10px;border:1px solid rgba(255,255,255,.10);background:#080b10;color:#fff;outline:0;resize:vertical}
 .admin-textarea:focus{border-color:rgba(34,211,238,.46)}
 .admin-project-json{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;line-height:1.5}
+.visitor-admin-summary{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;color:rgba(255,255,255,.60);font-size:10px}
+.visitor-admin-summary span{padding:8px 10px;border:1px solid rgba(255,255,255,.08);border-radius:9px;background:rgba(255,255,255,.025)}
+.visitor-admin-summary strong{color:var(--lime);font-size:12px}
+.visitor-admin-list{display:grid;gap:7px;max-height:420px;margin-top:12px;overflow:auto;overscroll-behavior:contain}
+.visitor-admin-row{display:grid;grid-template-columns:24px minmax(0,1fr) auto;align-items:center;gap:10px;padding:10px;border:1px solid rgba(255,255,255,.07);border-radius:10px;background:rgba(255,255,255,.02)}
+.visitor-admin-rank{color:var(--cyan);font:10px ui-monospace,SFMono-Regular,Menlo,monospace}
+.visitor-admin-ip{min-width:0}
+.visitor-admin-ip strong{display:block;overflow-wrap:anywhere;font:11px ui-monospace,SFMono-Regular,Menlo,monospace}
+.visitor-admin-ip span{display:block;margin-top:4px;color:var(--dim);font-size:9px;line-height:1.5}
+.visitor-admin-count{color:var(--lime);font-size:10px;white-space:nowrap}
+.visitor-admin .admin-project-head{align-items:center}
 @media(max-width:760px){.admin-project-row{grid-template-columns:1fr}.admin-project-actions{justify-content:flex-start}}
 
 @media(max-width:760px){.admin-grid{grid-template-columns:1fr}.admin-row{grid-template-columns:1fr}.admin-dialog{width:100vw;height:100dvh;max-height:none;border-radius:0;border-left:0;border-right:0}.admin-scroll{padding:18px 15px 28px}}
@@ -569,7 +580,7 @@
     if (loadPromise) return loadPromise;
     loadPromise = new Promise((resolve, reject) => {
       const script = document.createElement('script');
-      script.src = './admin.js?v=20261020-editable-certificate-groups-7';
+      script.src = './admin.js?v=20261020-visits-minigame-1';
       script.onload = resolve;
       script.onerror = () => reject(new Error('admin_script_load_failed'));
       document.body.append(script);

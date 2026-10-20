@@ -306,6 +306,55 @@ body.page-hidden .ambient,body.page-hidden .ticker,body.page-hidden .avatar-shel
   align-self:center;
   box-sizing:border-box;
 }
+.hero-sidecars{
+  display:grid;
+  grid-template-columns:minmax(170px,1fr) auto minmax(112px,1fr);
+  align-items:center;
+  gap:clamp(16px,3vw,32px);
+  width:100%;
+  margin-block-end:28px;
+}
+.hero-sidecars .avatar-shell{margin:0}
+.mini-game{
+  justify-self:end;
+  width:184px;
+  padding:12px;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:16px;
+  background:linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.018));
+  box-shadow:0 16px 44px rgba(0,0,0,.22);
+  text-align:left;
+}
+.mini-game-top{display:flex;align-items:center;justify-content:space-between;gap:8px;color:rgba(255,255,255,.55);font:8px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.1em}
+.mini-game-top strong{color:var(--lime);font-size:9px}
+.mini-game-status{min-height:29px;margin:9px 0 7px;color:rgba(255,255,255,.82);font-size:10px;line-height:1.45}
+.mini-game-arena{position:relative;height:58px;overflow:hidden;border:1px solid rgba(255,255,255,.08);border-radius:10px;background:radial-gradient(circle at 50% 50%,rgba(34,211,238,.08),transparent 72%),rgba(0,0,0,.16)}
+.mini-game-start,.mini-game-target{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);border-radius:999px;cursor:pointer;font:800 9px/1 ui-sans-serif,system-ui,sans-serif}
+.mini-game-start{min-height:30px;padding:0 12px;border:1px solid rgba(200,240,0,.35);background:rgba(200,240,0,.10);color:var(--lime);white-space:nowrap}
+.mini-game-target{width:30px;height:30px;border:1px solid rgba(255,255,255,.75);background:radial-gradient(circle at 35% 30%,#fff,var(--lime) 38%,rgba(200,240,0,.18) 72%);box-shadow:0 0 22px rgba(200,240,0,.48);animation:miniTargetPop .18s ease-out}
+.mini-game-target[hidden]{display:none}
+@keyframes miniTargetPop{from{opacity:0;scale:.55}to{opacity:1;scale:1}}
+.visit-counter{
+  justify-self:start;
+  display:grid;
+  justify-items:start;
+  gap:7px;
+  min-width:112px;
+  padding:13px 14px;
+  border:1px solid rgba(34,211,238,.18);
+  border-radius:16px;
+  background:linear-gradient(145deg,rgba(34,211,238,.07),rgba(255,255,255,.025));
+  box-shadow:0 16px 44px rgba(0,0,0,.22);
+}
+.visit-counter-label{color:rgba(255,255,255,.52);font:8px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase}
+.visit-counter-value{display:flex;align-items:center;min-height:32px;color:#fff;font:900 25px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:-.07em;font-variant-numeric:tabular-nums}
+.visit-digit{position:relative;display:inline-block;width:.62em;height:1em;overflow:hidden}
+.visit-digit-track{position:absolute;inset:0 auto auto 0;display:flex;flex-direction:column;transition:transform .55s cubic-bezier(.2,.75,.2,1);will-change:transform}
+.visit-digit-track span{display:block;height:1em;line-height:1em}
+.visit-counter-caption{color:rgba(255,255,255,.50);font-size:8px;line-height:1.35}
+.visit-counter[data-state="error"] .visit-counter-value{color:rgba(255,255,255,.5)}
+@media(prefers-reduced-motion:reduce){.visit-digit-track{transition:none}.mini-game-target{animation:none}}
+@media(max-width:760px), (hover:none) and (pointer:coarse){.hero-sidecars{grid-template-columns:minmax(0,1fr) auto;gap:12px}.mini-game{display:none}}
 .hero-inner > *{
   min-inline-size:0;
   max-inline-size:100%;
@@ -360,6 +409,12 @@ body.page-hidden .ambient,body.page-hidden .ticker,body.page-hidden .avatar-shel
   }
   .hero-inner{inline-size:100%;width:100%;max-inline-size:100%}
   .avatar-shell{inline-size:clamp(164px,45vw,194px);width:clamp(164px,45vw,194px);margin-block-end:20px}
+  .hero-sidecars{grid-template-columns:minmax(0,1fr) auto;gap:12px;margin-block-end:20px}
+  .mini-game{display:none}
+  .visit-counter{justify-self:start;min-width:0;padding:11px 10px;border-radius:14px}
+  .visit-counter-value{font-size:22px;min-height:28px}
+  .visit-counter-caption{max-width:100px}
+  .hero-sidecars .avatar-shell{margin:0}
   .avatar-meta{left:11px;right:11px;bottom:10px;font-size:8px;letter-spacing:.09em}
   .hero .status{max-inline-size:100%;white-space:normal;text-align:center;justify-content:center}
   .hero h1{
@@ -616,7 +671,22 @@ dialog.contact-success{position:fixed;inset:0;width:100vw;height:100dvh;max-widt
     <span class="constellation-line line-a"></span><span class="constellation-line line-b"></span><span class="constellation-line line-c"></span>
   </div>
   <div class="hero-inner">
-    <div class="avatar-shell" aria-label="Khung avatar Hoàng Quốc Việt"><div class="avatar-frame"><span class="avatar-initials" id="avatarInitials">HQV</span><img id="avatarImage" class="avatar-image" alt="Hoàng Quốc Việt" hidden><div class="avatar-meta"><span>MARKETING OPS</span><span>HQV_2026</span></div></div></div>
+    <div class="hero-sidecars">
+      <section class="mini-game" id="miniGame" aria-label="Mini game phản xạ">
+        <div class="mini-game-top"><span>QUICK REFLEX</span><strong id="miniGameTime">15s</strong></div>
+        <p class="mini-game-status" id="miniGameStatus" aria-live="polite">Bắt các đốm sáng trong 15 giây.</p>
+        <div class="mini-game-arena" id="miniGameArena">
+          <button class="mini-game-start" id="miniGameStart" type="button">Chơi 15 giây</button>
+          <button class="mini-game-target" id="miniGameTarget" type="button" aria-label="Bắt đốm sáng" hidden>✦</button>
+        </div>
+      </section>
+      <div class="avatar-shell" aria-label="Khung avatar Hoàng Quốc Việt"><div class="avatar-frame"><span class="avatar-initials" id="avatarInitials">HQV</span><img id="avatarImage" class="avatar-image" alt="Hoàng Quốc Việt" hidden><div class="avatar-meta"><span>MARKETING OPS</span><span>HQV_2026</span></div></div></div>
+      <div class="visit-counter" id="visitCounter" data-state="loading" role="status" aria-live="polite" aria-label="Lượt ghé đã lọc, đang tải">
+        <span class="visit-counter-label" id="visitCounterLabel">VISITS</span>
+        <span class="visit-counter-value" id="visitCounterValue" aria-hidden="true">--</span>
+        <span class="visit-counter-caption" id="visitCounterCaption">Lượt ghé đã lọc · ước tính</span>
+      </div>
+    </div>
     <p class="status"><i aria-hidden="true"></i><span id="statusText">Đang mở cho cơ hội mới</span></p>
     <h1 id="hero-title">Hoàng Quốc Việt</h1>
     <p class="hero-role"><span class="warm">Marketing Operations</span> · <span class="cyan">MarTech</span> · AI-enabled Marketing</p>
@@ -747,7 +817,7 @@ dialog.contact-success{position:fixed;inset:0;width:100vw;height:100dvh;max-widt
 
 
 <script src="./shared.js?v=20261020-editable-certificate-groups-7"></script>
-<script src="./site.js?v=20261020-editable-certificate-groups-7"></script>
+<script src="./site.js?v=20261020-visits-minigame-1"></script>
 
 
 

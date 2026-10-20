@@ -18,6 +18,7 @@ Chạy trong Supabase SQL Editor, theo thứ tự timestamp:
 6. `20261014171942_harden_portfolio_proofs_bucket.sql` - bucket limits; chạy sau khi bucket đã tồn tại.
 7. `20261018100000_contact_spam_protection.sql` - contact rate-limit table và RPC nội bộ; chỉ cho `service_role` truy cập.
 8. `20261018120000_contact_admin_recovery.sql` - recovery Google Authenticator và giới hạn nhập sai; chạy sau migration contact spam.
+9. `20261020133000_visitor_analytics.sql` - lưu thống kê IP riêng tư, khử trùng lặp 30 phút và rate limit; chỉ API server dùng `service_role`.
 
 Migrations `20261014180200_certificate_owner_ids.sql` và `20261014180300_portfolio_insights.sql` là lịch sử Phase 4/đầu Phase 5 trong workspace; không chạy lại nếu chúng đã được áp dụng. Kiểm tra bằng `supabase/scripts/cert_owner_ids.sql`, `supabase/scripts/insights_check.sql` và `supabase/scripts/rls_check.sql` sau các bước tương ứng.
 
@@ -38,6 +39,7 @@ Migrations `20261014180200_certificate_owner_ids.sql` và `20261014180300_portfo
 	- `CONTACT_ADMIN_TOTP_SECRET` (khóa Base32 ngẫu nhiên tối thiểu 160 bit, chỉ lưu trong Vercel)
 	Tin nhắn được gửi tới `viet.hq.work@gmail.com`.
 	Sau khi tạo khóa TOTP bằng trình tạo secret an toàn trên máy riêng, thêm cùng khóa vào Google Authenticator bằng tùy chọn nhập setup key. Không gửi khóa hoặc mã OTP qua chat, source code hay commit. Khi contact bị chặn, form recovery xác minh email admin + mã 6 số; xác minh thành công chỉ reset ban của IP hiện tại. Năm lần nhập sai sẽ khóa recovery của IP đó 15 phút.
+7. Visitor analytics dùng Vercel Function `/api/visitors` và các biến `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `CONTACT_ADMIN_EMAIL` đã khai báo ở trên, cùng `VISITOR_IP_HASH_SECRET` (secret riêng, ngẫu nhiên dài tối thiểu 32 bytes; giữ ổn định để tránh tách một IP thành nhiều mục sau khi xoay khóa). Chạy migration analytics trước khi deploy frontend. Chỉ email trong `CONTACT_ADMIN_EMAIL` đồng thời có quyền trong `portfolio_admins` mới xem được IP; trang công khai chỉ nhận tổng lượt ghé đã lọc, cập nhật gần thời gian thực. Hệ thống chỉ ghi sau 5 giây trang đang hiển thị, gộp các request cùng IP trong 30 phút và giới hạn 120 request/IP/giờ. Một IP có thể đại diện cho nhiều người (mạng chung/VPN), vì vậy số liệu này là ước tính chứ không phải danh tính chính xác.
 
 ### Video dung lượng lớn qua Cloudflare R2
 

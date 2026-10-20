@@ -487,6 +487,192 @@ $('#contactForm').addEventListener('submit', async event => {
   }
 });
 
+function initVisitCounter(){
+ if(isGlobalPreview||isDraftPreview)return;
+ const host=$('#visitCounter'),valueNode=$('#visitCounterValue'),caption=$('#visitCounterCaption');
+ if(!host||!valueNode||!caption)return;
+ let lastCount=null,recordAttempted=false,recordRetries=0,qualificationTimer=null,loadFailed=false;
+ const api='/api/visitors';
+ const isEnglish=()=>currentLang==='en';
+ const updateLabel=()=>{
+   $('#visitCounterLabel').textContent=isEnglish()?'VISITS':'LƯỢT GHÉ';
+   caption.textContent=host.dataset.state==='error'
+     ?lastCount===null?(isEnglish()?'Counter unavailable':'Chưa tải được thống kê'):(isEnglish()?'Showing last known value':'Đang hiển thị số liệu gần nhất')
+     :isEnglish()?'Filtered visits · IP estimate':'Lượt ghé đã lọc · ước tính';
+   if(lastCount!==null)host.setAttribute('aria-label',isEnglish()?`Estimated filtered visits: ${new Intl.NumberFormat('en').format(lastCount)}`:`Lượt ghé đã lọc ước tính: ${new Intl.NumberFormat('vi').format(lastCount)}`);
+   else if(host.dataset.state==='error')host.setAttribute('aria-label',isEnglish()?'Visitor counter unavailable':'Không tải được thống kê lượt ghé');
+ };
+ const createDigitColumn=digit=>{
+   const column=document.createElement('span'),track=document.createElement('span');
+   column.className='visit-digit';
+   track.className='visit-digit-track';
+   track.innerHTML='01234567890123456789'.split('').map(number=>`<span>${number}</span>`).join('');
+   track.style.transition='none';
+   track.style.transform=`translateY(-${Number(digit)}em)`;
+   column.append(track);
+   return column;
+ };
+ const drawCount=count=>{
+   if(lastCount!==null&&count<lastCount)return;
+   if(lastCount===count){host.dataset.state='ready';updateLabel();return}
+   const digits=String(count);
+   const previous=lastCount===null?null:String(lastCount);
+   if(previous===null){
+     valueNode.replaceChildren();
+     for(const digit of digits)valueNode.append(createDigitColumn(digit));
+   }else{
+     let columns=[...valueNode.children];
+     while(columns.length>digits.length){columns.shift().remove()}
+     while(columns.length<digits.length){const column=createDigitColumn(0);valueNode.prepend(column);columns.unshift(column)}
+     const oldDigits=previous.padStart(digits.length,'0');
+     digits.split('').forEach((digit,index)=>{
+       const track=columns[index].firstElementChild;
+       const oldDigit=Number(oldDigits[index]),nextDigit=Number(digit);
+       const target=nextDigit+(nextDigit<oldDigit?10:0);
+       track.style.transition='';
+       track.style.transform=`translateY(-${target}em)`;
+       if(target>=10){
+         track.addEventListener('transitionend',()=>{
+           track.style.transition='none';
+           track.style.transform=`translateY(-${nextDigit}em)`;
+           requestAnimationFrame(()=>{track.style.transition=''});
+         },{once:true});
+       }
+     });
+   }
+   valueNode.setAttribute('aria-label',new Intl.NumberFormat(isEnglish()?'en':'vi').format(count));
+   host.dataset.state='ready';
+   lastCount=count;
+   updateLabel();
+ };
+ const refreshCount=async()=>{
+   try{
+     const response=await fetch(api,{headers:{Accept:'application/json'},cache:'no-store'});
+     if(!response.ok)throw new Error(`visitor_summary_http_${response.status}`);
+     const data=await response.json();
+     const total=Number(data?.total);
+     if(!Number.isSafeInteger(total)||total<0)throw new Error('visitor_summary_invalid_total');
+     drawCount(total);
+     loadFailed=false;
+   }catch(error){
+     host.dataset.state='error';
+     if(lastCount===null)valueNode.textContent='—';
+     updateLabel();
+     if(!loadFailed)console.warn('Visitor counter unavailable:',error?.message||'unknown_error');
+     loadFailed=true;
+   }
+ };
+ const recordVisit=async()=>{
+   if(recordAttempted||document.visibilityState!=='visible')return;
+   recordAttempted=true;
+   try{
+     const response=await fetch(api,{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({action:'record'})});
+     if(!response.ok)throw new Error(`visitor_record_http_${response.status}`);
+     const result=await response.json();
+     const total=Number(result?.total);
+     if(Number.isSafeInteger(total)&&total>=0)drawCount(total);
+     else await refreshCount();
+     recordRetries=0;
+   }catch(error){
+     host.dataset.state='error';
+     updateLabel();
+     const retryable=error?.name==='TypeError'||/visitor_record_http_5\d\d/.test(error?.message||'');
+     if(retryable&&recordRetries<2&&document.visibilityState==='visible'){
+       recordRetries+=1;
+       recordAttempted=false;
+       qualificationTimer=setTimeout(recordVisit,5000*recordRetries);
+     }
+     console.warn('Visitor event could not be recorded:',error?.message||'unknown_error');
+   }
+ };
+ const scheduleQualification=()=>{
+   clearTimeout(qualificationTimer);
+   qualificationTimer=null;
+   if(!recordAttempted&&document.visibilityState==='visible')qualificationTimer=setTimeout(recordVisit,5000);
+ };
+ updateLabel();
+ refreshCount();
+ scheduleQualification();
+ const poll=setInterval(()=>{if(document.visibilityState==='visible')refreshCount()},5000);
+ document.addEventListener('visibilitychange',()=>{
+   if(document.visibilityState==='visible'){refreshCount();scheduleQualification()}
+   else{clearTimeout(qualificationTimer);qualificationTimer=null}
+ });
+ window.addEventListener('pagehide',()=>clearInterval(poll),{once:true});
+ HQVShared.on('lang',updateLabel);
+}
+
+function initMiniGame(){
+ const game=$('#miniGame'),arena=$('#miniGameArena'),start=$('#miniGameStart'),target=$('#miniGameTarget'),status=$('#miniGameStatus'),time=$('#miniGameTime');
+ if(!game||!arena||!start||!target||!status||!time)return;
+ const desktop=window.matchMedia('(min-width: 761px) and (hover: hover) and (pointer: fine)');
+ let score=0,seconds=15,timer=null,playing=false;
+ const copy=()=>currentLang==='en'
+   ?{intro:'Catch the glowing dots in 15 seconds.',start:'Play 15 seconds',again:'Play again',target:'Catch the glowing dot',score:n=>`Score: ${n}`,done:n=>`Time! You caught ${n}.`}
+   :{intro:'Bắt các đốm sáng trong 15 giây.',start:'Chơi 15 giây',again:'Chơi lại',target:'Bắt đốm sáng',score:n=>`Điểm: ${n}`,done:n=>`Hết giờ! Bạn bắt được ${n} đốm sáng.`};
+ const moveTarget=()=>{
+   const bounds=arena.getBoundingClientRect(),size=30,padding=5;
+   target.style.left=`${padding+Math.random()*Math.max(0,bounds.width-size-padding*2)}px`;
+   target.style.top=`${padding+Math.random()*Math.max(0,bounds.height-size-padding*2)}px`;
+   target.style.transform='none';
+ };
+ const stop=()=>{
+   clearInterval(timer);
+   timer=null;
+   playing=false;
+   target.hidden=true;
+   start.hidden=false;
+   start.textContent=copy().again;
+   status.textContent=copy().done(score);
+ };
+ const begin=()=>{
+   clearInterval(timer);
+   score=0;
+   seconds=15;
+   playing=true;
+   start.hidden=true;
+   time.textContent='15s';
+   status.textContent=copy().score(score);
+   target.setAttribute('aria-label',copy().target);
+   target.hidden=false;
+   moveTarget();
+   timer=setInterval(()=>{
+     if(document.visibilityState!=='visible')return;
+     seconds-=1;
+     time.textContent=`${seconds}s`;
+     if(seconds<=0)stop();
+   },1000);
+ };
+ const updateCopy=()=>{
+   status.textContent=playing?copy().score(score):seconds===0?copy().done(score):copy().intro;
+   start.textContent=seconds===0?copy().again:copy().start;
+   target.setAttribute('aria-label',copy().target);
+ };
+ start.addEventListener('click',begin);
+ target.addEventListener('click',()=>{
+   if(!playing)return;
+   score+=1;
+   status.textContent=copy().score(score);
+   moveTarget();
+ });
+ document.addEventListener('visibilitychange',()=>{
+   if(playing&&document.visibilityState==='visible'&&!timer){
+     timer=setInterval(()=>{
+       seconds-=1;
+       time.textContent=`${seconds}s`;
+       if(seconds<=0)stop();
+     },1000);
+   }else if(playing&&document.visibilityState!=='visible'){
+     clearInterval(timer);
+     timer=null;
+   }
+ });
+ desktop.addEventListener?.('change',event=>{if(!event.matches&&playing)stop()});
+ HQVShared.on('lang',updateCopy);
+}
+
+initVisitCounter();
+initMiniGame();
 observeMotion();
 document.addEventListener('visibilitychange', () => document.body.classList.toggle('page-hidden', document.hidden));
 HQVShared.on('assets', () => {
