@@ -1115,6 +1115,39 @@ function restoreProjectEditorBackup(backup){
   return {slug,sections:sections.length};
 }
 
+async function saveProjectBackupAsNewDraft(backup){
+  if(!HQVShared.auth?.isAuthed())throw new Error('login_required');
+  if(!backup||!Array.isArray(backup.fields)||!Array.isArray(backup.sections))throw new Error('invalid_project_backup');
+  const values=new Map(backup.fields.filter(field=>field?.id).map(field=>[field.id,field.value]));
+  const value=id=>String(values.get(id)??'');
+  const sourceSlug=value('projectSlug').trim();
+  const titleViFields=backup.fields.filter(field=>field?.dataset&&Object.prototype.hasOwnProperty.call(field.dataset,'sectionTitleVi'));
+  const titleEnFields=backup.fields.filter(field=>field?.dataset&&Object.prototype.hasOwnProperty.call(field.dataset,'sectionTitleEn'));
+  if(!sourceSlug||titleViFields.length!==backup.sections.length||titleEnFields.length!==backup.sections.length)throw new Error('invalid_project_backup');
+  let stats;
+  try{stats=JSON.parse(value('projectStats')||'[]')}catch(_){throw new Error('invalid_stats_json')}
+  if(!Array.isArray(stats))throw new Error('invalid_stats_json');
+  const sections=backup.sections.map((section,index)=>{
+    let blocks;
+    try{blocks=JSON.parse(section.blocks)}catch(_){throw new Error('invalid_project_backup')}
+    if(!blocks||!Array.isArray(blocks.items))throw new Error('invalid_project_backup');
+    return {sort_order:index,title_vi:String(titleViFields[index].value||''),title_en:String(titleEnFields[index].value||''),blocks};
+  });
+  await loadProjectDrafts();
+  const date=String(backup.savedAt||'').replace(/\D/g,'').slice(0,12)||String(Date.now());
+  const stem=`${sourceSlug}-recovered-${date}`;
+  let slug=stem,suffix=2;
+  while(projectBySlug(slug)||projectDrafts.has(slug))slug=`${stem}-${suffix++}`;
+  const project={id:null,slug,sort_order:Number(value('projectSortOrder'))||0,published:false,title_vi:value('projectTitleVi'),title_en:value('projectTitleEn'),hook_vi:value('projectHookVi'),hook_en:value('projectHookEn'),intro_vi:value('projectIntroVi'),intro_en:value('projectIntroEn'),categories:value('projectCategories').split(',').map(item=>item.trim()).filter(Boolean),stats,visual_type:value('projectVisualType')||'web',tone_a:value('projectToneA')||null,tone_b:value('projectToneB')||null};
+  validateProjectPayload(project,{creating:true});
+  const draft={version:1,project,sections};
+  await upsertProjectDraftRow(`project.draft.${slug}`,draft);
+  projectDrafts.set(slug,draft);
+  refreshAdminProjectList();
+  setProjectStatus('ok',currentLang==='en'?`Recovered draft saved as ${slug}.`:`Đã lưu bản nháp khôi phục với slug ${slug}.`);
+  return {slug,sections:sections.length};
+}
+
 function editProject(project){
   const source=projectAdminSource(project);$('#projectEditor').hidden=false;$('#projectDbId').value=source.dbId||'';$('#projectSlug').value=source.id;$('#projectSlug').dataset.originalSlug=project.id||source.id;$('#projectSlug').disabled=!!source.dbId&&!source.__draftPayload;
   $('#projectSortOrder').value=Number(source.index)||1;const vi=source.content.vi,en=source.content.en;$('#projectTitleVi').value=vi.title||'';$('#projectTitleEn').value=en.title||'';$('#projectHookVi').value=vi.hook||'';$('#projectHookEn').value=en.hook||'';$('#projectIntroVi').value=vi.intro||'';$('#projectIntroEn').value=en.intro||'';$('#projectCategories').value=(vi.category||[]).join(', ');$('#projectVisualType').value=source.visual||'web';$('#projectToneA').value=source.tone?.[0]||'';$('#projectToneB').value=source.tone?.[1]||'';$('#projectStats').value=JSON.stringify(vi.stats||[],null,2);
@@ -1988,5 +2021,5 @@ $('[data-admin-lang="vi"]')?.addEventListener('click',()=>changeAdminLanguage('v
 $('[data-admin-lang="en"]')?.addEventListener('click',()=>changeAdminLanguage('en'),{signal:controller.signal});
 window.addEventListener('message',event=>{if(event.origin!==location.origin||event.source!==globalPreviewWindow)return;if(event.data?.type==='hqv-draft-preview-ready'){globalPreviewWindow.postMessage({type:'hqv-draft-preview',runtime:deepClone(globalPreviewSnapshot||{})},location.origin);return}if(event.data?.type!=='hqv-global-preview-ready')return;globalPreviewWindow.postMessage({type:'hqv-global-preview',content:deepClone(globalPreviewSnapshot||{})},location.origin)},{signal:controller.signal});
 }
-window.HQVAdmin={mount(root){if(controller)return;controller=new AbortController();const template=document.createElement('template');template.innerHTML=ADMIN_MARKUP.replace('<div class="global-cms-head">','<div class="global-cms-head"><div class="login-langs" aria-label="Language"><button type="button" data-admin-lang="vi">VI</button><button type="button" data-admin-lang="en">EN</button></div>');root.append(template.content);adminDialog=$('#adminDialog');adminDialog.querySelector('#globalContentManager')?.insertAdjacentHTML('afterend',VISITOR_ADMIN_MARKUP);adminDialog.querySelector('.admin-project-management:not(.visitor-admin)')?.insertAdjacentHTML('afterend',INSIGHT_ADMIN_MARKUP);unsubscribers=[HQVShared.on('projects',refreshAdminProjectList),HQVShared.on('assets',()=>{refreshAdminList();const slug=$('#projectSlug')?.dataset.originalSlug;const project=slug&&projectBySlug(slug);if(project)renderProjectMediaManager(project)}),HQVShared.on('global',()=>{if(globalContentLoadState!=='loading')loadGlobalDrafts()}),HQVShared.on('insights',()=>{refreshAdminInsightList();populateAdminProjects()})];bindAdminEvents();applyAdminStatic();renderGlobalEditor();openModalDialog(adminDialog);globalContentLoadState='loading';refreshGlobalControls();HQVShared.loadGlobalPublished().then(loaded=>{if(loaded)loadGlobalDrafts();else{globalContentLoadState='failed';globalAdminContent=HQVShared.composeGlobalContent(globalFallbackContent());renderGlobalEditor();refreshGlobalBadge();refreshGlobalControls();setAdminStatus('#globalContentStatus','err',currentLang==='en'?'Live content could not be loaded. Writes are blocked to prevent overwriting it.':'Không tải được nội dung live, chặn ghi để tránh ghi đè.')}});loadVisitorAdminList();loadAssets();loadAdminProjects().catch(error=>setProjectStatus('err',projectErrorText(error)));loadProjectDrafts();loadAdminInsights();loadInsightDrafts();},restoreProjectBackup:restoreProjectEditorBackup,unmount(){controller?.abort();controller=null;unsubscribers.forEach(unsubscribe=>unsubscribe());unsubscribers=[];document.querySelectorAll('#adminDialog,#mediaLibraryDialog').forEach(node=>node.remove());globalDraftContent=null;projectDrafts.clear();insightDrafts.clear();INSIGHTS_ADMIN.splice(0);assetRegistry.clear();globalPreviewWindow=null;globalPreviewSnapshot=null;HQVShared.auth=null;}};
+window.HQVAdmin={mount(root){if(controller)return;controller=new AbortController();const template=document.createElement('template');template.innerHTML=ADMIN_MARKUP.replace('<div class="global-cms-head">','<div class="global-cms-head"><div class="login-langs" aria-label="Language"><button type="button" data-admin-lang="vi">VI</button><button type="button" data-admin-lang="en">EN</button></div>');root.append(template.content);adminDialog=$('#adminDialog');adminDialog.querySelector('#globalContentManager')?.insertAdjacentHTML('afterend',VISITOR_ADMIN_MARKUP);adminDialog.querySelector('.admin-project-management:not(.visitor-admin)')?.insertAdjacentHTML('afterend',INSIGHT_ADMIN_MARKUP);unsubscribers=[HQVShared.on('projects',refreshAdminProjectList),HQVShared.on('assets',()=>{refreshAdminList();const slug=$('#projectSlug')?.dataset.originalSlug;const project=slug&&projectBySlug(slug);if(project)renderProjectMediaManager(project)}),HQVShared.on('global',()=>{if(globalContentLoadState!=='loading')loadGlobalDrafts()}),HQVShared.on('insights',()=>{refreshAdminInsightList();populateAdminProjects()})];bindAdminEvents();applyAdminStatic();renderGlobalEditor();openModalDialog(adminDialog);globalContentLoadState='loading';refreshGlobalControls();HQVShared.loadGlobalPublished().then(loaded=>{if(loaded)loadGlobalDrafts();else{globalContentLoadState='failed';globalAdminContent=HQVShared.composeGlobalContent(globalFallbackContent());renderGlobalEditor();refreshGlobalBadge();refreshGlobalControls();setAdminStatus('#globalContentStatus','err',currentLang==='en'?'Live content could not be loaded. Writes are blocked to prevent overwriting it.':'Không tải được nội dung live, chặn ghi để tránh ghi đè.')}});loadVisitorAdminList();loadAssets();loadAdminProjects().catch(error=>setProjectStatus('err',projectErrorText(error)));loadProjectDrafts();loadAdminInsights();loadInsightDrafts();},restoreProjectBackup:restoreProjectEditorBackup,saveProjectBackupAsNewDraft,unmount(){controller?.abort();controller=null;unsubscribers.forEach(unsubscribe=>unsubscribe());unsubscribers=[];document.querySelectorAll('#adminDialog,#mediaLibraryDialog').forEach(node=>node.remove());globalDraftContent=null;projectDrafts.clear();insightDrafts.clear();INSIGHTS_ADMIN.splice(0);assetRegistry.clear();globalPreviewWindow=null;globalPreviewSnapshot=null;HQVShared.auth=null;}};
 })();
