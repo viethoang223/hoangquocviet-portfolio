@@ -172,7 +172,7 @@ function projectFromDraftPayload(base,payload){
 
 async function loadProjectDrafts(){projectDrafts=new Map();projectDraftLoadState='pending';if(!HQVShared.auth?.isAuthed()||!sbReady()){projectDraftLoadState='ready';return}try{const r=await sbFetch('/rest/v1/portfolio_content?select=content_key,value_vi,updated_at&content_key=like.project.draft.%25&order=updated_at.desc',{method:'GET'});const rows=await r.json();(Array.isArray(rows)?rows:[]).forEach(r=>{const slug=String(r.content_key||'').slice('project.draft.'.length);const payload=parseContentJSON(r.value_vi,{});if(slug&&payload&&typeof payload==='object')projectDrafts.set(slug,payload)});projectDraftLoadState='ready'}catch(_){projectDraftLoadState='failed'}if(adminDialog?.open)refreshAdminProjectList()}
 
-function projectAdminSource(project){const d=projectDrafts.get(project.id);return d?projectFromDraftPayload(project,d):project}
+function projectAdminSource(project){if(!project)return null;const d=projectDrafts.get(project.id);return d?projectFromDraftPayload(project,d):project}
 
 function projectForEditing(slug){
   const project=projectBySlug(slug),draft=projectDrafts.get(slug);
