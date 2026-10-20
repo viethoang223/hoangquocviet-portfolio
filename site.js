@@ -493,6 +493,11 @@ function initVisitCounter(){
  if(!host||!valueNode||!caption)return;
  let lastCount=null,recordAttempted=false,recordRetries=0,qualificationTimer=null,loadFailed=false;
  const api='/api/visitors';
+ const displayVisitCount=total=>{
+   const displayedTotal=total+200;
+   if(!Number.isSafeInteger(displayedTotal))throw new Error('visitor_display_total_invalid');
+   return displayedTotal;
+ };
  const isEnglish=()=>currentLang==='en';
  const updateLabel=()=>{
    $('#visitCounterLabel').textContent=isEnglish()?'VISITS':'LƯỢT GHÉ';
@@ -552,7 +557,7 @@ function initVisitCounter(){
      const data=await response.json();
      const total=Number(data?.total);
      if(!Number.isSafeInteger(total)||total<0)throw new Error('visitor_summary_invalid_total');
-     drawCount(total);
+     drawCount(displayVisitCount(total));
      loadFailed=false;
    }catch(error){
      host.dataset.state='error';
@@ -570,7 +575,7 @@ function initVisitCounter(){
      if(!response.ok)throw new Error(`visitor_record_http_${response.status}`);
      const result=await response.json();
      const total=Number(result?.total);
-     if(Number.isSafeInteger(total)&&total>=0)drawCount(total);
+     if(Number.isSafeInteger(total)&&total>=0)drawCount(displayVisitCount(total));
      else await refreshCount();
      recordRetries=0;
    }catch(error){
