@@ -295,7 +295,14 @@ const toneClass=name=>({Marketing:'warm','Marketing Strategy':'warm','Consumer I
 
 const tag=name=>`<span class="pill ${toneClass(name)}">${esc(name)}</span>`;
 
-const statsH=stats=>stats?.length?`<div class="stat-row">${stats.map(([v,l])=>`<div class="stat"><strong>${esc(v)}</strong><span>${esc(l)}</span></div>`).join('')}</div>`:'';
+const statsH=stats=>{
+  const rows=(Array.isArray(stats)?stats:[]).map(stat=>{
+    if(Array.isArray(stat))return [stat[0],stat[1]];
+    if(!stat||typeof stat!=='object')return null;
+    return [stat.value??stat.metric??stat.number??'',stat.label??stat.title??stat.name??''];
+  }).filter(row=>row&&row.some(value=>String(value??'').trim()));
+  return rows.length?`<div class="stat-row">${rows.map(([value,label])=>`<div class="stat"><strong>${esc(value)}</strong><span>${esc(label)}</span></div>`).join('')}</div>`:'';
+};
 
 const dialogFocusReturn=new WeakMap();
 
