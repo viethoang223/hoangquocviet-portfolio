@@ -441,6 +441,7 @@
 .global-inline-tags{font-size:10px;color:rgba(255,255,255,.42)}
 .admin-proof-group{display:grid;gap:8px;margin-top:16px}
 .admin-proof-group>h4{margin:0 0 2px;color:rgba(255,255,255,.72);font-size:10px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+.profile-content-admin{display:grid;gap:9px;margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.08)}.profile-content-admin-block{display:grid;gap:9px;padding:12px;border:1px solid rgba(255,255,255,.08);border-radius:12px}.profile-content-admin .admin-project-head{align-items:center}
 </style>
 <style>.login-form[hidden]{display:none!important}</style>
 </head>
@@ -457,7 +458,7 @@
     <noscript>Trang quản trị cần JavaScript để đăng nhập.</noscript>
   </form>
 </main>
-<script src="./shared.js?v=20261020-rich-tables-charts-2"></script>
+<script src="./shared.js?v=20261021-inline-content-1"></script>
 <script>(() => {
   const root = document.querySelector('#adminRoot');
   const form = document.querySelector('#adminLoginForm');
@@ -581,7 +582,7 @@
     if (loadPromise) return loadPromise;
     loadPromise = new Promise((resolve, reject) => {
       const script = document.createElement('script');
-      script.src = './admin.js?v=20261020-save-recovered-draft-1';
+      script.src = './admin.js?v=20261021-inline-content-1';
       script.onload = resolve;
       script.onerror = () => reject(new Error('admin_script_load_failed'));
       document.body.append(script);

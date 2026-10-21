@@ -25,6 +25,7 @@ For local development, use a static HTTP server rather than opening files with `
 Public project, skill, certification, and translation data currently lives in `shared.js`.
 
 Admin translations are merged only when `admin.js` is loaded after successful membership verification.
+Experience and certificate entries can also include inline paragraph, image, and video blocks managed from the Experience tab; these are displayed on the index independently of Proof uploads.
 
 ## Static assets vs Supabase assets
 

@@ -30,6 +30,17 @@ function renderCerts(groups,removedGroupIds=[],lang=currentLang){
   host.innerHTML=normalized.map(group=>`<section class="cert-group"><h3>${esc(getLocalizedContent(group.title,lang))}</h3><div class="cert-grid">${group.items.map(item=>certBadgeHtml(item,lang)).join('')}</div></section>`).join('');
 }
 
+function renderInlineContentBlocks(blocks,lang){
+  return (Array.isArray(blocks)?blocks:[]).filter(block=>['paragraph','image','video'].includes(block?.type)).map(block=>{
+    let html='';
+    if(block.type==='image'){
+      const url=HQVShared.safeLinkHref(block.settings?.url||''),caption=esc(String(block.content?.[`caption_${lang}`]||block.content?.[`caption_${lang==='en'?'vi':'en'}`]||''));
+      if(/^https:\/\//i.test(url))html=`<figure class="article-media"><img src="${esc(url)}" alt="${caption}" loading="lazy"><figcaption>${caption}</figcaption></figure>`;
+    }else html=HQVShared.renderBlock(block,lang);
+    return html?`<div class="profile-content-block profile-content-block--${block.type}">${html}</div>`:'';
+  }).join('');
+}
+
 function openCertViewer(id,idx=0){
   if(!certificateItemById(id))return;
   const rows=certAssetList(id);if(!rows.length)return;idx=Math.max(0,Math.min(idx,rows.length-1));const row=rows[idx],url=getAssetUrl(row);let viewerItem;
@@ -177,7 +188,7 @@ function renderExperienceEntries(experience,lang){
   const entries=managed?(Array.isArray(experience.entries)?experience.entries:[]):[{id:'legacy-experience',title:experience.title,role:experience.role,description:experience.description,tags:experience.tags}];
   panel.hidden=!entries.length;
   panel.parentElement?.classList.toggle('is-no-experience',!entries.length);
-  panel.innerHTML=entries.map(entry=>`<article class="exp-entry"><div class="exp-code">${esc(String(getLocalizedContent(entry.title,lang)||''))}</div><h3 class="exp-title">${esc(String(getLocalizedContent(entry.role,lang)||''))}</h3><p>${esc(String(getLocalizedContent(entry.description,lang)||''))}</p><div class="exp-tags">${(entry.tags?.[lang]||[]).map(tag=>`<span class="exp-tag">${esc(tag)}</span>`).join('')}</div></article>`).join('');
+  panel.innerHTML=entries.map(entry=>`<article class="exp-entry"><div class="exp-code">${esc(String(getLocalizedContent(entry.title,lang)||''))}</div><h3 class="exp-title">${esc(String(getLocalizedContent(entry.role,lang)||''))}</h3><p>${esc(String(getLocalizedContent(entry.description,lang)||''))}</p><div class="exp-tags">${(entry.tags?.[lang]||[]).map(tag=>`<span class="exp-tag">${esc(tag)}</span>`).join('')}</div>${renderInlineContentBlocks(entry.highlights,lang)}</article>`).join('');
 }
 
 function applyStatic(){

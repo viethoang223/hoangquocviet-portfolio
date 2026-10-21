@@ -104,7 +104,7 @@ function normalizeCertGroups(raw,removedGroupIds=[]){
       usedItems.add(match);
       const title=match.title||{vi:match.title_vi||match.vi||'',en:match.title_en||match.en||''};
       const description=match.description||{vi:match.description_vi||'',en:match.description_en||''};
-      return {...defaultItem,title:certLocalized(title,defaultItem.title),issuer:String(match.issuer??defaultItem.issuer),date:String(match.date??defaultItem.date),credentialUrl:String(match.credentialUrl??match.credential_url??defaultItem.credentialUrl),description:certLocalized(description,defaultItem.description)};
+      return {...defaultItem,title:certLocalized(title,defaultItem.title),issuer:String(match.issuer??defaultItem.issuer),date:String(match.date??defaultItem.date),credentialUrl:String(match.credentialUrl??match.credential_url??defaultItem.credentialUrl),description:certLocalized(description,defaultItem.description),highlights:Array.isArray(match.highlights)?match.highlights:[]};
     });
     sourceItems.forEach((candidate,index)=>{
       if(usedItems.has(candidate))return;
@@ -513,7 +513,14 @@ function assetKindOf(row){const m=String(row?.mime_type||'').toLowerCase(),t0=St
 
 function certBadgeHtml(item,lang){
   const title=getLocalizedContent(item.title,lang),issuer=String(item.issuer||''),cover=certCoverAsset(item.id);
-  return `<button type="button" class="cert-badge" data-cert-open="${esc(item.id)}" aria-label="${esc(title)}${issuer?` · ${esc(issuer)}`:''}">${cover?`<img class="cert-badge-cover" src="${esc(getAssetUrl(cover))}" alt="${esc(title)}" loading="lazy">`:''}<strong>${esc(title)}</strong>${issuer?`<span>${esc(issuer)}</span>`:''}</button>`;
+  const highlights=(Array.isArray(item.highlights)?item.highlights:[]).filter(block=>['paragraph','image','video'].includes(block?.type)).map(block=>{
+    if(block.type==='image'){
+      const url=safeLinkHref(block.settings?.url||''),caption=esc(String(block.content?.[`caption_${lang}`]||block.content?.[`caption_${lang==='en'?'vi':'en'}`]||''));
+      return /^https:\/\//i.test(url)?`<div class="profile-content-block profile-content-block--image"><figure class="article-media"><img src="${esc(url)}" alt="${caption}" loading="lazy"><figcaption>${caption}</figcaption></figure></div>`:'';
+    }
+    const html=renderBlock(block,lang);return html?`<div class="profile-content-block profile-content-block--${block.type}">${html}</div>`:'';
+  }).join('');
+  return `<article class="cert-card"><button type="button" class="cert-badge" data-cert-open="${esc(item.id)}" aria-label="${esc(title)}${issuer?` · ${esc(issuer)}`:''}">${cover?`<img class="cert-badge-cover" src="${esc(getAssetUrl(cover))}" alt="${esc(title)}" loading="lazy">`:''}<strong>${esc(title)}</strong>${issuer?`<span>${esc(issuer)}</span>`:''}</button>${highlights?`<div class="cert-inline-content">${highlights}</div>`:''}</article>`;
 }
 
 function certDetailHtml(item,lang=currentLang){
