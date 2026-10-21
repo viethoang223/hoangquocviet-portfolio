@@ -464,11 +464,91 @@ function renderTableBlock(value){
   return `<div class="case-table-wrap"><table class="case-table"><thead><tr>${headers.map(cell=>`<th scope="col">${esc(cell)}</th>`).join('')}</tr></thead>${body.length?`<tbody>${body.map(row=>`<tr>${headers.map((_,index)=>`<td>${esc(row[index]||'')}</td>`).join('')}</tr>`).join('')}</tbody>`:''}</table></div>`;
 }
 
-function renderChartBlock(value,title=''){
-  const rows=delimitedRows(value).slice(0,20).map(([label,raw])=>({label:String(label||''),value:Number(String(raw||'').replace(/,/g,''))})).filter(row=>row.label&&Number.isFinite(row.value));
-  if(!rows.length)return '';
-  const max=Math.max(1,...rows.map(row=>Math.abs(row.value)));
-  return `<figure class="case-chart" role="img" aria-label="${esc(title||'Data chart')}">${rows.map(row=>`<div class="case-chart-row"><span class="case-chart-label">${esc(row.label)}</span><span class="case-chart-track"><span class="case-chart-bar" style="--chart-value:${Math.max(0,Math.min(100,Math.abs(row.value)/max*100))}%"></span></span><strong class="case-chart-value">${esc(row.value)}</strong></div>`).join('')}</figure>`;
+function chartDocument(value){
+  let doc=value;
+  if(typeof doc==='string'){try{doc=JSON.parse(doc)}catch(_){doc=null}}
+  if(doc&&typeof doc==='object'&&!Array.isArray(doc)&&Array.isArray(doc.labels)&&Array.isArray(doc.series)){
+    const labels=doc.labels.slice(0,30).map(label=>String(label??'').slice(0,80));
+    const series=doc.series.slice(0,8).map(row=>({
+      name:String(row?.name||'').slice(0,80),
+      type:['bar','line'].includes(row?.type)?row.type:'',
+      color:/^#[\da-f]{3}(?:[\da-f]{3})?$/i.test(String(row?.color||''))?String(row.color):'',
+      values:Array.isArray(row?.values)?row.values.slice(0,labels.length).map(value=>value==null||value===''?NaN:Number(value)):[]
+    })).filter(row=>row.values.some(Number.isFinite));
+    return {labels,series};
+  }
+  const rows=delimitedRows(value).slice(0,30).map(([label,raw])=>({label:String(label||'').slice(0,80),value:raw==null||String(raw).trim()===''?NaN:Number(String(raw).replace(/,/g,''))})).filter(row=>row.label&&Number.isFinite(row.value));
+  return rows.length?{labels:rows.map(row=>row.label),series:[{name:'',values:rows.map(row=>row.value)}]}:{labels:[],series:[]};
+}
+
+function chartNumber(value){
+  if(!Number.isFinite(value))return '';
+  return String(Number(value.toFixed(2)));
+}
+
+function renderChartBlock(value,title='',chartType='bar'){
+  const doc=chartDocument(value),labels=doc.labels,series=doc.series;
+  if(!labels.length||!series.length)return String(value||'').trim()?`<p class="case-chart-error" role="status" style="color:#fca5a5">${esc(typeof I18N!=='undefined'&&currentLang==='en'?'Chart data is invalid. Check the JSON format and numeric series values.':'Dữ liệu biểu đồ không hợp lệ. Hãy kiểm tra JSON và các giá trị số trong series.')}</p>`:'';
+  const type=['bar','horizontal','line','pie','mixed'].includes(chartType)?chartType:'bar';
+  const palette=['#22d3ee','#a78bfa','#ff6b35','#c8f000','#f472b6','#60a5fa','#fbbf24','#34d399'];
+  const colors=series.map((row,index)=>row.color||palette[index%palette.length]);
+  const valueAt=(row,index)=>Number.isFinite(row.values[index])?row.values[index]:0;
+  let svg='';
+  if(type==='pie'){
+    if(series[0].values.some(value=>Number.isFinite(value)&&value<0))return `<p class="case-chart-error" role="status" style="color:#fca5a5">${esc(typeof I18N!=='undefined'&&currentLang==='en'?'Pie charts cannot contain negative values.':'Biểu đồ tròn không thể chứa giá trị âm.')}</p>`;
+    const values=series[0].values.map((value,index)=>Math.max(0,valueAt(series[0],index)));
+    const total=values.reduce((sum,value)=>sum+value,0);
+    if(total<=0)return `<p class="case-chart-error" role="status" style="color:#fca5a5">${esc(typeof I18N!=='undefined'&&currentLang==='en'?'A pie chart needs at least one positive value.':'Biểu đồ tròn cần ít nhất một giá trị dương.')}</p>`;
+    let angle=-Math.PI/2;
+    const wedges=values.map((amount,index)=>{
+      const next=angle+amount/total*Math.PI*2,large=next-angle>Math.PI?1:0;
+      const x1=160+100*Math.cos(angle),y1=130+100*Math.sin(angle),x2=160+100*Math.cos(next),y2=130+100*Math.sin(next);
+      const color=palette[index%palette.length];
+      const path=amount>=total?`<circle cx="160" cy="130" r="100" fill="${color}">`: `<path d="M 160 130 L ${x1.toFixed(2)} ${y1.toFixed(2)} A 100 100 0 ${large} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} Z" fill="${color}">`;
+      const wedge=`${path}<title>${esc(labels[index])}: ${esc(chartNumber(amount))} (${chartNumber(amount/total*100)}%)</title>${amount>=total?'</circle>':'</path>'}`;
+      angle=next;return wedge;
+    }).join('');
+    svg=`<svg class="case-chart-svg case-chart-svg--pie" viewBox="0 0 320 260" aria-hidden="true">${wedges}</svg>`;
+  }else{
+    const chartHeight=type==='horizontal'?Math.max(300,labels.length*34+58):300;
+    const left=56,right=620,top=18,bottom=chartHeight-46,width=right-left,height=bottom-top;
+    const allValues=series.flatMap(row=>labels.map((_,index)=>valueAt(row,index)));
+    const min=Math.min(0,...allValues),max=Math.max(1,...allValues),span=max-min||1;
+    const y=value=>bottom-(value-min)/span*height;
+    const grid=Array.from({length:5},(_,index)=>{
+      const value=min+span*index/4,yy=y(value);
+      return `<g class="case-chart-grid"><line x1="${left}" y1="${yy.toFixed(2)}" x2="${right}" y2="${yy.toFixed(2)}"></line><text x="${left-8}" y="${(yy+4).toFixed(2)}" text-anchor="end">${esc(chartNumber(value))}</text></g>`;
+    }).join('');
+    const x=index=>left+width*(index+.5)/labels.length;
+    let marks='';
+    if(type==='horizontal'){
+      const minX=Math.min(0,...allValues),maxX=Math.max(1,...allValues),range=maxX-minX||1,zero=left+(0-minX)/range*width;
+      const group=height/labels.length,slot=group/series.length;
+      const xGrid=Array.from({length:5},(_,index)=>{const value=minX+range*index/4,xx=left+(value-minX)/range*width;return `<g class="case-chart-grid"><line x1="${xx.toFixed(2)}" y1="${top}" x2="${xx.toFixed(2)}" y2="${bottom}"></line><text x="${xx.toFixed(2)}" y="${bottom+20}" text-anchor="middle">${esc(chartNumber(value))}</text></g>`}).join('');
+      marks=labels.map((label,index)=>`<text class="case-chart-axis-label" x="${left-8}" y="${(top+group*(index+.5)+4).toFixed(2)}" text-anchor="end">${esc(label)}</text>${series.map((row,seriesIndex)=>{const value=valueAt(row,index),end=left+(value-minX)/range*width,x0=Math.min(zero,end),barWidth=Math.max(1,Math.abs(end-zero)),yy=top+group*index+slot*seriesIndex+slot*.18;return `<rect x="${x0.toFixed(2)}" y="${yy.toFixed(2)}" width="${barWidth.toFixed(2)}" height="${(slot*.64).toFixed(2)}" rx="3" fill="${colors[seriesIndex]}"><title>${esc(row.name||label)}: ${esc(chartNumber(value))}</title></rect>`}).join('')}`).join('');
+      svg=`<svg class="case-chart-svg" viewBox="0 0 640 ${chartHeight}" aria-hidden="true">${xGrid}<line class="case-chart-axis" x1="${zero.toFixed(2)}" y1="${top}" x2="${zero.toFixed(2)}" y2="${bottom}"></line>${marks}</svg>`;
+    }else{
+      marks=series.map((row,seriesIndex)=>{
+        const seriesType=type==='mixed'?(row.type|| (seriesIndex===0?'bar':'line')):type;
+        if(seriesType==='line'){
+          const points=labels.map((_,index)=>`${x(index).toFixed(2)},${y(valueAt(row,index)).toFixed(2)}`).join(' ');
+          return `<polyline class="case-chart-line" points="${points}" stroke="${colors[seriesIndex]}"></polyline>${labels.map((label,index)=>`<circle cx="${x(index).toFixed(2)}" cy="${y(valueAt(row,index)).toFixed(2)}" r="4" fill="${colors[seriesIndex]}"><title>${esc(row.name||label)} · ${esc(label)}: ${esc(chartNumber(valueAt(row,index)))}</title></circle>`).join('')}`;
+        }
+        const groupWidth=width/labels.length,barWidth=groupWidth/series.length*.72;
+        return labels.map((label,index)=>{const value=valueAt(row,index),base=y(0),end=y(value),barX=x(index)-groupWidth/2+groupWidth/series.length*seriesIndex+(groupWidth/series.length-barWidth)/2;return `<rect x="${barX.toFixed(2)}" y="${Math.min(base,end).toFixed(2)}" width="${barWidth.toFixed(2)}" height="${Math.max(1,Math.abs(base-end)).toFixed(2)}" rx="3" fill="${colors[seriesIndex]}"><title>${esc(row.name||label)} · ${esc(label)}: ${esc(chartNumber(value))}</title></rect>`}).join('');
+      }).join('');
+      const labelStride=Math.max(1,Math.ceil(labels.length/14));
+      const xLabels=labels.map((label,index)=>index%labelStride===0||index===labels.length-1?`<text class="case-chart-axis-label" x="${x(index).toFixed(2)}" y="${bottom+20}" text-anchor="middle">${esc(label)}</text>`:'').join('');
+      svg=`<svg class="case-chart-svg" viewBox="0 0 640 300" aria-hidden="true">${grid}<line class="case-chart-axis" x1="${left}" y1="${y(0).toFixed(2)}" x2="${right}" y2="${y(0).toFixed(2)}"></line>${marks}${xLabels}</svg>`;
+    }
+  }
+  const legendItem=(color,text,value='')=>`<span class="case-chart-legend-item" style="display:inline-flex;align-items:center;gap:6px;color:rgba(255,255,255,.72);font-size:10px"><i style="width:9px;height:9px;border-radius:50%;background:${color}"></i>${esc(text)}${value?` <strong style="color:#fff">${esc(value)}</strong>`:''}</span>`;
+  const legend=type==='pie'
+    ?doc.labels.map((label,index)=>legendItem(palette[index%palette.length],label,chartNumber(Math.max(0,valueAt(series[0],index))))).join('')
+    :series.map((row,index)=>legendItem(colors[index],row.name||`Series ${index+1}`)).join('');
+  svg=svg.replace(/<svg\b([^>]*)>/,`<svg$1 style="${type==='pie'?'display:block;width:100%;max-width:320px;height:auto;margin:0 auto;overflow:visible':'display:block;width:100%;height:auto;overflow:visible'}">`).replace(/(<svg\b[^>]*>)/,`$1<style>.case-chart-grid line{stroke:rgba(255,255,255,.1);stroke-dasharray:3 5}.case-chart-grid text,.case-chart-axis-label{fill:rgba(255,255,255,.58);font:10px ui-monospace,SFMono-Regular,Menlo,monospace}.case-chart-axis{stroke:rgba(255,255,255,.3)}.case-chart-line{fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.case-chart-svg circle{stroke:#0a0b10;stroke-width:2}</style>`);
+  const accessibleSummary=series.map(row=>`${row.name||'Series'}: ${labels.map((label,index)=>`${label} ${chartNumber(valueAt(row,index))}`).join(', ')}`).join('. ');
+  return `<figure class="case-chart case-chart--${type}" role="img" aria-label="${esc(`${title||'Data chart'}. ${accessibleSummary}`)}" style="display:grid;gap:10px;min-width:0;margin:20px 0;padding:12px;overflow:hidden;border:1px solid rgba(34,211,238,.14);border-radius:12px;background:rgba(34,211,238,.025)">${svg}<figcaption class="case-chart-legend" style="display:flex;flex-wrap:wrap;gap:7px 14px;margin-top:4px">${legend}</figcaption></figure>`;
 }
 
 function sanitizeBlockDocument(value){
@@ -522,7 +602,7 @@ function certDetailHtml(item,lang=currentLang){
   const grouped=[],seen=new Set();
   proofs.forEach((row,index)=>{if(row.asset_type==='gallery'&&row.gallery_id){if(seen.has(row.gallery_id))return;seen.add(row.gallery_id);const files=proofs.filter(asset=>asset.asset_type==='gallery'&&asset.gallery_id===row.gallery_id);grouped.push({row,index,files})}else grouped.push({row,index,files:[row]})});
   const evidence=grouped.map(({row,index,files})=>{const gallery=row.asset_type==='gallery',image=String(row.mime_type||'').toLowerCase().startsWith('image/'),canPreview=!!proofPreviewKind(row);const preview=gallery?`<div class="cert-evidence-thumbs">${files.slice(0,3).map(file=>`<img src="${esc(getAssetUrl(file))}" alt="${esc(file.original_name||title)}" loading="lazy">`).join('')}</div>`:image?`<img class="cert-evidence-thumb" src="${esc(getAssetUrl(row))}" alt="${esc(row.original_name||title)}" loading="lazy">`:'';const name=gallery?(currentLang==='en'?'Image gallery':'Bộ ảnh minh chứng'):(row.original_name||title);const type=gallery?(currentLang==='en'?'Gallery':'Bộ ảnh'):mediaTypeLabel(row);const copy=`<span class="cert-evidence-copy"><strong>${esc(name)}</strong><small>${esc(type)}${files.length>1?` · ${files.length}`:''}</small>${canPreview?'':`<span class="cert-evidence-downloads">${files.map(file=>{const fileName=file.original_name||name,url=getAssetUrl(file),download=proofDownloadUrl(url,fileName);return `<a class="viewer-btn" href="${esc(download)}" download="${esc(fileName)}" data-proof-download="${esc(url)}" data-proof-download-name="${esc(fileName)}">${esc(currentLang==='en'?'Download':'Tải')} · ${esc(fileName)} ↓</a>`}).join('')}</span>`}</span>`;return canPreview?`<button class="cert-evidence-item" type="button" data-cert-view="${esc(item.id)}|${index}">${preview}${copy}<span aria-hidden="true">↗</span></button>`:`<div class="cert-evidence-item">${preview}${copy}</div>`}).join('');
-  const highlights=(Array.isArray(item.highlights)?item.highlights:[]).filter(block=>['paragraph','image','video'].includes(block?.type)).map(block=>{
+  const highlights=(Array.isArray(item.highlights)?item.highlights:[]).filter(block=>['paragraph','image','video','chart'].includes(block?.type)).map(block=>{
     if(block.type==='image'){
       const url=safeLinkHref(block.settings?.url||''),caption=esc(String(block.content?.[`caption_${lang}`]||block.content?.[`caption_${lang==='en'?'vi':'en'}`]||''));
       return /^https:\/\//i.test(url)?`<div class="profile-content-block profile-content-block--image"><figure class="article-media"><img src="${esc(url)}" alt="${caption}" loading="lazy"><figcaption>${caption}</figcaption></figure></div>`:'';
@@ -563,7 +643,7 @@ function renderBlock(block,lang,context={}){
     case 'richtext': { const html=sanitizeRichText(String(c[`text_${lang}`]??c.text??'')); return html?`<div class="case-copy case-richtext">${html}</div>`:''; }
     case 'quote': return `<blockquote class="case-pull-quote">${text}</blockquote>`;
     case 'table': { const caption=String(c[`caption_${lang}`]||'');return `${renderTableBlock(c[`text_${lang}`]??c.text??'')}${caption?`<p class="case-table-caption">${esc(caption)}</p>`:''}`; }
-    case 'chart': { const caption=String(c[`caption_${lang}`]||'');return `${renderChartBlock(c[`text_${lang}`]??c.text??'',caption)}${caption?`<p class="case-table-caption">${esc(caption)}</p>`:''}`; }
+    case 'chart': { const caption=String(c[`caption_${lang}`]||'');return `${renderChartBlock(c[`text_${lang}`]??c.text??'',caption,s.chart_type||'bar')}${caption?`<p class="case-table-caption">${esc(caption)}</p>`:''}`; }
     case 'list': { const items=Array.isArray(c[`items_${lang}`])?c[`items_${lang}`]:Array.isArray(c.items)?c.items:[]; return items.length?`<ul class="case-block-list">${items.map(x=>`<li>${esc(String(x))}</li>`).join('')}</ul>`:''; }
     case 'divider': return `<hr class="case-block-divider">`;
     case 'image': { const a=assetForBlock(s.asset_id); if(!a)return `<div class="article-media-placeholder">${esc(title|| (lang==='en'?'Image placeholder':'Vị trí hình ảnh'))}</div>`; const alt=String(c[`alt_${lang}`]||c.alt||a.original_name||''); const caption=esc(String(c[`caption_${lang}`]??c[`caption_${lang==='en'?'vi':'en'}`]??'')); return `<figure class="article-media"><img src="${esc(a.url)}" alt="${esc(alt)}" loading="lazy" style="width:auto;height:auto;max-width:100%;object-fit:contain"><figcaption>${caption}</figcaption></figure>`; }

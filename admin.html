@@ -443,6 +443,19 @@
 .admin-proof-group>h4{margin:0 0 2px;color:rgba(255,255,255,.72);font-size:10px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
 .profile-content-admin{display:grid;gap:9px;margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.08)}.profile-content-admin-block{display:grid;gap:9px;padding:12px;border:1px solid rgba(255,255,255,.08);border-radius:12px}.profile-content-admin .admin-project-head{align-items:center}
 </style>
+<style>
+.admin-block-preview-content .case-chart{display:block;overflow:hidden}
+.admin-block-preview-content .case-chart-svg{display:block;width:100%;height:auto;overflow:visible}
+.admin-block-preview-content .case-chart-svg--pie{max-width:320px;margin:0 auto}
+.admin-block-preview-content .case-chart-grid line{stroke:rgba(255,255,255,.1);stroke-dasharray:3 5}
+.admin-block-preview-content .case-chart-grid text,.admin-block-preview-content .case-chart-axis-label{fill:rgba(255,255,255,.58);font:10px ui-monospace,SFMono-Regular,Menlo,monospace}
+.admin-block-preview-content .case-chart-axis{stroke:rgba(255,255,255,.3)}
+.admin-block-preview-content .case-chart-line{fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.admin-block-preview-content .case-chart-svg circle{stroke:#0a0b10;stroke-width:2}
+.admin-block-preview-content .case-chart-legend{display:flex;flex-wrap:wrap;gap:7px 14px;margin-top:12px}
+.admin-block-preview-content .case-chart-legend-item{display:inline-flex;align-items:center;gap:6px;color:rgba(255,255,255,.72);font-size:10px}
+.admin-block-preview-content .case-chart-legend-item i{width:9px;height:9px;border-radius:50%;background:var(--chart-color)}
+</style>
 <style>.login-form[hidden]{display:none!important}</style>
 </head>
 <body>
@@ -458,7 +471,7 @@
     <noscript>Trang quản trị cần JavaScript để đăng nhập.</noscript>
   </form>
 </main>
-<script src="./shared.js?v=20261021-inline-content-2"></script>
+<script src="./shared.js?v=20261021-flexible-charts-1"></script>
 <script>(() => {
   const root = document.querySelector('#adminRoot');
   const form = document.querySelector('#adminLoginForm');
@@ -582,7 +595,7 @@
     if (loadPromise) return loadPromise;
     loadPromise = new Promise((resolve, reject) => {
       const script = document.createElement('script');
-      script.src = './admin.js?v=20261021-inline-content-1';
+      script.src = './admin.js?v=20261021-flexible-charts-1';
       script.onload = resolve;
       script.onerror = () => reject(new Error('admin_script_load_failed'));
       document.body.append(script);

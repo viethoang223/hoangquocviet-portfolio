@@ -25,7 +25,9 @@ For local development, use a static HTTP server rather than opening files with `
 Public project, skill, certification, and translation data currently lives in `shared.js`.
 
 Admin translations are merged only when `admin.js` is loaded after successful membership verification.
-Experience and certificate entries can also include inline paragraph, image, and video blocks managed from the Experience tab; these are displayed on the index independently of Proof uploads.
+Experience and certificate entries can also include inline paragraph, image, video, and chart blocks managed from the Experience tab; these are displayed on the index independently of Proof uploads. Case and Insight section editors use the same chart block.
+
+Chart blocks support vertical bars, horizontal bars, lines, pies, and mixed bar/line series. Enter JSON such as `{"labels":["20","30","40"],"series":[{"name":"Nam","type":"line","values":[0.4,0.8,1]},{"name":"Nữ","type":"line","values":[0.5,0.7,0.9]}]}`; mixed charts set each series `type` to `bar` or `line`. Existing label/value rows remain supported as vertical bar charts.
 
 ## Static assets vs Supabase assets
 

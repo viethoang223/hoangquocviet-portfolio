@@ -31,7 +31,7 @@ function renderCerts(groups,removedGroupIds=[],lang=currentLang){
 }
 
 function renderInlineContentBlocks(blocks,lang){
-  return (Array.isArray(blocks)?blocks:[]).filter(block=>['paragraph','image','video'].includes(block?.type)).map(block=>{
+  return (Array.isArray(blocks)?blocks:[]).filter(block=>['paragraph','image','video','chart'].includes(block?.type)).map(block=>{
     let html='';
     if(block.type==='image'){
       const url=HQVShared.safeLinkHref(block.settings?.url||''),caption=esc(String(block.content?.[`caption_${lang}`]||block.content?.[`caption_${lang==='en'?'vi':'en'}`]||''));
