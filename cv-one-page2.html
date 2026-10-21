@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="CV một trang Hoàng Quốc Việt — Marketing Operations, MarTech, AI và Workflow Automation.">
+  <title>CV một trang | Hoàng Quốc Việt</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17231e;
+      --muted: #52615a;
+      --soft: #748078;
+      --paper: #fff;
+      --canvas: #e9eeeb;
+      --line: #dce4df;
+      --green: #176b50;
+      --lime: #c5ef71;
+      --orange: #f0784a;
+      --sidebar: #122a25;
+      --sidebar-muted: #d0ddd7;
+    }
+
+    * { box-sizing: border-box; }
+    html { background: var(--canvas); }
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+      font-size: 13px;
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+    }
+    button { font: inherit; }
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 16px;
+      color: #fff;
+      background: rgba(18, 42, 37, .96);
+      box-shadow: 0 5px 18px rgba(15, 35, 29, .16);
+    }
+    .toolbar[hidden] { display: none !important; }
+    .toolbar-note { margin-right: 8px; color: #d4e1dc; font-size: 12px; }
+    .toolbar button {
+      padding: 8px 12px;
+      border: 1px solid rgba(255,255,255,.24);
+      border-radius: 8px;
+      color: #fff;
+      background: transparent;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .toolbar button:hover, .toolbar button:focus-visible { border-color: var(--lime); outline: none; }
+    .toolbar button.primary { border-color: var(--lime); color: #13261f; background: var(--lime); }
+    .toolbar-status { min-width: 80px; color: #d4e1dc; font-size: 11px; }
+    .resume { padding: 24px 16px 40px; }
+    .sheet {
+      display: grid;
+      grid-template-columns: 30% 70%;
+      width: min(210mm, 100%);
+      min-height: 297mm;
+      margin: 0 auto;
+      overflow: hidden;
+      background: var(--paper);
+      box-shadow: 0 18px 50px rgba(28, 53, 44, .16);
+    }
+    .rail {
+      padding: 11mm 7mm 9mm;
+      color: #fff;
+      background:
+        radial-gradient(circle at 5% 0%, rgba(197,239,113,.13), transparent 32%),
+        linear-gradient(165deg, #17372f, var(--sidebar) 54%, #10231f);
+    }
+    .main-column { position: relative; padding: 11mm 11mm 9mm; display: flex; flex-direction: column; justify-content: space-between; }
+    .portrait {
+      display: block;
+      width: 100%;
+      height: 46mm;
+      margin-bottom: 9px;
+      border: 2px solid rgba(255,255,255,.78);
+      border-radius: 10px;
+      background: #fff;
+      object-fit: cover;
+      object-position: center 35%;
+    }
+    .qr-mark {
+      position: absolute;
+      top: 10mm;
+      right: 11mm;
+      display: flex;
+      width: 20mm;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      color: var(--green);
+      font-size: 6px;
+      font-weight: 850;
+      letter-spacing: .04em;
+      line-height: 1.15;
+      text-align: center;
+      text-decoration: none;
+    }
+    .qr-mark img {
+      display: block;
+      width: 19mm;
+      height: 19mm;
+      border: 1px solid #e1e7e3;
+      background: #fff;
+      image-rendering: crisp-edges;
+    }
+    .rail-kicker, .eyebrow {
+      margin: 0 0 7px;
+      color: var(--lime);
+      font-size: 9px;
+      font-weight: 850;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+    .rail-section { margin-top: 12px; }
+    .rail-heading {
+      margin: 0 0 5px;
+      color: #fff;
+      font-size: 10.2px;
+      font-weight: 850;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+    }
+    .rail p, .rail li { color: var(--sidebar-muted); }
+    .contact-list, .detail-list {
+      display: grid;
+      gap: 4px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .contact-list li, .detail-list li { overflow-wrap: anywhere; font-size: 10px; line-height: 1.36; }
+    .contact-list a { color: #fff; text-decoration-color: rgba(197,239,113,.6); text-underline-offset: 2px; }
+    .rail strong { color: #fff; }
+    .skill-group { margin-top: 6px; }
+    .skill-group strong { display: block; margin-bottom: 1px; font-size: 10px; }
+    .skill-group p, .rail-copy { margin: 0; font-size: 9.5px; line-height: 1.38; }
+    .cert-list { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+    .cert-list li { padding-left: 7px; border-left: 2px solid rgba(197,239,113,.58); color: var(--sidebar-muted); font-size: 9.1px; line-height: 1.3; }
+    .cert-list small { display: block; margin-top: 1px; color: #91aaa0; font-size: 8.4px; }
+    .rail-copy + .rail-copy { margin-top: 4px; }
+    .cert-copy { margin: 0; color: var(--sidebar-muted); font-size: 9px; line-height: 1.35; }
+    .name {
+      max-width: calc(100% - 24mm);
+      margin: 0;
+      color: #14231e;
+      font-size: 37px;
+      line-height: 1;
+      letter-spacing: -.06em;
+      font-weight: 900;
+    }
+    .role {
+      max-width: calc(100% - 22mm);
+      margin: 8px 0 0;
+      color: var(--green);
+      font-size: 13.5px;
+      line-height: 1.4;
+      font-weight: 850;
+    }
+    .objective {
+      margin: 11px 0 0;
+      padding: 8px 10px;
+      border-left: 3px solid var(--orange);
+      color: #46534d;
+      background: #f6f8f6;
+      font-size: 10.9px;
+      line-height: 1.4;
+    }
+    .profile { margin: 10px 0 0; color: #46534d; font-size: 11.2px; line-height: 1.42; }
+    .focus-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 9px; }
+    .focus-pill { padding: 3px 8px; border: 1px solid #d7e7dd; border-radius: 999px; color: #286349; background: #f4f8f3; font-size: 8.6px; font-weight: 800; }
+    .section { margin-top: 13px; }
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 6px;
+      color: #162b23;
+      font-size: 10.6px;
+      font-weight: 900;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+    }
+    .section-title::after { height: 1px; flex: 1; content: ""; background: var(--line); }
+    .entry {
+      position: relative;
+      padding: 0 0 0 11px;
+      border-left: 1px solid #cddbd3;
+    }
+    .entry::before {
+      position: absolute;
+      top: 3px;
+      left: -4px;
+      width: 7px;
+      height: 7px;
+      border: 1px solid #fff;
+      border-radius: 50%;
+      content: "";
+      background: var(--green);
+      box-shadow: 0 0 0 1px var(--green);
+    }
+    .entry-head, .project-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+    }
+    .entry-head h3, .project-top h3 { flex: 1 1 auto; }
+    .entry h3, .project h3 {
+      margin: 0;
+      color: #192923;
+      font-size: 13.5px;
+      line-height: 1.3;
+      font-weight: 850;
+      letter-spacing: -.015em;
+    }
+    .entry-meta, .project-period {
+      flex: 0 1 auto;
+      max-width: 56%;
+      color: #526b5e;
+      font-size: 10px;
+      font-weight: 800;
+      text-align: right;
+    }
+    .entry-subtitle { margin: 2px 0 3px; color: var(--green); font-size: 10.1px; font-weight: 800; }
+    .entry p, .project p { margin: 0; color: #526059; font-size: 10.8px; line-height: 1.36; }
+    .bullet-list { display: grid; gap: 2px; margin: 4px 0 0; padding-left: 14px; color: #526059; font-size: 10px; line-height: 1.32; }
+    .bullet-list li::marker { color: var(--orange); }
+    .project-list { display: grid; gap: 7px; }
+    .project { padding: 0 0 5px; border-bottom: 1px solid #e7ece9; }
+    .project:last-child { padding-bottom: 0; border-bottom: 0; }
+    .project-label {
+      flex: 0 0 auto;
+      color: #89958f;
+      font-size: 8px;
+      font-weight: 850;
+      letter-spacing: .07em;
+    }
+    .project p { margin-top: 2px; }
+    .metric-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+    .metric { padding: 3px 6px; border-radius: 3px; color: #315e4b; background: #eef5ef; font-size: 8.1px; line-height: 1.2; font-weight: 800; }
+    [data-editable] { outline: 0; }
+    body.is-editing [data-editable] {
+      border-radius: 3px;
+      outline: 1px dashed rgba(240,120,74,.5);
+      outline-offset: 2px;
+      cursor: text;
+    }
+    body.is-editing [data-editable]:focus { outline: 2px solid var(--orange); background: #fff9f5; }
+    .rail [data-editable]:focus { color: #fff; background: rgba(255,255,255,.08); }
+    @media (max-width: 720px) {
+      .toolbar { position: relative; flex-wrap: wrap; gap: 7px; }
+      .toolbar-note { flex-basis: 100%; margin: 0; text-align: center; }
+      .toolbar-status { min-width: 0; }
+      .resume { padding: 12px 8px 24px; }
+      .sheet { grid-template-columns: 1fr; min-height: 0; }
+      .rail, .main-column { padding: 22px; }
+      .portrait { width: min(100%, 200px); height: auto; aspect-ratio: 896 / 1195; }
+      .qr-mark { position: static; width: 20mm; margin: 0 0 12px auto; }
+      .rail { order: 2; }
+      .main-column { order: 1; }
+    }
+    @page { size: A4; margin: 0; }
+    @media print {
+      html, body { width: 210mm; height: 297mm; margin: 0; background: #fff; }
+      body { font-size: 11px; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      .toolbar { display: none !important; }
+      .resume { padding: 0; }
+      .sheet {
+        grid-template-columns: 30% 70%;
+        grid-template-rows: minmax(0, 1fr);
+        width: 210mm;
+        height: 297mm;
+        min-height: 297mm;
+        margin: 0;
+        box-shadow: none;
+        break-after: auto;
+        page-break-after: auto;
+      }
+      .rail { order: 0; padding: 11mm 7mm 8mm; }
+      .main-column { order: 0; padding: 11mm 11mm 8mm; }
+      .portrait { height: 46mm; }
+      body.is-editing [data-editable] { outline: none !important; }
+      a { color: inherit; text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="toolbar" aria-label="Công cụ chỉnh sửa CV">
+    <span class="toolbar-note">CV một trang · nội dung có thể chỉnh sửa và lưu trên trình duyệt</span>
+    <button class="primary" id="editToggle" type="button">Bật chế độ sửa</button>
+    <button id="exportButton" type="button">Tải HTML đã sửa</button>
+    <button id="printButton" type="button">In / lưu PDF</button>
+    <span class="toolbar-status" id="saveStatus" role="status" aria-live="polite"></span>
+  </nav>
+
+  <main class="resume" id="resume">
+    <section class="sheet" aria-label="CV Hoàng Quốc Việt - một trang">
+      <aside class="rail">
+        <img class="portrait" src="assets/images/cv-anh-33.jpg" alt="Ảnh chân dung Hoàng Quốc Việt">
+        <p class="rail-kicker">Marketing · MarTech</p>
+
+        <section class="rail-section">
+          <h2 class="rail-heading">Liên hệ</h2>
+          <ul class="contact-list">
+            <li><a href="tel:0355425836" data-editable data-key="contact-phone">Số điện thoại: 0355425836</a></li>
+            <li><a href="mailto:viet.hq.work@gmail.com" data-editable data-key="contact-email">E-mail: viet.hq.work@gmail.com</a></li>
+            <li><a href="https://hoangquocviet.id.vn" data-editable data-key="contact-site">Website: hoangquocviet.id.vn</a></li>
+          </ul>
+        </section>
+
+        <section class="rail-section">
+          <h2 class="rail-heading">Thông tin cá nhân</h2>
+          <ul class="detail-list">
+            <li><strong>Ngày sinh:</strong> <span data-editable data-key="birth-date">26/11/2005</span></li>
+            <li><strong>Địa chỉ:</strong> <span data-editable data-key="address">Phường Thanh Liệt, Hà Nội</span></li>
+          </ul>
+        </section>
+
+        <section class="rail-section">
+          <h2 class="rail-heading">Học vấn</h2>
+          <p class="rail-copy" data-editable data-key="education">Sinh viên năm 4 · Quản trị Marketing<br>Trường Đại học Công nghệ Giao thông vận tải</p>
+        </section>
+
+        <section class="rail-section">
+          <h2 class="rail-heading">Năng lực &amp; công cụ</h2>
+          <div class="skill-group">
+            <strong data-editable data-key="skill-automation-title">AI &amp; Automation</strong>
+            <p data-editable data-key="skill-automation">n8n · Workflow Automation · API / Webhooks · AI Agents · JSON · Telegram Routing</p>
+          </div>
+          <div class="skill-group">
+            <strong data-editable data-key="skill-data-title">Data &amp; Research</strong>
+            <p data-editable data-key="skill-data">SPSS · AMOS · EFA · Cronbach’s Alpha · Hồi quy · Excel nâng cao · Nghiên cứu định lượng</p>
+          </div>
+          <div class="skill-group">
+            <strong data-editable data-key="skill-martech-title">MarTech &amp; AI-assisted Dev</strong>
+            <p data-editable data-key="skill-martech">Git / GitHub · Claude Code · MCP · GitHub Copilot · VS Code · Prototyping</p>
+          </div>
+          <div class="skill-group">
+            <strong data-editable data-key="skill-marketing-title">Marketing &amp; Creative</strong>
+            <p data-editable data-key="skill-marketing">Consumer Behavior · Customer Journey · Marketing Funnel · CRO · Canva · CapCut</p>
+          </div>
+        </section>
+
+        <section class="rail-section">
+          <h2 class="rail-heading">Chứng chỉ &amp; ngoại ngữ</h2>
+          <ul class="cert-list">
+            <li data-editable data-key="cert-anthropic">Claude 101 · Claude Code 101 · Claude Code in Action<small>Anthropic</small></li>
+            <li data-editable data-key="cert-mcp">Introduction to Model Context Protocol · Model Context Protocol: Advanced Topics<small>Anthropic</small></li>
+            <li data-editable data-key="cert-google">Google Analytics / GA4 Certification<small>Google</small></li>
+            <li data-editable data-key="cert-hubspot">HubSpot Inbound Certification<small>HubSpot</small></li>
+            <li data-editable data-key="cert-toeic-lr">TOEIC Listening &amp; Reading: 690 (Listening 400 · Reading 290)<small>ETS</small></li>
+            <li data-editable data-key="cert-toeic-sw">TOEIC Speaking &amp; Writing: 260 (Speaking 110 · Writing 150)<small>ETS</small></li>
+          </ul>
+        </section>
+
+        <section class="rail-section">
+          <h2 class="rail-heading">Nghiên cứu</h2>
+          <p class="rail-copy" data-editable data-key="research-note">Thành viên đề tài cấp trường về ứng dụng AI trong học tập và năng suất sinh viên. Mã ĐTTĐ2425-20 · 04/2025–03/2026 · Ngân sách 20.000.000 VNĐ.</p>
+        </section>
+
+        <section class="rail-section">
+          <h2 class="rail-heading">Thông tin bổ sung</h2>
+          <p class="rail-copy" data-editable data-key="availability">Định hướng: Marketing Operations · MarTech · CRM Operations · Lifecycle Marketing · Growth Operations.</p>
+        </section>
+      </aside>
+
+      <div class="main-column">
+        <a class="qr-mark" href="https://hoangquocviet.id.vn" target="_blank" rel="noreferrer" aria-label="Quét mã QR để mở website">
+          <img src="assets/images/cv-site-qr.svg" data-qr-image alt="QR dẫn đến hoangquocviet.id.vn">
+          <span>HOANGQUOCVIET.ID.VN</span>
+        </a>
+        <p class="eyebrow">Curriculum vitae · 2026</p>
+        <h1 class="name" data-editable data-key="name">Hoàng Quốc Việt</h1>
+        <p class="role" data-editable data-key="role">Marketing Operations · MarTech · AI-enabled Marketing</p>
+        <p class="profile" data-editable data-key="profile">Ứng dụng tư duy Marketing, dữ liệu, AI và tự động hóa để biến quy trình thủ công thành hệ thống có cấu trúc, đo lường được và cải tiến liên tục. Có kinh nghiệm điều phối truyền thông, nghiên cứu định lượng và xây dựng workflow giải quyết bài toán thực tế.</p>
+        <div class="focus-row" aria-label="Lĩnh vực trọng tâm">
+          <span class="focus-pill" data-editable data-key="focus-1">Marketing Operations</span>
+          <span class="focus-pill" data-editable data-key="focus-2">Workflow Automation</span>
+          <span class="focus-pill" data-editable data-key="focus-3">Research &amp; Analytics</span>
+          <span class="focus-pill" data-editable data-key="focus-4">MarTech</span>
+        </div>
+        <p class="objective"><strong>Mục tiêu nghề nghiệp:</strong> <span data-editable data-key="objective">Phát triển trong lĩnh vực Marketing Operations và MarTech; ứng dụng dữ liệu, AI và tự động hóa để cải thiện quy trình, trải nghiệm khách hàng và hiệu quả vận hành.</span></p>
+
+        <section class="section">
+          <h2 class="section-title">Kinh nghiệm</h2>
+          <article class="entry">
+            <div class="entry-head">
+              <h3 data-editable data-key="experience-role">Phó Chủ nhiệm: Truyền thông</h3>
+              <span class="entry-meta" data-editable data-key="experience-period">UMC: 09/2023–02/2026 · Phó CN từ ~02/2025</span>
+            </div>
+            <p class="entry-subtitle" data-editable data-key="experience-org">CLB MC - Sự kiện, Trường Đại học Công nghệ Giao thông vận tải (UMC)</p>
+            <p data-editable data-key="experience-summary">Điều phối nhóm thiết kế, video và nội dung; theo dõi xu hướng, phát triển ấn phẩm và phối hợp triển khai truyền thông đa kênh từ ý tưởng đến chiến dịch thực tế.</p>
+            <ul class="bullet-list">
+              <li data-editable data-key="experience-bullet-1">Kết nối các đầu việc Communication, Design, Video và Campaign Execution.</li>
+              <li data-editable data-key="experience-bullet-2">Thiết kế Canva khoảng 5 năm, dựng video CapCut khoảng 4 năm.</li>
+            </ul>
+          </article>
+        </section>
+
+        <section class="section">
+          <h2 class="section-title">Dự án tiêu biểu</h2>
+          <div class="project-list">
+            <article class="project">
+              <div class="project-top">
+                <h3 data-editable data-key="project-portfolio-title">Kiến trúc nền tảng Portfolio cá nhân</h3>
+                <span class="project-period" data-editable data-key="project-portfolio-period">MARTECH · 10/2026–Hiện tại</span>
+              </div>
+              <p data-editable data-key="project-portfolio-copy">Tự xây dựng website portfolio và CMS riêng, lưu nội dung trong cơ sở dữ liệu; giao diện responsive, phản hồi dưới một giây và thuận tiện cập nhật, bảo trì.</p>
+              <div class="metric-row"><span class="metric" data-editable data-key="project-portfolio-metric-1">&lt; 1 giây phản hồi</span><span class="metric" data-editable data-key="project-portfolio-metric-2">CMS tùy chỉnh</span><span class="metric" data-editable data-key="project-portfolio-metric-3">Responsive</span></div>
+            </article>
+
+            <article class="project">
+              <div class="project-top">
+                <h3 data-editable data-key="project-lead-title">Tự động tìm kiếm &amp; phân loại Lead B2B</h3>
+                <span class="project-period" data-editable data-key="project-lead-period">AI · AUTOMATION · 09/2026</span>
+              </div>
+              <p data-editable data-key="project-lead-copy">Dùng n8n tìm bài đăng trên mạng xã hội có nhu cầu dịch vụ, lọc nội dung rác và dùng AI phân loại ý định mua; dữ liệu JSON kèm nguồn được gửi cho Sales để liên hệ lead nóng nhanh hơn.</p>
+              <div class="metric-row"><span class="metric" data-editable data-key="project-lead-metric-1">n8n</span><span class="metric" data-editable data-key="project-lead-metric-2">LLM routing</span><span class="metric" data-editable data-key="project-lead-metric-3">Structured JSON</span></div>
+            </article>
+
+            <article class="project">
+              <div class="project-top">
+                <h3 data-editable data-key="project-docs-title">Tổng hợp đề xuất &amp; bình luận Google Docs</h3>
+                <span class="project-period" data-editable data-key="project-docs-period">WORKFLOW · 06/2026</span>
+              </div>
+              <p data-editable data-key="project-docs-copy">Tự động thu thập bình luận và đề xuất chỉnh sửa (kể cả tài liệu nhiều tab), dùng AI tóm tắt và phân loại rồi đưa kết quả vào Google Sheets để nhóm xử lý tập trung.</p>
+              <div class="metric-row"><span class="metric" data-editable data-key="project-docs-metric-1">Hỗ trợ multi-tab</span><span class="metric" data-editable data-key="project-docs-metric-2">Google Docs → Sheets</span></div>
+            </article>
+
+            <article class="project">
+              <div class="project-top">
+                <h3 data-editable data-key="project-research-title">Nghiên cứu hành vi mua sắm trực tuyến</h3>
+                <span class="project-period" data-editable data-key="project-research-period">RESEARCH · DATA · 2025–2026</span>
+              </div>
+              <p data-editable data-key="project-research-copy">Nghiên cứu ảnh hưởng của yếu tố tâm lý và nhân khẩu học đến mua sắm online tại Hà Nội; kiểm tra độ tin cậy thang đo và phân tích 193 phản hồi bằng SPSS / AMOS, Extended UTAUT để đề xuất phân khúc và cá nhân hóa Marketing.</p>
+              <div class="metric-row"><span class="metric" data-editable data-key="project-research-metric-1">193 phản hồi hợp lệ</span><span class="metric" data-editable data-key="project-research-metric-2">KMO 0.849</span><span class="metric" data-editable data-key="project-research-metric-3">R² 0.694</span><span class="metric" data-editable data-key="project-research-metric-4">68.7% variance</span></div>
+            </article>
+
+            <article class="project">
+              <div class="project-top">
+                <h3 data-editable data-key="project-design-title">UTT AI Design Network</h3>
+                <span class="project-period" data-editable data-key="project-design-period">AI · CREATIVE · 03/2026</span>
+              </div>
+              <p data-editable data-key="project-design-copy">Kết hợp Stable Diffusion XL, LoRA và ControlNet Canny để tạo ấn phẩm UTT mà vẫn giữ bố cục, vật thể và màu sắc thương hiệu; tạo 76 hình, giữ ~80% cấu trúc, khoảng 5 giây mỗi ảnh.</p>
+              <div class="metric-row"><span class="metric" data-editable data-key="project-design-metric-1">76 hình ảnh</span><span class="metric" data-editable data-key="project-design-metric-2">~80% giữ cấu trúc</span><span class="metric" data-editable data-key="project-design-metric-3">~5 giây / ảnh</span></div>
+            </article>
+
+            <article class="project">
+              <div class="project-top">
+                <h3 data-editable data-key="project-excel-title">Đồng bộ dữ liệu Excel sang Word</h3>
+                <span class="project-period" data-editable data-key="project-excel-period">AUTOMATION · 09/2026</span>
+              </div>
+              <p data-editable data-key="project-excel-copy">Tự động đưa dữ liệu Excel vào đúng vị trí trong Word mà không vỡ khung, đổi font hay mất bookmark; xử lý dưới 5 giây, giữ tham chiếu chính xác và không tốn chi phí vận hành.</p>
+              <div class="metric-row"><span class="metric" data-editable data-key="project-excel-metric-1">&lt; 5 giây xử lý</span><span class="metric" data-editable data-key="project-excel-metric-2">100% chính xác bookmark</span><span class="metric" data-editable data-key="project-excel-metric-3">0 VNĐ vận hành</span></div>
+            </article>
+
+            <article class="project">
+              <div class="project-top">
+                <h3 data-editable data-key="project-ai-research-title">AI &amp; Learning Performance Research</h3>
+                <span class="project-period" data-editable data-key="project-ai-research-period">RESEARCH · 04/2025–03/2026</span>
+              </div>
+              <p data-editable data-key="project-ai-research-copy">Thành viên đề tài cấp trường · Trường ĐH Công nghệ GTVT; nghiên cứu AI như trợ lý học tập để hỗ trợ tóm tắt tài liệu và nâng cao năng suất sinh viên. Mã ĐTTĐ2425-20 · Ngân sách 20.000.000 VNĐ.</p>
+              <div class="metric-row"><span class="metric" data-editable data-key="project-ai-research-metric-1">ĐTTĐ2425-20</span><span class="metric" data-editable data-key="project-ai-research-metric-2">Ngân sách 20 triệu VNĐ</span></div>
+            </article>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      const storageKey = 'hqv-editable-cv-one-page2-v1';
+      const editableItems = [...document.querySelectorAll('[data-editable][data-key]')];
+      const editToggle = document.getElementById('editToggle');
+      const exportButton = document.getElementById('exportButton');
+      const saveStatus = document.getElementById('saveStatus');
+      const embedded = window.self !== window.top;
+      let saveTimer;
+      if (embedded) document.querySelector('.toolbar').hidden = true;
+
+      function setEditing(enabled) {
+        document.body.classList.toggle('is-editing', enabled);
+        editableItems.forEach((item) => {
+          item.contentEditable = String(enabled);
+          item.spellcheck = enabled;
+        });
+        editToggle.textContent = enabled ? 'Tắt chế độ sửa' : 'Bật chế độ sửa';
+        if (enabled) editableItems[0]?.focus();
+      }
+
+      function saveEdits() {
+        if (embedded) return;
+        const saved = Object.fromEntries(editableItems.map((item) => [item.dataset.key, item.innerHTML]));
+        try {
+          localStorage.setItem(storageKey, JSON.stringify(saved));
+          saveStatus.textContent = 'Đã lưu';
+        } catch (error) {
+          saveStatus.textContent = 'Không lưu được trên trình duyệt';
+          console.error('CV save failed', error);
+        }
+      }
+
+      function updateContactHref(item) {
+        const value = item.textContent.trim();
+        if (item.dataset.key === 'contact-phone') {
+          item.href = `tel:${value.replace(/^Số điện thoại:\s*/i, '').replace(/[^\d+]/g, '')}`;
+        } else if (item.dataset.key === 'contact-email') {
+          item.href = `mailto:${value.replace(/^E-mail:\s*/i, '')}`;
+        } else if (item.dataset.key === 'contact-site') {
+          const site = value.replace(/^Website:\s*/i, '');
+          item.href = /^https?:\/\//i.test(site) ? site : `https://${site}`;
+        }
+      }
+
+      if (!embedded) {
+        try {
+          const saved = JSON.parse(localStorage.getItem(storageKey) || '{}');
+          editableItems.forEach((item) => {
+            if (typeof saved[item.dataset.key] === 'string') item.innerHTML = saved[item.dataset.key];
+          });
+          editableItems.forEach(updateContactHref);
+        } catch (error) {
+          saveStatus.textContent = 'Bản lưu cũ không đọc được';
+          console.error('CV restore failed', error);
+        }
+      }
+
+      editToggle.addEventListener('click', () => setEditing(!document.body.classList.contains('is-editing')));
+      document.getElementById('resume').addEventListener('input', (event) => {
+        if (!event.target.matches('[data-editable]')) return;
+        updateContactHref(event.target);
+        saveStatus.textContent = 'Đang lưu…';
+        window.clearTimeout(saveTimer);
+        saveTimer = window.setTimeout(saveEdits, 300);
+      });
+      exportButton.addEventListener('click', async () => {
+        saveEdits();
+        try {
+          const toDataUrl = (image, mimeType) => {
+            if (!image.complete || !image.naturalWidth) throw new Error('image_not_loaded');
+            const canvas = document.createElement('canvas');
+            canvas.width = image.naturalWidth;
+            canvas.height = image.naturalHeight;
+            canvas.getContext('2d').drawImage(image, 0, 0);
+            return canvas.toDataURL(mimeType, .92);
+          };
+          const portraitData = toDataUrl(document.querySelector('.portrait'), 'image/jpeg');
+          const qrData = toDataUrl(document.querySelector('.qr-mark img'), 'image/png');
+          const clone = document.documentElement.cloneNode(true);
+          clone.querySelector('.toolbar-status').textContent = '';
+          clone.querySelectorAll('.portrait').forEach((image) => { image.src = portraitData; });
+          clone.querySelectorAll('.qr-mark img').forEach((image) => { image.src = qrData; });
+          clone.querySelectorAll('[data-editable]').forEach((item) => {
+            item.setAttribute('contenteditable', 'true');
+            item.setAttribute('spellcheck', 'true');
+          });
+          const html = '<!DOCTYPE html>\n' + clone.outerHTML;
+          const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = 'CV-Hoang-Quoc-Viet-1-trang-2.html';
+          document.body.append(link);
+          link.click();
+          link.remove();
+          saveStatus.textContent = 'Đã xuất HTML';
+          window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch (error) {
+          saveStatus.textContent = 'Không xuất được HTML';
+          console.error('CV export failed', error);
+        }
+      });
+      document.getElementById('printButton').addEventListener('click', () => window.print());
+      window.addEventListener('beforeprint', () => {
+        if (document.body.classList.contains('is-editing')) setEditing(false);
+      });
+    })();
+  </script>
+</body>
+</html>

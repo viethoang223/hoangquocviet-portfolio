@@ -148,7 +148,29 @@ h2{font-size:clamp(34px,5.6vw,66px);line-height:.98;letter-spacing:-.05em;font-w
 .asset-preview img{width:48px;height:36px;object-fit:cover;border-radius:7px;border:1px solid rgba(255,255,255,.10)}
 @keyframes avatarGlow{to{transform:scale(1.08) rotate(-2deg)}}
 @keyframes slowSpin{to{transform:rotate(360deg)}}
-.approach-shell{margin-top:46px;display:grid;grid-template-columns:1.08fr .92fr;gap:24px;align-items:stretch}
+.approach-intro{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(340px,.92fr);gap:32px;align-items:center;margin-top:26px}
+.approach-intro-copy h2{font-size:clamp(34px,4.6vw,60px)}
+.approach-intro-copy .lead{max-width:720px}
+.cv-feature{min-width:0;padding:16px;border:1px solid rgba(200,240,0,.18);border-radius:22px;background:linear-gradient(145deg,rgba(200,240,0,.065),rgba(255,255,255,.018));box-shadow:0 20px 56px rgba(0,0,0,.22)}
+.cv-feature[hidden]{display:none}
+.cv-feature-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
+.cv-feature-label{color:var(--lime);font:900 10px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase}
+.cv-feature-open{flex:none;padding:9px 12px;border:1px solid rgba(200,240,0,.28);border-radius:999px;background:rgba(200,240,0,.08);color:#fff;font-size:11px;font-weight:850;cursor:pointer}
+.cv-feature-open:hover,.cv-feature-open:focus-visible{background:rgba(200,240,0,.16);outline:2px solid rgba(200,240,0,.4);outline-offset:2px}
+.cv-feature-frame{display:block;width:100%;height:440px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:#e9eeeb}
+.cv-feature-error{margin-top:10px;color:#ffb89e;font-size:12px;line-height:1.5}
+.approach-shell{margin-top:32px;display:grid;grid-template-columns:1fr;gap:18px;align-items:stretch}
+#cvDialog{width:min(1400px,98vw);height:min(94dvh,1000px);max-width:none;max-height:none;padding:0;border:1px solid rgba(255,255,255,.12);border-radius:18px;background:#080a0f;color:#fff;overflow:hidden}
+#cvDialog::backdrop{background:rgba(0,0,0,.78);backdrop-filter:blur(8px)}
+.cv-dialog-head{height:58px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 14px 8px 18px;border-bottom:1px solid rgba(255,255,255,.08);background:#0d1117}
+.cv-dialog-head h2{font-size:15px;letter-spacing:0}
+.cv-dialog-controls,.cv-language-switch{display:flex;align-items:center;gap:8px}
+.cv-language-switch{padding:3px;border:1px solid rgba(255,255,255,.12);border-radius:999px}
+.cv-language-switch button,.cv-dialog-close{border:0;border-radius:999px;background:transparent;color:rgba(255,255,255,.65);font-weight:850;cursor:pointer}
+.cv-language-switch button{padding:7px 10px;font-size:10px}
+.cv-language-switch button[aria-pressed="true"]{background:rgba(200,240,0,.14);color:var(--lime)}
+.cv-dialog-close{width:34px;height:34px;background:rgba(255,255,255,.06);color:#fff;font-size:23px;line-height:1}
+.cv-dialog-frame{display:block;width:100%;height:calc(100% - 58px);border:0;background:#e9eeeb}
 .approach-panel{position:relative;padding:28px;border:1px solid rgba(255,255,255,.09);border-radius:22px;background:linear-gradient(145deg,rgba(255,255,255,.038),rgba(255,255,255,.012));overflow:hidden}
 .approach-panel::before{content:"";position:absolute;inset:-50% -25% auto;height:120%;background:conic-gradient(from 25deg,transparent 0 26%,rgba(255,107,53,.09) 33%,transparent 42%,rgba(167,139,250,.08) 64%,transparent 74%);animation:slowSpin 26s linear infinite}
 .approach-panel>*{position:relative;z-index:1}
@@ -159,12 +181,14 @@ h2{font-size:clamp(34px,5.6vw,66px);line-height:.98;letter-spacing:-.05em;font-w
 .formula-arrow{color:rgba(255,255,255,.25);font-size:.52em;text-align:center}
 .result-band{margin-top:16px;padding:14px 16px;border-radius:14px;background:linear-gradient(135deg,rgba(255,107,53,.12),rgba(255,45,135,.10),rgba(167,139,250,.08));border:1px solid rgba(255,107,53,.16);font-size:15px;font-weight:900;letter-spacing:-.02em}
 .process-panel{padding:28px;border:1px solid rgba(34,211,238,.12);border-radius:22px;background:linear-gradient(145deg,rgba(34,211,238,.05),rgba(255,255,255,.015))}
+.process-panel{display:grid;grid-template-columns:minmax(150px,.35fr) 1fr;gap:20px;align-items:start}
 .process-kicker{font:10px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.11em;color:var(--cyan);text-transform:uppercase}
-.process-list{display:grid;gap:8px;margin-top:18px}
+.process-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:0}
 .process-item{display:flex;align-items:center;gap:10px;padding:11px 12px;border:1px solid rgba(255,255,255,.07);border-radius:12px;background:rgba(255,255,255,.022);font-size:11px;color:rgba(255,255,255,.72)}
 .process-item b{width:20px;height:20px;border-radius:7px;display:grid;place-items:center;background:rgba(34,211,238,.12);color:var(--cyan);font-size:9px}
 .process-item:nth-child(3) b{background:rgba(167,139,250,.13);color:var(--violet)}.process-item:nth-child(4) b{background:rgba(200,240,0,.12);color:var(--lime)}
-@media(max-width:900px){.approach-shell{grid-template-columns:1fr}.formula-row{grid-template-columns:1fr auto}.formula-row .micro{grid-column:1/-1;padding-left:2px}}
+@media(max-width:900px){.approach-intro{grid-template-columns:1fr}.approach-shell{grid-template-columns:1fr}.process-panel{grid-template-columns:1fr}.process-list{grid-template-columns:repeat(2,minmax(0,1fr))}.formula-row{grid-template-columns:1fr auto}.formula-row .micro{grid-column:1/-1;padding-left:2px}}
+@media(max-width:600px){.cv-feature{padding:12px;border-radius:17px}.cv-feature-head{align-items:flex-start;flex-direction:column}.cv-feature-frame{height:390px}.process-panel{padding:20px}.process-list{grid-template-columns:1fr}.approach-shell{margin-top:24px}#cvDialog{width:100vw;height:100dvh;border-radius:0}.cv-dialog-head{height:54px;padding-inline:12px}.cv-dialog-frame{height:calc(100% - 54px)}}
 .project-list{display:grid;gap:16px;margin-top:46px}
 .insights-empty{margin-top:46px;padding:28px;border:1px dashed rgba(34,211,238,.34);border-radius:16px;background:rgba(34,211,238,.055);color:rgba(255,255,255,.76);font:700 12px/1.6 ui-monospace,monospace;text-align:center}
 .project-card{position:relative;display:grid;grid-template-columns:minmax(0,.95fr) minmax(360px,1.05fr);gap:0;border:1px solid var(--line);border-radius:var(--radius);background:rgba(255,255,255,.025);overflow:hidden;transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease}
@@ -719,8 +743,17 @@ dialog.contact-success{position:fixed;inset:0;width:100vw;height:100dvh;max-widt
 <section id="approach" class="section alt" aria-labelledby="approach-title">
   <div class="section-wash warm"></div><div class="wrap">
     <p class="eyebrow reveal" data-i18n="approach.eyebrow">Cách mà tôi hình dung, và làm việc</p>
-    <h2 id="approach-title" class="reveal"><span class="warm">Marketing</span> <span class="warm">×</span> <span class="cyan">Data</span> <span class="cyan">×</span> <span class="violet">AI</span> <span class="violet">×</span> <span class="accent">Automation</span> <span class="accent">→</span> <span data-i18n="approach.resultTitle">Marketing Operations</span></h2>
-    <p class="lead reveal" id="approachLead">Mình tập trung vào cách công nghệ biến một vấn đề Marketing thành quy trình có thể vận hành, đo lường, chuẩn hóa và cải thiện liên tục.</p>
+    <div class="approach-intro">
+      <div class="approach-intro-copy">
+        <h2 id="approach-title" class="reveal"><span class="warm">Marketing</span> <span class="warm">×</span> <span class="cyan">Data</span> <span class="cyan">×</span> <span class="violet">AI</span> <span class="violet">×</span> <span class="accent">Automation</span> <span class="accent">→</span> <span data-i18n="approach.resultTitle">Marketing Operations</span></h2>
+        <p class="lead reveal" id="approachLead">Mình tập trung vào cách công nghệ biến một vấn đề Marketing thành quy trình có thể vận hành, đo lường, chuẩn hóa và cải thiện liên tục.</p>
+      </div>
+      <article class="cv-feature reveal" id="cvFeature">
+        <div class="cv-feature-head"><span class="cv-feature-label">Curriculum vitae · English</span><button class="cv-feature-open" type="button" data-cv-open>View full CV ↗</button></div>
+        <iframe class="cv-feature-frame" id="cvPreviewFrame" src="./cv-one-page2-en.html" title="English CV preview" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" sandbox="allow-scripts"></iframe>
+        <p class="cv-feature-error" id="cvFeatureError" role="status" hidden>CV preview could not be loaded. Please check the CV URL in Admin.</p>
+      </article>
+    </div>
     <div class="approach-shell">
       <div class="approach-panel reveal"><div class="formula">
         <div class="formula-row mkt"><span class="label" data-i18n="formula.marketing">Marketing</span><span class="formula-arrow">×</span><span class="micro" data-i18n="formula.marketingMicro">hiểu người mua và câu chuyện sau con số</span></div>
@@ -728,10 +761,10 @@ dialog.contact-success{position:fixed;inset:0;width:100vw;height:100dvh;max-widt
         <div class="formula-row ai"><span class="label" data-i18n="formula.ai">AI</span><span class="formula-arrow">×</span><span class="micro" data-i18n="formula.aiMicro">đẩy nhanh phân tích, tạo nội dung và xử lý</span></div>
         <div class="formula-row auto"><span class="label" data-i18n="formula.auto">Automation</span><span class="formula-arrow">↓</span><span class="micro" data-i18n="formula.autoMicro">để phần việc lặp lại chạy đúng và có cấu trúc</span></div>
       </div><div class="result-band" data-i18n="formula.result">Marketing Operations — vận hành được · đo lường được · tối ưu được</div></div>
-      <div class="process-panel reveal"><div class="process-kicker" data-i18n="process.kicker">Working loop</div><div class="process-list">
-        <div class="process-item"><b>01</b><span data-i18n="process.1">Marketing Problem</span></div><div class="process-item"><b>02</b><span data-i18n="process.2">Research / Data</span></div><div class="process-item"><b>03</b><span data-i18n="process.3">Process Design</span></div><div class="process-item"><b>04</b><span data-i18n="process.4">AI / Automation</span></div><div class="process-item"><b>05</b><span data-i18n="process.5">Workflow / System</span></div><div class="process-item"><b>06</b><span data-i18n="process.6">Structured Output → Decision → Measurement</span></div>
-      </div></div>
     </div>
+    <div class="process-panel reveal"><div class="process-kicker" data-i18n="process.kicker">Working loop</div><div class="process-list">
+      <div class="process-item"><b>01</b><span data-i18n="process.1">Marketing Problem</span></div><div class="process-item"><b>02</b><span data-i18n="process.2">Research / Data</span></div><div class="process-item"><b>03</b><span data-i18n="process.3">Process Design</span></div><div class="process-item"><b>04</b><span data-i18n="process.4">AI / Automation</span></div><div class="process-item"><b>05</b><span data-i18n="process.5">Workflow / System</span></div><div class="process-item"><b>06</b><span data-i18n="process.6">Structured Output → Decision → Measurement</span></div>
+    </div></div>
   </div>
 </section>
 
@@ -802,6 +835,10 @@ dialog.contact-success{position:fixed;inset:0;width:100vw;height:100dvh;max-widt
 <footer><span>© 2026 Hoàng Quốc Việt · hoangquocviet.id.vn · Marketing Operations &amp; Automation</span></footer>
 
 <dialog id="caseDialog" aria-modal="true" aria-label="Chi tiết case study"><div class="modal-scroll" id="caseContent"></div></dialog>
+<dialog id="cvDialog" aria-modal="true" aria-labelledby="cvDialogTitle">
+  <div class="cv-dialog-head"><h2 id="cvDialogTitle">Curriculum vitae</h2><div class="cv-dialog-controls"><div class="cv-language-switch" role="group" aria-label="CV language"><button type="button" data-cv-lang="en" aria-pressed="true">EN</button><button type="button" data-cv-lang="vi" aria-pressed="false">VI</button></div><button type="button" class="cv-dialog-close" data-cv-close aria-label="Close CV">×</button></div></div>
+  <iframe class="cv-dialog-frame" id="cvDialogFrame" title="Detailed CV" referrerpolicy="strict-origin-when-cross-origin" sandbox="allow-scripts"></iframe>
+</dialog>
 <div id="globalPreviewBanner" class="global-preview-banner" hidden><span>DRAFT PREVIEW</span><button type="button" id="closeGlobalPreview" aria-label="Close preview">×</button></div>
 <dialog id="viewerDialog" class="viewer" aria-modal="true" aria-label="Xem bằng chứng"><div class="viewer-scroll"><div class="viewer-head" id="viewerHead"></div><div class="viewer-body" id="viewerBody"></div></div></dialog>
 <dialog id="contactSuccessDialog" class="contact-success" aria-modal="true" aria-labelledby="contactSuccessTitle">
@@ -833,8 +870,8 @@ dialog.contact-success{position:fixed;inset:0;width:100vw;height:100dvh;max-widt
 
 
 
-<script src="./shared.js?v=20261021-insights-copy-1"></script>
-<script src="./site.js?v=20261021-insights-copy-1"></script>
+<script src="./shared.js?v=20261021-cv-integration-1"></script>
+<script src="./site.js?v=20261021-cv-integration-1"></script>
 
 
 

@@ -4,8 +4,50 @@ let isGlobalPreview=location.hash==='#global-preview';
 let draftPreviewRuntime=null;
 let isDraftPreview=location.hash==='#draft-preview';
 
+function safeCvSource(value){
+  try{
+    const url=new URL(String(value||''),location.href);
+    if(!['http:','https:'].includes(url.protocol)||url.username||url.password)return '';
+    if(url.origin!==location.origin&&url.protocol!=='https:')return '';
+    return url.href;
+  }catch(error){console.error('Invalid CV URL',error);return ''}
+}
+
+function renderCvFeature(home){
+  const feature=$('#cvFeature'),preview=$('#cvPreviewFrame'),error=$('#cvFeatureError');
+  if(!feature||!preview)return;
+  const visible=String(getLocalizedContent(home.cvVisible,'en')??'true')!=='false';
+  const source=safeCvSource(getLocalizedContent(home.cvUrl,'en')||'./cv-one-page2-en.html');
+  feature.hidden=!visible;
+  if(error)error.hidden=!!source;
+  const openButton=feature.querySelector('[data-cv-open]');
+  if(openButton)openButton.disabled=!source;
+  if(source&&safeCvSource(preview.getAttribute('src'))!==source){preview.dataset.source=source;preview.src=source}
+}
+
+function initCvViewer(){
+  const dialog=$('#cvDialog'),frame=$('#cvDialogFrame');
+  if(!dialog||!frame)return;
+  let language='en';
+  const setLanguage=lang=>{
+    language=lang;
+    const home=(globalPreviewContent||getGlobalContent(currentLang)).home||{};
+    const source=lang==='vi'?'./cv-one-page2.html':getLocalizedContent(home.cvUrl,'en')||'./cv-one-page2-en.html';
+    const safeSource=safeCvSource(source);
+    if(!safeSource){console.error('Invalid CV URL');return}
+    frame.src=safeSource;
+    $$('[data-cv-lang]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.cvLang===language)));
+    frame.title=lang==='vi'?'Vietnamese CV':'English CV';
+  };
+  $('[data-cv-open]')?.addEventListener('click',()=>{setLanguage('en');if(!dialog.open)dialog.showModal()});
+  $('[data-cv-close]')?.addEventListener('click',()=>dialog.close());
+  $$('[data-cv-lang]').forEach(button=>button.addEventListener('click',()=>setLanguage(button.dataset.cvLang)));
+  dialog.addEventListener('click',event=>{if(event.target===dialog)dialog.close()});
+}
+
 function applyGlobalContentToDOM(content,lang=currentLang){
   const requiredLabels={'home.status':'status','home.ctaProjects':'hero.projects','home.ctaContact':'hero.contact','home.nav.projects':'nav.projects','home.nav.skills':'nav.skills','home.nav.experience':'nav.experience','home.nav.contact':'nav.contact','home.nav.cta':'nav.cta'};const get=p=>{const value=getLocalizedContent(getPath(content,p),lang);return String(value??'').trim()?value:HQVShared.I18N[lang]?.[requiredLabels[p]]||''};const home=content.home,approach=content.approach,projects=content.projects,skills=content.skills,experience=content.experience,contact=content.contact,footer=content.footer;
+  renderCvFeature(home);
   $('#hero-title').textContent=get('home.name');
   const role=String(get('home.role')||'');$('.hero-role').innerHTML=role.split('·').map((x,i)=>`<span class="${i===0?'warm':i===1?'cyan':''}">${esc(x.trim())}</span>`).join(' · ');
   $('#heroSub').textContent=get('home.description');$('#statusText').textContent=get('home.status');$('.navlinks a[href="#projects"]').textContent=get('home.nav.projects');$('.navlinks a[href="#skills"]').textContent=get('home.nav.skills');$('.navlinks a[href="#experience"]').textContent=get('home.nav.experience');$('.navlinks a[href="#contact"]').textContent=get('home.nav.contact');$('.nav-cta [data-i18n="nav.cta"]').textContent=get('home.nav.cta');const heroProjects=$('.hero-actions a[href="#projects"]');const heroContact=$('.hero-actions a[href="#contact"]');if(heroProjects){heroProjects.href=safeLinkHref(get('home.ctaProjectsTarget'))||'#projects';heroProjects.querySelector('[data-i18n="hero.projects"]').textContent=get('home.ctaProjects')}if(heroContact){heroContact.href=safeLinkHref(get('home.ctaContactTarget'))||'#contact';heroContact.querySelector('[data-i18n="hero.contact"]').textContent=get('home.ctaContact')}
@@ -689,6 +731,7 @@ function initMiniGame(){
 
 initVisitCounter();
 initMiniGame();
+initCvViewer();
 observeMotion();
 document.addEventListener('visibilitychange', () => document.body.classList.toggle('page-hidden', document.hidden));
 HQVShared.on('assets', () => {
